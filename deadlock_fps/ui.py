@@ -46,7 +46,7 @@ class Window(QMainWindow):
         self.library=ModLibrary(Path(QStandardPaths.writableLocation(QStandardPaths.AppDataLocation))/'mods')
         root=QWidget();self.setCentralWidget(root);layout=QHBoxLayout(root);layout.setContentsMargins(0,0,0,0)
         sidebar=QFrame();sidebar.setObjectName('sidebar');sidebar.setFixedWidth(225);side=QVBoxLayout(sidebar);side.setContentsMargins(22,32,22,28);side.setSpacing(14)
-        side.addWidget(label('◈  DEADLOCK','brand'));side.addWidget(label('FPS STUDIO / 1.0.2','eyebrow'));side.addSpacing(40)
+        side.addWidget(label('◈  DEADLOCK','brand'));side.addWidget(label('FPS STUDIO / 1.0.3','eyebrow'));side.addSpacing(40)
         self.stack=QStackedWidget();self.nav=[];self.guard_signature=None;self.guard_retries=0;self.guard_attempts={}
         for index,text in enumerate(['لوحة التحكم','تخصيص الرسوم','المودات','النسخ والاسترجاع']):
             b=QPushButton(text);b.setCheckable(True);b.clicked.connect(lambda _,i=index:self.navigate(i));side.addWidget(b);self.nav.append(b)
@@ -100,14 +100,24 @@ class Window(QMainWindow):
     def check(self,layout,key,title):
         b=QCheckBox(title);b.stateChanged.connect(self.changed);layout.addWidget(b);self.controls[key]=b
     def graphics(self):
-        v=self.page();f,c=card('كل الرسوم في شريط واحد','استخدم مستوى التخفيف في لوحة التحكم. الوضع الأساسي 80/100 عنيف ويستند إلى إعداداتك المرفقة. جميع المستويات تحافظ على دقة الشاشة والعرض الداخلي وFSR/DLSS.');v.addWidget(f)
+        v=self.page()
+        f,c=card('عرض الرؤية • View width','نسبة الأبعاد مستقلة عن التخفيف. الأساسي 1.78 (16:9)، وارفعها حتى 3.50 لعرض أعرض. لا تتغير دقة الشاشة أو دقة العرض الداخلية.');v.addWidget(f)
+        row=QHBoxLayout();row.addWidget(label('Aspect ratio'),1);self.aspect_value=label('1.78','cardtitle');self.aspect_value.setLayoutDirection(Qt.LeftToRight);row.addWidget(self.aspect_value);c.addLayout(row)
+        self.aspect=QSlider(Qt.Horizontal);self.aspect.setLayoutDirection(Qt.LeftToRight);self.aspect.setRange(178,350);self.aspect.setSingleStep(1);self.aspect.setPageStep(10);self.aspect.setValue(178);self.aspect.valueChanged.connect(self.aspect_changed);c.addWidget(self.aspect)
+        ends=QWidget();ends.setLayoutDirection(Qt.LeftToRight);row=QHBoxLayout(ends);row.setContentsMargins(0,0,0,0);row.addWidget(label('1.78 • Default 16:9'));row.addStretch();row.addWidget(label('3.50 • Ultra wide'));c.addWidget(ends)
+        button=QPushButton('الرجوع للأساسي 1.78');button.clicked.connect(lambda:self.aspect.setValue(178));c.addWidget(button)
+        c.addWidget(label('حرّك السحاب ثم اضغط معاينة وتطبيق. يتطلب إعادة تشغيل اللعبة؛ قد تختلف النتيجة حسب دعم إصدار اللعبة.','subtitle'))
+        f,c=card('كل الرسوم في شريط واحد','استخدم مستوى التخفيف في لوحة التحكم. الوضع الأساسي 80/100 عنيف ويستند إلى إعداداتك المرفقة. جميع المستويات تحافظ على دقة الشاشة والعرض الداخلي وFSR/DLSS.');v.addWidget(f)
         button=QPushButton('تعديل مستوى التخفيف');button.clicked.connect(lambda:self.navigate(0));c.addWidget(button)
         f,c=card('كيف تختار؟','0–20: جهاز قوي وجودة أعلى. 40: جهاز ضعيف. 60: ضعيف جدًا. 80: تخفيف عنيف. 100: أقصى تخفيف وقد يقل وضوح الجزيئات. ابدأ بالأساسي، وخفّض المستوى إذا أردت تفاصيل أكثر.');v.addWidget(f)
+        f,c=card('حد الإطارات','مستقل عن مستوى التخفيف ونسبة الأبعاد.');v.addWidget(f)
         self.slider(c,'fps','حد الإطارات • 0 بدون حد (مستقل عن مستوى التخفيف)',0,500,' FPS')
         f,c=card('إصلاح رجوع الإعدادات','يفحص البرنامج قيم التعديلات بدل الاعتماد على شكل الملف. إذا رجعت القيم، يدمج التخفيف مع الملفات الحالية ويحفظ نسخة قبل الإصلاح.');v.addWidget(f)
         self.guard=QCheckBox('إعادة تطبيق المستوى المحفوظ تلقائيًا بعد إغلاق اللعبة • أبقِ البرنامج مفتوحًا');self.guard.setChecked(True);c.addWidget(self.guard)
         self.guard_status=label('الحماية جاهزة • لا يكتب البرنامج ملفات أثناء تشغيل اللعبة.','subtitle');c.addWidget(self.guard_status)
         button=QPushButton('فحص وإصلاح رجوع الإعدادات الآن');button.clicked.connect(self.repair_settings);c.addWidget(button);v.addStretch()
+    def aspect_changed(self,value):
+        self.aspect_value.setText(f'{value/100:.2f}');self.changed()
     def level_changed(self,value):
         name,desc=level_info(value);s=Settings.at_level(value)
         self.level_title.setText(f'{value}/100 • {name}');self.level_description.setText(desc)
@@ -198,14 +208,16 @@ class Window(QMainWindow):
         c.addLayout(row);v.addStretch()
     def changed(self,*_):
         if hasattr(self,'level') and 'fps' in self.controls:
-            self.summary.setText(f'الدقة محفوظة • تخفيف {self.level.value()}/100 • '+level_info(self.level.value())[0])
+            self.summary.setText(f'الدقة محفوظة • تخفيف {self.level.value()}/100 • عرض الرؤية {self.aspect.value()/100:.2f}')
     def load_settings(self,s):
         self.level.setValue(s.level);self.level_changed(s.level)
         self.controls['fps'].setValue(s.fps)
+        self.aspect.setValue(round((s.aspect_ratio if s.aspect_ratio is not None else 1.78)*100));self.aspect_changed(self.aspect.value())
         for key,b in self.mod_checks.items():b.setChecked(key in s.mods)
-    def load_preset(self,key):self.load_settings(copy.deepcopy(PRESETS[key]))
+    def load_preset(self,key):
+        s=copy.deepcopy(PRESETS[key]);s.aspect_ratio=self.aspect.value()/100;self.load_settings(s)
     def settings(self):
-        s=Settings.at_level(self.level.value(),fps=self.controls['fps'].value(),preset='custom',mods=tuple(k for k,b in self.mod_checks.items() if b.isChecked()));s.validate();return s
+        s=Settings.at_level(self.level.value(),aspect_ratio=self.aspect.value()/100,fps=self.controls['fps'].value(),preset='custom',mods=tuple(k for k,b in self.mod_checks.items() if b.isChecked()));s.validate();return s
     def browse_game(self):
         p=QFileDialog.getExistingDirectory(self,'اختر مجلد Deadlock')
         if p:self.path.setText(p);self.refresh_accounts()

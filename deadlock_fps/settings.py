@@ -13,9 +13,12 @@ class Settings:
     cpu: bool = True
     engine: bool = True
     mods: tuple = ()
+    aspect_ratio: float | None = None
     def validate(self):
         if type(self.level) is not int or not 0<=self.level<=100 or not 0<=self.textures<=4 or not 0<=self.particles<=2 or not 0<=self.fps<=500:
             raise ValueError('Graphics settings outside allowed range')
+        if self.aspect_ratio is not None and (type(self.aspect_ratio) not in (int,float) or not 1.78<=self.aspect_ratio<=3.50):
+            raise ValueError('نسبة الأبعاد يجب أن تكون بين 1.78 و3.50.')
         if 'names' in self.mods and 'health' in self.mods: raise ValueError('مود إزالة الأسماء يتعارض مع مود شريط الصحة القديم؛ اختر أحدهما.')
         if any(m not in MODS for m in self.mods): raise ValueError('Unknown mod')
     @classmethod
@@ -100,6 +103,7 @@ def values(s):
             'cl_particle_sim_fallback_base_multiplier':'100','cl_particle_sim_fallback_threshold_ms':'1',
             'r_update_particles_on_render_only_frames':'true'})
         video.update({'setting.cl_particle_fallback_base':'6','setting.cl_particle_fallback_multiplier':'4'})
+    if s.aspect_ratio is not None:convars['r_aspectratio']=f'{s.aspect_ratio:.2f}'
     return video,convars,scene
 
 TEXTURE_LABELS = ["خامات مفصلة", "تخفيف بسيط", "تخفيف متوسط", "خامات بسيطة", "أبسط خامات • أقصى تخفيف"]

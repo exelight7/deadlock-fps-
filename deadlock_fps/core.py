@@ -244,6 +244,8 @@ class Studio:
         if s.engine:
             text=kv.update(text,['GameInfo','ConVars'],convars)
             text=kv.update(text,['GameInfo','SceneSystem'],scene)
+        elif s.aspect_ratio is not None:
+            text=kv.update(text,['GameInfo','ConVars'],{'r_aspectratio':f'{s.aspect_ratio:.2f}'})
         if s.mods: text=kv.add_search_path(text)
         planned[gi]=text.encode()
         if self.video:
@@ -320,6 +322,8 @@ class Studio:
                 entry['owned']=prior if mod_only and prior else footprint(original,b.decode('utf-8-sig'),p)
                 if not mod_only:
                     v,c,scene=values(s)
+                    if not s.engine:
+                        c={'r_aspectratio':c['r_aspectratio']} if s.aspect_ratio is not None else {};scene={}
                     entry['owned']=[(['video.cfg'],list(v))] if p.name=='video.txt' else [(['GameInfo','ConVars'],list(c)),(['GameInfo','SceneSystem'],list(scene))]
         new['schema']=2;new['settings']=s.to_dict(); new['updated']=datetime.now(timezone.utc).isoformat()
         try:

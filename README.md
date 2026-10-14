@@ -2,7 +2,7 @@
 
 # Deadlock FPS Studio
 
-برنامج مكتبي مفتوح المصدر لتخفيف رسوم Deadlock على **Windows وLinux**. واجهة عربية، شريط واحد للتخفيف التدريجي، تركيب مودات ذكي، إصلاح رجوع الإعدادات، معاينة ونسخ احتياطية. **الإصدار 1.0.2 لا يغيّر دقة الشاشة أو دقة العرض الداخلية أو إعدادات FSR/DLSS في أي وضع.**
+برنامج مكتبي مفتوح المصدر لتخفيف رسوم Deadlock على **Windows وLinux**. واجهة عربية، شريط واحد للتخفيف التدريجي، تركيب مودات ذكي، إصلاح رجوع الإعدادات، معاينة ونسخ احتياطية. **الإصدار 1.0.3 لا يغيّر دقة الشاشة أو دقة العرض الداخلية أو إعدادات FSR/DLSS في أي وضع.**
 
 ![الواجهة](docs/screenshot.png)
 
@@ -22,6 +22,12 @@
 6. اضغط **معاينة وتطبيق**، راجع الفروقات، ثم طبّق. جرّب وضوح المؤثرات في التدريب.
 
 المستوى يجمع الخامات والظلال والضباب والوهج والتظليل المحيطي والجزيئات والحطام والقوائم في شريط واحد. عند 60 يبدأ تخفيف الأعشاب والحطام والمؤثرات، وعند 80 يضاف تخفيف الإضاءة والضباب والخامات بقوة، وعند 90–100 تضاف قيم particle fallback العنيفة من الحزمة. قد يقل وضوح بعض المؤثرات في أقصى مستوى؛ جرّب التدريب أولًا. المستوى لا يغيّر دقة الشاشة أو العرض الداخلي أو FSR/DLSS. حد الإطارات منفصل لأن تقليل سقف FPS ليس مستوى لتخفيف الرسوم. لا توجد زيادة FPS مضمونة.
+
+## عرض الرؤية • جديد في 1.0.3
+
+في صفحة **تخصيص الرسوم** يوجد سحاب مستقل لنسبة الأبعاد **Aspect ratio** من **1.78** (16:9) إلى **3.50**، بدقة 0.01، مع قيمة رقمية وزر للرجوع للأساسي. حرّكه ثم اضغط **معاينة وتطبيق الإعدادات** وأعد تشغيل اللعبة. يُحفظ في الإعدادات المصدّرة وفي وصفة الإصلاح؛ تحريك مستوى التخفيف لا يغيّر نسبة الأبعاد المختارة.
+
+يُستخدم `r_aspectratio` من ملف gameinfo المرفق. لا يتم تغيير أبعاد الشاشة بالبكسل أو دقة العرض الداخلية أو FSR/DLSS. ملفات الإعدادات القديمة التي لا تحتوي على النسبة تبقى دون فرض نسبة جديدة أثناء الإصلاح التلقائي. دعم القيمة ومظهرها داخل اللعبة يعتمدان على إصدار Deadlock؛ تم اختبار كتابة الإعداد واسترجاعه، وليس المشهد داخل مباراة.
 
 ## إصلاح رجوع الإعدادات
 
@@ -61,6 +67,6 @@ python main.py
 python build.py
 ```
 
-Build on the target OS. Outputs are in `dist/`; GitHub Actions tests and packages both platforms and publishes v1.0.2 after successful main builds. Windows executables are unsigned. Linux desktop libraries are still required; this is a portable folder, not an AppImage.
+Build on the target OS. Outputs are in `dist/`; GitHub Actions tests and packages both platforms and publishes v1.0.3 after successful main builds. Windows executables are unsigned. Linux desktop libraries are still required; this is a portable folder, not an AppImage.
 
 App source: MIT. Third-party files and Qt dependencies retain their own licenses; see [THIRD_PARTY.md](THIRD_PARTY.md). Deployment reference: [Qt for Python packaging](https://doc.qt.io/qtforpython-6/deployment/index.html).

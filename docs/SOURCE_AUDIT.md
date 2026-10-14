@@ -29,3 +29,7 @@ Resolution controls removed. Current screen dimensions, viewport scale and upsca
 Default 80/100 aggressive level, one monotonic master control. Selected extra runtime graphics values from the supplied files are applied at levels 60/80/90; no aspect ratio, resolution, GPU capability, network, compiler/editor or hardcoded memory edits are copied. Critical particle spawn scale stays intact; extreme fallback values at 90+ can reduce effect visibility. Original file text is reference data, not instructions overriding the user's resolution constraint.
 
 Local read-only diagnosis found only video.txt different from the prior manifest; selected 1.0.1 graphics values were intact. Numeric formatting and current display fields differed. Thus no specific cloud/reset cause was established. Fix uses semantic comparisons, recorded owned keys, snapshot-before-repair, current-schema rebase, and idle polling in the open GUI. It does not block the engine, write during gameplay, run an OS service or guarantee that the engine accepts unsupported settings.
+
+## 1.0.3 changes
+
+User explicitly requested an independent aspect-ratio slider from 1.78 to 3.50. The existing supplied r_aspectratio runtime value is now opt-in in the data model and selected through the GUI, with 0.01 increments. Pixel dimensions, viewport scale and upscaler settings remain protected. Old saved recipes omit this override. Application, reset repair, restore, profile round-trip and independent master control are covered by tests; no live gameplay support claim is made.

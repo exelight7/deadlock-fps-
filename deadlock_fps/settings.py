@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+MAX_LEVEL = 200
 @dataclass
 class Settings:
     preset: str = 'performance'
@@ -15,7 +16,7 @@ class Settings:
     mods: tuple = ()
     aspect_ratio: float | None = None
     def validate(self):
-        if type(self.level) is not int or not 0<=self.level<=100 or not 0<=self.textures<=4 or not 0<=self.particles<=2 or not 0<=self.fps<=500:
+        if type(self.level) is not int or not 0<=self.level<=MAX_LEVEL or not 0<=self.textures<=4 or not 0<=self.particles<=2 or not 0<=self.fps<=500:
             raise ValueError('Graphics settings outside allowed range')
         if self.aspect_ratio is not None and (type(self.aspect_ratio) not in (int,float) or not 1.78<=self.aspect_ratio<=3.50):
             raise ValueError('نسبة الأبعاد يجب أن تكون بين 1.78 و3.50.')
@@ -23,7 +24,7 @@ class Settings:
         if any(m not in MODS for m in self.mods): raise ValueError('Unknown mod')
     @classmethod
     def at_level(cls,level,**kwargs):
-        level=max(0,min(100,int(level)))
+        level=max(0,min(MAX_LEVEL,int(level)))
         return cls(level=level,textures=min(4,level//20),shadows=level<35,
                    fog=level<45,bloom=level<20,ao=level<30,
                    particles=2 if level<35 else (1 if level<60 else 0),cpu=level>=50,**kwargs)
@@ -51,7 +52,13 @@ LEVELS=[(0,'جودة أعلى','جهاز قوي • تفاصيل أكثر وحم
  (40,'تخفيف متوسط','جهاز ضعيف • تقليل الظلال والتظليل والجزيئات'),
  (60,'تخفيف قوي','جهاز ضعيف جدًا • تعطيل الضباب وتقليل الحطام والقوائم'),
  (80,'تخفيف عنيف • الأساسي','أبسط خامات • إضاءة وأعشاب ومؤثرات أقل من ملفك'),
- (100,'أقصى تخفيف','تفاصيل شديدة الانخفاض • قد يقل وضوح بعض المؤثرات')]
+ (100,'تخفيف شديد','تفاصيل شديدة الانخفاض • قد يقل وضوح بعض المؤثرات'),
+ (110,'تخفيف ممتد','تقليل تظليل المسافات وتفاصيل التظليل المحيطي'),
+ (125,'تخفيف أشد','تقليل ظلال الإضاءة الصغيرة وآثار الخامات على الشخصيات'),
+ (150,'تخفيف فائق','تقليل تظليل الشعر والظلال الذاتية وتفاصيل الوجه'),
+ (175,'تخفيف فائق + صوت','يخفف حسابات حجب الصوت أيضًا • قد يقل الإحساس باتجاهه'),
+ (200,'أقصى تخفيف تجريبي','يقلل الجزيئات الفيزيائية • قد تختفي بعض المؤثرات')]
+
 def level_info(level):return next((name,desc) for threshold,name,desc in reversed(LEVELS) if level>=threshold)
 
 def values(s):
@@ -103,6 +110,21 @@ def values(s):
             'cl_particle_sim_fallback_base_multiplier':'100','cl_particle_sim_fallback_threshold_ms':'1',
             'r_update_particles_on_render_only_frames':'true'})
         video.update({'setting.cl_particle_fallback_base':'6','setting.cl_particle_fallback_multiplier':'4'})
+    # Extended groups use remaining scalars from the supplied gameinfo, not invented ranges.
+    if s.level>=110:
+        convars.update({'r_citadel_distancefield_farfield_enable':'0','r_size_cull_threshold':'1.0'})
+        video['setting.r_citadel_ssao']='0'
+    if s.level>=125:
+        scene.update({'PointLightShadowsEnabled':'0','PunctualContactShadows':'0',
+                      'ShadowmapMaxFilterRadius':'0','CharacterDecals':'0'})
+    if s.level>=150:
+        scene.update({'HairShading':'false','SelfShadowStrength':'0','PerVertexLighting':'0'})
+        convars['enable_boneflex']='0'
+    if s.level>=175:
+        convars.update({'snd_occlusion_bounces':'0','snd_occlusion_rays':'0',
+                       'snd_steamaudio_max_occlusion_samples':'32','snd_steamaudio_num_diffuse_samples':'512'})
+    if s.level>=200:
+        convars['r_physics_particle_op_spawn_scale']='0'
     if s.aspect_ratio is not None:convars['r_aspectratio']=f'{s.aspect_ratio:.2f}'
     return video,convars,scene
 

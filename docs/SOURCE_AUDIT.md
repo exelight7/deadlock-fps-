@@ -33,3 +33,7 @@ Local read-only diagnosis found only video.txt different from the prior manifest
 ## 1.0.3 changes
 
 User explicitly requested an independent aspect-ratio slider from 1.78 to 3.50. The existing supplied r_aspectratio runtime value is now opt-in in the data model and selected through the GUI, with 0.01 increments. Pixel dimensions, viewport scale and upscaler settings remain protected. Old saved recipes omit this override. Application, reset repair, restore, profile round-trip and independent master control are covered by tests; no live gameplay support claim is made.
+
+## 1.0.4 changes
+
+Master level extended to 200 without rescaling any 0–100 profile. Additional groups at 110/125/150/175/200 use only remaining scalar values in the supplied source. Level 175 changes audio occlusion sampling; 200 includes r_physics_particle_op_spawn_scale=0 and may remove visible effects. The default remains 80 and resolution/aspect controls stay independent. No new texture bias range or performance improvement is claimed.

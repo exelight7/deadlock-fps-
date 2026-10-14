@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt, QUrl, QStandardPaths, QTimer
 from PySide6.QtGui import QDesktopServices, QFont, QIcon
 from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QHBoxLayout,QVBoxLayout,QLabel,QPushButton,QLineEdit,QFileDialog,QComboBox,QSlider,QCheckBox,QSpinBox,QScrollArea,QStackedWidget,QFrame,QMessageBox,QDialog,QPlainTextEdit,QDialogButtonBox)
 from .core import Studio, detect_games, video_files, ASSETS
-from .settings import Settings, PRESETS, MODS, TEXTURE_LABELS, level_info
+from .settings import Settings, PRESETS, MODS, TEXTURE_LABELS, level_info, MAX_LEVEL
 from .mods import ModLibrary
 STYLE='''
 QWidget { background:#101419; color:#e7e9eb; font-family:"Noto Sans Arabic","Segoe UI",sans-serif; font-size:14px; }
@@ -46,7 +46,7 @@ class Window(QMainWindow):
         self.library=ModLibrary(Path(QStandardPaths.writableLocation(QStandardPaths.AppDataLocation))/'mods')
         root=QWidget();self.setCentralWidget(root);layout=QHBoxLayout(root);layout.setContentsMargins(0,0,0,0)
         sidebar=QFrame();sidebar.setObjectName('sidebar');sidebar.setFixedWidth(225);side=QVBoxLayout(sidebar);side.setContentsMargins(22,32,22,28);side.setSpacing(14)
-        side.addWidget(label('◈  DEADLOCK','brand'));side.addWidget(label('FPS STUDIO / 1.0.3','eyebrow'));side.addSpacing(40)
+        side.addWidget(label('◈  DEADLOCK','brand'));side.addWidget(label('FPS STUDIO / 1.0.4','eyebrow'));side.addSpacing(40)
         self.stack=QStackedWidget();self.nav=[];self.guard_signature=None;self.guard_retries=0;self.guard_attempts={}
         for index,text in enumerate(['لوحة التحكم','تخصيص الرسوم','المودات','النسخ والاسترجاع']):
             b=QPushButton(text);b.setCheckable(True);b.clicked.connect(lambda _,i=index:self.navigate(i));side.addWidget(b);self.nav.append(b)
@@ -88,8 +88,8 @@ class Window(QMainWindow):
         self.accounts=QComboBox();self.accounts.setLayoutDirection(Qt.LeftToRight);c.addWidget(label('حساب Steam / ملف إعدادات الفيديو','subtitle'));c.addWidget(self.accounts)
         f,c=card('02  /  مستوى واحد لكل التعديلات','ارفع التخفيف لتضعف الرسوم تدريجيًا. الرقم الأعلى يعني رسومًا أبسط وحملًا أقل، وليس قياسًا لقوة جهازك.');v.addWidget(f)
         self.presets={}
-        self.level=QSlider(Qt.Horizontal);self.level.setLayoutDirection(Qt.LeftToRight);self.level.setRange(0,100);self.level.setTickInterval(20);self.level.setTickPosition(QSlider.TicksBelow);self.level.valueChanged.connect(self.level_changed)
-        ends=QWidget();ends.setLayoutDirection(Qt.LeftToRight);row=QHBoxLayout(ends);row.setContentsMargins(0,0,0,0);row.addWidget(label('0 • جودة أعلى / جهاز قوي'));row.addStretch();row.addWidget(label('100 • تخفيف أقوى / جهاز ضعيف'));c.addWidget(ends);c.addWidget(self.level)
+        self.level=QSlider(Qt.Horizontal);self.level.setLayoutDirection(Qt.LeftToRight);self.level.setRange(0,MAX_LEVEL);self.level.setTickInterval(25);self.level.setTickPosition(QSlider.TicksBelow);self.level.valueChanged.connect(self.level_changed)
+        ends=QWidget();ends.setLayoutDirection(Qt.LeftToRight);row=QHBoxLayout(ends);row.setContentsMargins(0,0,0,0);row.addWidget(label('0 • جودة أعلى / جهاز قوي'));row.addStretch();row.addWidget(label(f'{MAX_LEVEL} • أقصى تخفيف تجريبي'));c.addWidget(ends);c.addWidget(self.level)
         self.level_title=label('','cardtitle');self.level_description=label('','subtitle');c.addWidget(self.level_title);c.addWidget(self.level_description)
         self.level_effects=label('','subtitle');c.addWidget(self.level_effects)
         f,c=card('تحكم مدروس، حتى في أقصى تخفيف','إغلاق اللعبة مطلوب قبل التطبيق. الإعدادات تحفظ الأصل تلقائيًا، وبعض الخيارات المرفقة تجريبية وقد تتجاهلها تحديثات اللعبة. جرّب الوضوح في التدريب بعد كل تغيير.');v.addWidget(f)
@@ -107,9 +107,9 @@ class Window(QMainWindow):
         ends=QWidget();ends.setLayoutDirection(Qt.LeftToRight);row=QHBoxLayout(ends);row.setContentsMargins(0,0,0,0);row.addWidget(label('1.78 • Default 16:9'));row.addStretch();row.addWidget(label('3.50 • Ultra wide'));c.addWidget(ends)
         button=QPushButton('الرجوع للأساسي 1.78');button.clicked.connect(lambda:self.aspect.setValue(178));c.addWidget(button)
         c.addWidget(label('حرّك السحاب ثم اضغط معاينة وتطبيق. يتطلب إعادة تشغيل اللعبة؛ قد تختلف النتيجة حسب دعم إصدار اللعبة.','subtitle'))
-        f,c=card('كل الرسوم في شريط واحد','استخدم مستوى التخفيف في لوحة التحكم. الوضع الأساسي 80/100 عنيف ويستند إلى إعداداتك المرفقة. جميع المستويات تحافظ على دقة الشاشة والعرض الداخلي وFSR/DLSS.');v.addWidget(f)
+        f,c=card('كل الرسوم في شريط واحد','استخدم مستوى التخفيف في لوحة التحكم. الوضع الأساسي 80/200 عنيف ويستند إلى إعداداتك المرفقة. جميع المستويات تحافظ على دقة الشاشة والعرض الداخلي وFSR/DLSS.');v.addWidget(f)
         button=QPushButton('تعديل مستوى التخفيف');button.clicked.connect(lambda:self.navigate(0));c.addWidget(button)
-        f,c=card('كيف تختار؟','0–20: جهاز قوي وجودة أعلى. 40: جهاز ضعيف. 60: ضعيف جدًا. 80: تخفيف عنيف. 100: أقصى تخفيف وقد يقل وضوح الجزيئات. ابدأ بالأساسي، وخفّض المستوى إذا أردت تفاصيل أكثر.');v.addWidget(f)
+        f,c=card('كيف تختار؟','0–20: جهاز قوي وجودة أعلى. 40: جهاز ضعيف. 60: ضعيف جدًا. 80: تخفيف عنيف. 100: شديد. 150: فائق. 175: يخفف حسابات الصوت أيضًا. 200: تجريبي وقد تختفي بعض المؤثرات. ابدأ بالأساسي، وخفّض المستوى إذا أردت تفاصيل أكثر.');v.addWidget(f)
         f,c=card('حد الإطارات','مستقل عن مستوى التخفيف ونسبة الأبعاد.');v.addWidget(f)
         self.slider(c,'fps','حد الإطارات • 0 بدون حد (مستقل عن مستوى التخفيف)',0,500,' FPS')
         f,c=card('إصلاح رجوع الإعدادات','يفحص البرنامج قيم التعديلات بدل الاعتماد على شكل الملف. إذا رجعت القيم، يدمج التخفيف مع الملفات الحالية ويحفظ نسخة قبل الإصلاح.');v.addWidget(f)
@@ -120,7 +120,7 @@ class Window(QMainWindow):
         self.aspect_value.setText(f'{value/100:.2f}');self.changed()
     def level_changed(self,value):
         name,desc=level_info(value);s=Settings.at_level(value)
-        self.level_title.setText(f'{value}/100 • {name}');self.level_description.setText(desc)
+        self.level_title.setText(f'{value}/{MAX_LEVEL} • {name}');self.level_description.setText(desc)
         self.level_effects.setText(f'تبسيط الخامات {s.textures}/4 • '+('ظلال مفعلة' if s.shadows else 'بدون ظلال')+' • '+('ضباب مفعل' if s.fog else 'بدون ضباب')+' • تفاصيل الجزيئات '+str(s.particles)+'/2')
         self.changed()
     def repair_settings(self):
@@ -208,7 +208,7 @@ class Window(QMainWindow):
         c.addLayout(row);v.addStretch()
     def changed(self,*_):
         if hasattr(self,'level') and 'fps' in self.controls:
-            self.summary.setText(f'الدقة محفوظة • تخفيف {self.level.value()}/100 • عرض الرؤية {self.aspect.value()/100:.2f}')
+            self.summary.setText(f'الدقة محفوظة • تخفيف {self.level.value()}/{MAX_LEVEL} • عرض الرؤية {self.aspect.value()/100:.2f}')
     def load_settings(self,s):
         self.level.setValue(s.level);self.level_changed(s.level)
         self.controls['fps'].setValue(s.fps)

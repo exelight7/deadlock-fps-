@@ -7,7 +7,7 @@ from deadlock_fps.settings import Settings, PRESETS
 
 class Operations(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name)/'Deadlock'
+        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name).resolve()/'Deadlock'
         self.gi=self.root/'game/citadel/gameinfo.gi';self.gi.parent.mkdir(parents=True)
         self.gi.write_bytes((ASSETS/'reference/gameinfo.gi').read_bytes())
         self.video=self.root/'game/citadel/cfg/video.txt';self.video.parent.mkdir()

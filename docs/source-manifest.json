@@ -1,0 +1,62 @@
+[
+  {
+    "path": "CONFIG COPY PASTE/readme.txt",
+    "size": 389,
+    "sha256": "f24f130704e06875f2c041e1a0fc4820026d87dd6aadea2488b3cf9a24e7a716"
+  },
+  {
+    "path": "CONFIG COPY PASTE/gameinfo.gi",
+    "size": 29389,
+    "sha256": "0a9a3a232c62513c666949652b83f54430976df49943a8e8da3bb0a7c91b8d4a"
+  },
+  {
+    "path": "CONFIG COPY PASTE/video.txt",
+    "size": 2324,
+    "sha256": "4b5c052eb27843f016f973c9ac1649e536f91ac83421561e6ca62ffc33aa131f"
+  },
+  {
+    "path": "MODS/pak03_dir.vpk - Old Healthbars",
+    "size": 50436,
+    "sha256": "c9379dbef8cbb518d74363d55e39b7a811546cf45f2ad4eeac5ce15f2167539d"
+  },
+  {
+    "path": "MODS/pak02_dir.vpk - Remove Name Tags",
+    "size": 53876,
+    "sha256": "8e4732f026ba7f9f7072dab893546bebb2140a4b059d3565e6113e78685d98e9"
+  },
+  {
+    "path": "MODS/pak26_dir.vpk - Sinner Fix",
+    "size": 1175954,
+    "sha256": "98f0f8eb81a2e143d547e0fe29e35127104006f75e26378dad1ef294722fc7b7"
+  },
+  {
+    "path": "MODS/pak01_dir.vpk - daylock",
+    "size": 9059211,
+    "sha256": "93bdf68bb2a7fb84ce335db6e12ad679ad8dbe0fa36a5cf792bab13b14520d3e"
+  },
+  {
+    "path": "APPLICATIONS (yes its safe dw)/processlassosetup64.exe",
+    "size": 2849416,
+    "sha256": "2c06cc42de55794d876c6981b8b91d9d2884ab7cd35cf00ba38ef525f51f1833"
+  },
+  {
+    "path": "APPLICATIONS (yes its safe dw)/[Guru3D]-RTSSSetup737Build28314.zip",
+    "size": 17998383,
+    "sha256": "9b084a8cb3e53ec1a673894d0b66e22b16c9fd8785636b020b2d422f3f2a820e"
+  },
+  {
+    "path": "CONFIG COPY PASTE-20261014T170016Z-1-001.zip",
+    "size": 10367,
+    "sha256": "4ecae84a233f47bc5dee7257391ce236295ad712132fbb5a1db67b6c3f028c71"
+  },
+  {
+    "path": "MODS-20261014T170011Z-1-001.zip",
+    "size": 8995414,
+    "sha256": "c5190611bd2d6d08bf809ad199a84cab9e2e91183b654aa4dbd2f74be7e889ec"
+  },
+  {
+    "path": "APPLICATIONS (yes its safe dw)-20261014T170017Z-1-001.zip",
+    "size": 20637443,
+    "sha256": "591e89bf62af61cf775f7a14c449d28a94f68d589cedbca1daaada5262f5ea04"
+  }
+]

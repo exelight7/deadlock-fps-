@@ -11,7 +11,10 @@ class Interface(unittest.TestCase):
         w=Window()
         for key,expected in PRESETS.items():
             w.load_preset(key);s=w.settings()
-            for field in ['scale','width','height','textures','shadows','fog','ao','particles','fps','cpu','engine']:
+            for field in ['textures','shadows','fog','ao','particles','fps','cpu','engine']:
                 self.assertEqual(getattr(s,field),getattr(expected,field))
         for i in range(4):w.navigate(i);self.assertEqual(w.stack.currentIndex(),i)
+        self.assertFalse(hasattr(w,'resolution'));self.assertNotIn('scale',w.controls)
+        w.mod_checks['names'].setChecked(True);w.mod_checks['health'].setChecked(True)
+        self.assertFalse(w.mod_checks['names'].isChecked());self.assertTrue(w.mod_checks['health'].isChecked())
         w.close()

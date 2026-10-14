@@ -19,3 +19,7 @@ VPK parser validates magic, version, tree strings, entry terminators, preload ra
 The original gameinfo contains speculative DLL/editor/compiler entries, duplicated values, a hardcoded aspect ratio, altered latency/network defaults and very aggressive particle settings. Those are not automatically copied. Presets keep player outlines and distance-field pipeline intact, do not change GPU capability requirements, and do not apply visibility-breaking particle spawn/fallback values. Some source ConVars may be obsolete or engine-restricted; applying file values is not evidence that the current engine honors them.
 
 The installed game and Steam userdata were read to confirm paths and current schema. Tests operate on disposable copies, not the live game. No live gameplay FPS claim is made.
+
+## 1.0.1 changes
+
+Resolution controls removed. Current screen dimensions, viewport scale and upscaler settings are protected during application and restoration, including migrations from 1.0.0. Texture controls use five named levels. Mod imports are recognized by SHA-256, retained in the local app-data library, and installed through a separate mod-only transaction. ZIP members are read without extraction; unknown mods are rejected.

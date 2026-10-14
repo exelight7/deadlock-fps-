@@ -95,6 +95,29 @@ def vpk_entries(path):
                 entries.append(f'{directory}/{name}.{ext}')
     return entries
 
+
+# Resolution, render scale and upscaler identity belong exclusively to the player.
+RESOLUTION_KEYS = frozenset({
+    'setting.defaultres', 'setting.defaultresheight', 'setting.recommendedheight',
+    'setting.mat_viewportscale', 'setting.r_citadel_upscaling',
+    'setting.r_citadel_dlss_settings_mode', 'setting.r_dlss_preset',
+    'setting.r_citadel_fsr_rcas_sharpness', 'setting.r_citadel_fsr2_sharpness',
+    'setting.refreshrate_numerator', 'setting.refreshrate_denominator',
+    'setting.aspectratiomode', 'setting.fullscreen', 'setting.nowindowborder',
+    'setting.monitor_index', 'setting.high_dpi',
+})
+
+def keep_resolution(base, current):
+    """Keep current protected values even when upgrading from a 1.0.0 backup."""
+    old=base.decode('utf-8-sig');live=current.decode('utf-8-sig')
+    before=[n for n in kv.section(old,['video.cfg']).children if n.key in RESOLUTION_KEYS]
+    after=[n for n in kv.section(live,['video.cfg']).children if n.key in RESOLUTION_KEYS]
+    if [(n.key,n.value) for n in before]==[(n.key,n.value) for n in after]:return base
+    for n in reversed(before):old=old[:n.start]+old[n.end:]
+    node=kv.section(old,['video.cfg'])
+    entries=''.join('\n\t'+live[n.start:n.end] for n in after)
+    return (old[:node.close]+entries+'\n'+old[node.close:]).encode()
+
 class Studio:
     def __init__(self,root,video=None):
         self.root=game_root(root)
@@ -130,6 +153,7 @@ class Studio:
         if self.video:
             source=self.baseline(self.video,state)
             if source is None: raise ValueError('Video config not found')
+            source=keep_resolution(source,self.video.read_bytes())
             planned[self.video]=kv.update(source.decode('utf-8-sig'),['video.cfg'],video).encode()
         else: raise ValueError('شغل اللعبة مرة واحدة ثم اختر حساب Steam الذي تريد تعديل إعداداته.')
         moddir=self.root/'game/citadel/fps_studio'
@@ -140,14 +164,43 @@ class Studio:
                 source=folder/filename
                 if not source.exists(): source=folder/'MODS'/filename
                 if not source.exists(): source=folder/filename.split(' - ')[0]
-                if not source.exists(): raise ValueError(f'اختر مجلد المودات الأصلي: {filename}')
+                if not source.exists() and target.exists(): source=target
+                if not source.exists(): raise ValueError(f'استورد المود أولًا من صفحة المودات: {filename}')
                 vpk_entries(source); self.baseline(target,state); planned[target]=source.read_bytes()
             elif str(target) in state['files']: planned[target]=self.baseline(target,state)
         # Revert previously managed files that are no longer selected (e.g. another Steam account).
         for p in state['files']:
             path=self.checked_path(p)
-            if path not in planned: planned[path]=self.baseline(path,state)
+            if path not in planned:
+                base=self.baseline(path,state)
+                planned[path]=keep_resolution(base,path.read_bytes()) if path.name=='video.txt' and base is not None and path.exists() else base
         return {p:b for p,b in planned.items() if (p.read_bytes() if p.exists() else None)!=b}
+    def plan_mods(self,mods,folder):
+        """Install/remove selected mods without touching any video or graphics setting."""
+        from .settings import Settings
+        Settings(mods=mods).validate();ensure_closed();state=self.state();planned={}
+        gi=self.checked_path(self.root/'game/citadel/gameinfo.gi')
+        original=self.baseline(gi,state).decode('utf-8-sig')
+        current=gi.read_bytes();text=current.decode('utf-8-sig')
+        if mods:text=kv.add_search_path(text)
+        else:
+            original_paths=kv.section(original,['GameInfo','FileSystem','SearchPaths']).children
+            if not any(n.key.lower()=='game' and n.value=='citadel/fps_studio' for n in original_paths):
+                paths=kv.section(text,['GameInfo','FileSystem','SearchPaths']).children
+                for n in reversed(paths):
+                    if n.key.lower()=='game' and n.value=='citadel/fps_studio':text=text[:n.start]+text[n.end:]
+        if text!=current.decode('utf-8-sig'):planned[gi]=text.encode()
+        for key,(filename,_,_) in MODS.items():
+            target=self.checked_path(self.root/'game/citadel/fps_studio'/filename.split(' - ')[0])
+            base=self.baseline(target,state)
+            if key in mods:
+                source=Path(folder)/filename
+                if not source.exists() and target.exists():source=target
+                if not source.exists():raise ValueError(f'استورد المود أولًا: {MODS[key][1]}')
+                vpk_entries(source);data=source.read_bytes()
+                if (target.read_bytes() if target.exists() else None)!=data:planned[target]=data
+            elif str(target) in state['files'] and (target.read_bytes() if target.exists() else None)!=base:planned[target]=base
+        return planned
     def apply(self,plan,s):
         ensure_closed()
         if not plan: return 'الإعدادات مطبقة بالفعل.'
@@ -180,6 +233,8 @@ class Studio:
             if (digest(current[p]) if current[p] is not None else None)!=e['applied']:
                 if not preserve_changes: raise ValueError('توجد تغييرات خارج البرنامج. اختر الاحتفاظ بنسخة من الحالة الحالية ثم الاسترجاع.')
             originals[p]=(self.store/e['backup']).read_bytes() if e['existed'] else None
+            if p.name=='video.txt' and originals[p] is not None and current[p] is not None:
+                originals[p]=keep_resolution(originals[p],current[p])
         if not originals: return 'لا توجد نسخة تحتاج إلى الاسترجاع.'
         # Preserve every current file before restoration, including patch changes.
         archive=self.store/'history'/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')

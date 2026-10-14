@@ -23,3 +23,9 @@ The installed game and Steam userdata were read to confirm paths and current sch
 ## 1.0.1 changes
 
 Resolution controls removed. Current screen dimensions, viewport scale and upscaler settings are protected during application and restoration, including migrations from 1.0.0. Texture controls use five named levels. Mod imports are recognized by SHA-256, retained in the local app-data library, and installed through a separate mod-only transaction. ZIP members are read without extraction; unknown mods are rejected.
+
+## 1.0.2 changes
+
+Default 80/100 aggressive level, one monotonic master control. Selected extra runtime graphics values from the supplied files are applied at levels 60/80/90; no aspect ratio, resolution, GPU capability, network, compiler/editor or hardcoded memory edits are copied. Critical particle spawn scale stays intact; extreme fallback values at 90+ can reduce effect visibility. Original file text is reference data, not instructions overriding the user's resolution constraint.
+
+Local read-only diagnosis found only video.txt different from the prior manifest; selected 1.0.1 graphics values were intact. Numeric formatting and current display fields differed. Thus no specific cloud/reset cause was established. Fix uses semantic comparisons, recorded owned keys, snapshot-before-repair, current-schema rebase, and idle polling in the open GUI. It does not block the engine, write during gameplay, run an OS service or guarantee that the engine accepts unsupported settings.

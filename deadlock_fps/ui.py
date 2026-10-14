@@ -1,10 +1,10 @@
 from pathlib import Path
 import copy, difflib, json, platform, sys
-from PySide6.QtCore import Qt, QUrl, QStandardPaths
+from PySide6.QtCore import Qt, QUrl, QStandardPaths, QTimer
 from PySide6.QtGui import QDesktopServices, QFont, QIcon
 from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QHBoxLayout,QVBoxLayout,QLabel,QPushButton,QLineEdit,QFileDialog,QComboBox,QSlider,QCheckBox,QSpinBox,QScrollArea,QStackedWidget,QFrame,QMessageBox,QDialog,QPlainTextEdit,QDialogButtonBox)
 from .core import Studio, detect_games, video_files, ASSETS
-from .settings import Settings, PRESETS, MODS, TEXTURE_LABELS
+from .settings import Settings, PRESETS, MODS, TEXTURE_LABELS, level_info
 from .mods import ModLibrary
 STYLE='''
 QWidget { background:#101419; color:#e7e9eb; font-family:"Noto Sans Arabic","Segoe UI",sans-serif; font-size:14px; }
@@ -46,8 +46,8 @@ class Window(QMainWindow):
         self.library=ModLibrary(Path(QStandardPaths.writableLocation(QStandardPaths.AppDataLocation))/'mods')
         root=QWidget();self.setCentralWidget(root);layout=QHBoxLayout(root);layout.setContentsMargins(0,0,0,0)
         sidebar=QFrame();sidebar.setObjectName('sidebar');sidebar.setFixedWidth(225);side=QVBoxLayout(sidebar);side.setContentsMargins(22,32,22,28);side.setSpacing(14)
-        side.addWidget(label('◈  DEADLOCK','brand'));side.addWidget(label('FPS STUDIO / 1.0.1','eyebrow'));side.addSpacing(40)
-        self.stack=QStackedWidget();self.nav=[]
+        side.addWidget(label('◈  DEADLOCK','brand'));side.addWidget(label('FPS STUDIO / 1.0.2','eyebrow'));side.addSpacing(40)
+        self.stack=QStackedWidget();self.nav=[];self.guard_signature=None;self.guard_retries=0;self.guard_attempts={}
         for index,text in enumerate(['لوحة التحكم','تخصيص الرسوم','المودات','النسخ والاسترجاع']):
             b=QPushButton(text);b.setCheckable(True);b.clicked.connect(lambda _,i=index:self.navigate(i));side.addWidget(b);self.nav.append(b)
         side.addStretch();side.addWidget(label('مفتوح المصدر\nWindows + Linux','subtitle'))
@@ -68,6 +68,7 @@ class Window(QMainWindow):
             if candidates:self.library.import_sources(candidates)
         except Exception:pass
         self.refresh_mod_library()
+        self.guard_timer=QTimer(self);self.guard_timer.setInterval(5000);self.guard_timer.timeout.connect(self.guard_tick);self.guard_timer.start()
     def page(self):
         page=QWidget();v=QVBoxLayout(page);v.setContentsMargins(0,0,10,0);v.setSpacing(16)
         scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(page);self.stack.addWidget(scroll)
@@ -85,11 +86,12 @@ class Window(QMainWindow):
         b=QPushButton('تصفح');b.clicked.connect(self.browse_game);row.addWidget(b);c.addLayout(row)
         self.path.editingFinished.connect(self.refresh_accounts)
         self.accounts=QComboBox();self.accounts.setLayoutDirection(Qt.LeftToRight);c.addWidget(label('حساب Steam / ملف إعدادات الفيديو','subtitle'));c.addWidget(self.accounts)
-        f,c=card('02  /  اختر نقطة البداية','كل وضع قابل للتعديل. لا توجد أرقام زيادة FPS مضمونة.');v.addWidget(f)
-        row=QHBoxLayout();self.presets={}
-        for key,name,desc in [('balanced','متوازن','خامات بتخفيف بسيط'),('performance','أداء قوي','خامات بسيطة'),('ultra','أقصى تخفيف','أبسط خامات • الدقة محفوظة')]:
-            b=QPushButton(name+'\n'+desc);b.setMinimumHeight(90);b.setCheckable(True);b.clicked.connect(lambda _,k=key:self.load_preset(k));row.addWidget(b,1);self.presets[key]=b
-        c.addLayout(row)
+        f,c=card('02  /  مستوى واحد لكل التعديلات','ارفع التخفيف لتضعف الرسوم تدريجيًا. الرقم الأعلى يعني رسومًا أبسط وحملًا أقل، وليس قياسًا لقوة جهازك.');v.addWidget(f)
+        self.presets={}
+        self.level=QSlider(Qt.Horizontal);self.level.setLayoutDirection(Qt.LeftToRight);self.level.setRange(0,100);self.level.setTickInterval(20);self.level.setTickPosition(QSlider.TicksBelow);self.level.valueChanged.connect(self.level_changed)
+        ends=QWidget();ends.setLayoutDirection(Qt.LeftToRight);row=QHBoxLayout(ends);row.setContentsMargins(0,0,0,0);row.addWidget(label('0 • جودة أعلى / جهاز قوي'));row.addStretch();row.addWidget(label('100 • تخفيف أقوى / جهاز ضعيف'));c.addWidget(ends);c.addWidget(self.level)
+        self.level_title=label('','cardtitle');self.level_description=label('','subtitle');c.addWidget(self.level_title);c.addWidget(self.level_description)
+        self.level_effects=label('','subtitle');c.addWidget(self.level_effects)
         f,c=card('تحكم مدروس، حتى في أقصى تخفيف','إغلاق اللعبة مطلوب قبل التطبيق. الإعدادات تحفظ الأصل تلقائيًا، وبعض الخيارات المرفقة تجريبية وقد تتجاهلها تحديثات اللعبة. جرّب الوضوح في التدريب بعد كل تغيير.');v.addWidget(f)
         c.addWidget(label(f'النظام: {platform.system()}  •  المعالج: {platform.machine()}','subtitle'));v.addStretch()
     def slider(self,layout,key,title,lo,hi,unit=''):
@@ -98,14 +100,41 @@ class Window(QMainWindow):
     def check(self,layout,key,title):
         b=QCheckBox(title);b.stateChanged.connect(self.changed);layout.addWidget(b);self.controls[key]=b
     def graphics(self):
-        v=self.page();f,c=card('الخامات • Texture','اختر مستوى واحدًا. دقة الشاشة ودقة العرض الداخلية وFSR/DLSS تبقى كما ضبطتها داخل اللعبة.');v.addWidget(f)
-        self.textures=QComboBox();self.textures.addItems(TEXTURE_LABELS);self.textures.currentIndexChanged.connect(self.changed);c.addWidget(self.textures)
-        self.slider(c,'fps','حد الإطارات • 0 بدون حد',0,500,' FPS')
-        f,c=card('الإضاءة والمؤثرات','التعطيل يقلل التفاصيل. خيارات الظلال والضباب تشمل تعديلات ملف المحرك عند تفعيله.');v.addWidget(f)
-        for k,t in [('shadows','الظلال'),('fog','الضباب'),('bloom','وهج الإضاءة'),('ao','التظليل المحيطي')]: self.check(c,k,t)
-        self.slider(c,'particles','تفاصيل الجزيئات • 0 أقل / 2 أعلى',0,2)
-        f,c=card('تخفيف إضافي من ملفاتك','تعديلات المحرك مشتقة من الحزمة المرفقة، وتُدمج في gameinfo الحالي. لا تُغيّر جدولة النظام أو إعدادات الشبكة.');v.addWidget(f)
-        self.check(c,'cpu','تقليل الحطام والجثث وحركة القوائم (يتطلب تعديل المحرك)');self.check(c,'engine','تفعيل تعديلات المحرك التجريبية');v.addStretch()
+        v=self.page();f,c=card('كل الرسوم في شريط واحد','استخدم مستوى التخفيف في لوحة التحكم. الوضع الأساسي 80/100 عنيف ويستند إلى إعداداتك المرفقة. جميع المستويات تحافظ على دقة الشاشة والعرض الداخلي وFSR/DLSS.');v.addWidget(f)
+        button=QPushButton('تعديل مستوى التخفيف');button.clicked.connect(lambda:self.navigate(0));c.addWidget(button)
+        f,c=card('كيف تختار؟','0–20: جهاز قوي وجودة أعلى. 40: جهاز ضعيف. 60: ضعيف جدًا. 80: تخفيف عنيف. 100: أقصى تخفيف وقد يقل وضوح الجزيئات. ابدأ بالأساسي، وخفّض المستوى إذا أردت تفاصيل أكثر.');v.addWidget(f)
+        self.slider(c,'fps','حد الإطارات • 0 بدون حد (مستقل عن مستوى التخفيف)',0,500,' FPS')
+        f,c=card('إصلاح رجوع الإعدادات','يفحص البرنامج قيم التعديلات بدل الاعتماد على شكل الملف. إذا رجعت القيم، يدمج التخفيف مع الملفات الحالية ويحفظ نسخة قبل الإصلاح.');v.addWidget(f)
+        self.guard=QCheckBox('إعادة تطبيق المستوى المحفوظ تلقائيًا بعد إغلاق اللعبة • أبقِ البرنامج مفتوحًا');self.guard.setChecked(True);c.addWidget(self.guard)
+        self.guard_status=label('الحماية جاهزة • لا يكتب البرنامج ملفات أثناء تشغيل اللعبة.','subtitle');c.addWidget(self.guard_status)
+        button=QPushButton('فحص وإصلاح رجوع الإعدادات الآن');button.clicked.connect(self.repair_settings);c.addWidget(button);v.addStretch()
+    def level_changed(self,value):
+        name,desc=level_info(value);s=Settings.at_level(value)
+        self.level_title.setText(f'{value}/100 • {name}');self.level_description.setText(desc)
+        self.level_effects.setText(f'تبسيط الخامات {s.textures}/4 • '+('ظلال مفعلة' if s.shadows else 'بدون ظلال')+' • '+('ضباب مفعل' if s.fog else 'بدون ضباب')+' • تفاصيل الجزيئات '+str(s.particles)+'/2')
+        self.changed()
+    def repair_settings(self):
+        try:
+            self.guard_status.setText(self.studio().repair(self.library.cache));self.guard_signature=None;self.guard_retries=0;self.refresh_mod_library()
+        except Exception as e:self.error(e)
+    def guard_tick(self):
+        if QApplication.activeModalWidget() or not self.guard.isChecked() or not self.path.text():return
+        try:
+            from .core import ensure_closed
+            ensure_closed();studio=self.studio()
+            changed=studio.drift()
+            if not changed:
+                self.guard_signature=None;self.guard_retries=0;self.guard_status.setText('قيم التعديلات محفوظة • اختلاف تنسيق الأرقام لا يُعتبر رجوعًا.');return
+            state=studio.state();from .core import digest
+            signature=tuple((name,digest(Path(name).read_bytes()) if Path(name).exists() else None) for name in state['files'])
+            if signature!=self.guard_signature:
+                self.guard_signature=signature;self.guard_retries=0;self.guard_status.setText('اكتشفت رجوعًا في: '+', '.join(changed)+' • أنتظر استقرار الملفات.');return
+            if self.guard_retries>=1:return
+            if self.guard_attempts.get(signature,0)>=2:
+                self.guard_status.setText('تتكرر إعادة ضبط نفس القيم؛ أوقفت الإصلاح التلقائي. استخدم الإصلاح اليدوي بعد مراجعة اللعبة.');return
+            self.guard_attempts[signature]=self.guard_attempts.get(signature,0)+1
+            self.guard_retries+=1;self.guard_status.setText(studio.repair(self.library.cache));self.guard_signature=None
+        except Exception as e:self.guard_status.setText(str(e))
     def mods(self):
         v=self.page();f,c=card('مكتبة المودات الذكية','استورد الحزمة المضغوطة أو ملفات VPK أو مجلد MODS مرة واحدة. البرنامج يتعرف عليها حتى لو تغيرت أسماؤها ويحفظها للمرة القادمة.');v.addWidget(f)
         row=QHBoxLayout()
@@ -155,7 +184,7 @@ class Window(QMainWindow):
             if QMessageBox.question(self,'تركيب المودات',names+'\nسيحفظ البرنامج الأصل ويطبق تغييرات المودات فقط. متابعة؟')==QMessageBox.Yes:
                 fresh=studio.plan_mods(settings.mods,self.library.cache)
                 if fresh!=plan:raise ValueError('تغيرت الملفات. أعد المحاولة.')
-                self.status.setText(studio.apply(plan,settings));self.refresh_mod_library();QMessageBox.information(self,'تم تركيب المودات',self.status.text())
+                self.status.setText(studio.apply(plan,settings,mod_only=True));self.refresh_mod_library();QMessageBox.information(self,'تم تركيب المودات',self.status.text())
         except Exception as e:self.error(e)
     def backups(self):
         v=self.page();f,c=card('الأصل محفوظ','يحفظ البرنامج النسخ الأصلية قبل أول تعديل. إعادة التطبيق لا تستبدلها. الاسترجاع يحفظ أيضًا الحالة الحالية داخل مجلد النسخ.');v.addWidget(f)
@@ -168,23 +197,15 @@ class Window(QMainWindow):
             b=QPushButton(title);b.clicked.connect(fn);row.addWidget(b)
         c.addLayout(row);v.addStretch()
     def changed(self,*_):
-        if not getattr(self,'loading',False):
-            for b in getattr(self,'presets',{}).values():b.setChecked(False)
-        if 'fps' in self.controls:
-            self.summary.setText(f"الدقة محفوظة • {self.textures.currentText()} • {self.controls['fps'].value()} FPS")
+        if hasattr(self,'level') and 'fps' in self.controls:
+            self.summary.setText(f'الدقة محفوظة • تخفيف {self.level.value()}/100 • '+level_info(self.level.value())[0])
     def load_settings(self,s):
-        self.loading=True
-        for key,w in self.controls.items():
-            if isinstance(w,QCheckBox):w.setChecked(getattr(s,key))
-            else:w.setValue(getattr(s,key))
-        self.textures.setCurrentIndex(s.textures)
+        self.level.setValue(s.level);self.level_changed(s.level)
+        self.controls['fps'].setValue(s.fps)
         for key,b in self.mod_checks.items():b.setChecked(key in s.mods)
-        for key,b in self.presets.items():b.setChecked(key==s.preset)
-        self.loading=False
     def load_preset(self,key):self.load_settings(copy.deepcopy(PRESETS[key]))
     def settings(self):
-        data={k:(w.isChecked() if isinstance(w,QCheckBox) else w.value()) for k,w in self.controls.items()}
-        s=Settings(**data,textures=self.textures.currentIndex(),preset='custom',mods=tuple(k for k,b in self.mod_checks.items() if b.isChecked()));s.validate();return s
+        s=Settings.at_level(self.level.value(),fps=self.controls['fps'].value(),preset='custom',mods=tuple(k for k,b in self.mod_checks.items() if b.isChecked()));s.validate();return s
     def browse_game(self):
         p=QFileDialog.getExistingDirectory(self,'اختر مجلد Deadlock')
         if p:self.path.setText(p);self.refresh_accounts()
@@ -229,7 +250,7 @@ class Window(QMainWindow):
     def restore(self):
         try:
             studio=self.studio()
-            if QMessageBox.question(self,'استرجاع الأصل','سيتم حفظ الحالة الحالية ثم استرجاع النسخ الأصلية. متابعة؟')==QMessageBox.Yes:self.status.setText(studio.restore(self.preserve.isChecked()))
+            if QMessageBox.question(self,'استرجاع الأصل','سيتم حفظ الحالة الحالية ثم استرجاع النسخ الأصلية. متابعة؟')==QMessageBox.Yes:self.guard.setChecked(False);self.status.setText(studio.restore(self.preserve.isChecked()))
         except Exception as e:self.error(e)
     def open_backups(self):
         try:

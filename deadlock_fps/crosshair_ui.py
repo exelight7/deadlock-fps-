@@ -303,7 +303,7 @@ class CrosshairPage(QWidget):
         try:
             if self.library.exists():
                 if self.library.stat().st_size>1024*1024:raise ValueError('The saved design library is too large.')
-                data=json.loads(self.library.read_text());self.profiles={k:import_design(v) for k,v in data.items() if isinstance(k,str) and 0<len(k)<=60}
+                data=json.loads(self.library.read_text(encoding='utf-8'));self.profiles={k:import_design(v) for k,v in data.items() if isinstance(k,str) and 0<len(k)<=60}
         except Exception:self.profiles={}
     def rebuild_presets(self):
         self.presets.blockSignals(True);self.presets.clear()
@@ -348,7 +348,7 @@ class CrosshairPage(QWidget):
             try:
                 path=Path(name)
                 if path.stat().st_size>8192:raise ValueError('This design file is too large.')
-                self.set_model(import_design(json.loads(path.read_text())),True);self.status.setText('Imported into preview. Review & Apply to save in game.')
+                self.set_model(import_design(json.loads(path.read_text(encoding='utf-8-sig'))),True);self.status.setText('Imported into preview. Review & Apply to save in game.')
             except Exception as e:self.error(e)
     def store(self):
         root,video=self.context();return CrosshairStore(root,video)
@@ -358,7 +358,7 @@ class CrosshairPage(QWidget):
             store=self.store();design,paths=store.current();self.current_model=design;self.set_model(design,True);self.design_name.setText('In-game')
             if store.video:
                 try:
-                    fields=kv.section(store.video.read_text(),['video.cfg']).children;height=int(next(n.value for n in fields if n.key=='setting.defaultresheight'))
+                    fields=kv.section(store.video.read_text(encoding='utf-8'),['video.cfg']).children;height=int(next(n.value for n in fields if n.key=='setting.defaultresheight'))
                     if 240<=height<=8640:
                         index=self.resolution.findData(height)
                         if index<0:self.resolution.addItem(str(height),height);index=self.resolution.count()-1

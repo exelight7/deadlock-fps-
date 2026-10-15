@@ -10,6 +10,7 @@ PAGES = [
     ('MOD LIBRARY / 03', 'لمستك الخاصة للعبة.', 'مكتبة واحدة لموداتك. استورد، اختر، واترك التركيب للأداة.', 'duo.jpg', (0, 0, 1, 1)),
     ('RECOVERY / 04', 'جرّب وأنت مطمئن.', 'نسخك الأصلية محفوظة. استرجعها أو شارك إعداداتك بسهولة.', 'deadlock.jpg', (0, .62, 1, .36)),
     ('CONNECTION / 05', 'اتصال أوضح. اختيار أسهل.', 'قِس زمن الاستجابة واختر مناطق اتصال Steam المناسبة لك.', 'rem.jpg', (0, .2, 1, .6)),
+    ('CROSSHAIR / 06', 'Crosshair Designer', 'Preview, customize and apply your crosshair to Deadlock.', 'deadlock.jpg', (0, .62, 1, .36)),
 ]
 
 STYLE = '''
@@ -36,7 +37,7 @@ QPushButton {background:#292d31;border:1px solid #3c4044;border-radius:9px;paddi
 QPushButton:hover {background:#353a3f;border-color:#ad8e60;}
 QPushButton:pressed {background:#443a2b;}
 QPushButton:focus {border-color:#d0aa72;}
-QPushButton#nav {background:transparent;border:1px solid transparent;text-align:right;padding:12px 14px;color:#b4b6b5;font-size:13px;}
+QPushButton#nav {background:transparent;border:1px solid transparent;text-align:right;padding:10px 14px;color:#b4b6b5;font-size:13px;}
 QPushButton#nav:hover {background:#24272b;color:#f7f0e4;}
 QPushButton#nav:checked {background:#342d23;color:#f4d9ae;border:1px solid #655039;}
 QPushButton#primary {background:#e7c08a;color:#251f16;border:1px solid #e7c08a;font-size:13px;padding:12px 18px;font-weight:700;}
@@ -45,7 +46,7 @@ QPushButton#positive {background:#23392f;color:#bbebcf;border-color:#436e56;}
 QPushButton#positive:hover {background:#30523f;border-color:#80ba96;}
 QPushButton#positive:disabled {color:#717572;background:#222629;border-color:#303438;}
 QPushButton:disabled {color:#717572;background:#222629;border-color:#303438;}
-QLineEdit,QComboBox,QSpinBox,QPlainTextEdit {background:#141719;border:1px solid #3d4145;border-radius:8px;padding:8px;selection-background-color:#6c5435;}
+QLineEdit,QComboBox,QSpinBox,QDoubleSpinBox,QPlainTextEdit {background:#141719;border:1px solid #3d4145;border-radius:8px;padding:8px;selection-background-color:#6c5435;}
 QLineEdit:focus,QComboBox:focus,QSpinBox:focus {border-color:#d0aa72;}
 QComboBox QAbstractItemView {background:#1d2023;selection-background-color:#493c2c;color:#eeeae2;}
 QCheckBox {spacing:10px;padding:8px 0;background:transparent;}
@@ -92,6 +93,8 @@ def nav_icon(index):
         p.drawLine(3,7,12,12);p.drawLine(12,12,21,7);p.drawLine(12,12,12,22)
     elif index == 3:
         p.drawArc(QRectF(4,4,16,16),20*16,300*16);p.drawLine(3,3,3,9);p.drawLine(3,9,9,9);p.drawLine(12,7,12,12);p.drawLine(12,12,16,14)
+    elif index==5:
+        p.drawEllipse(QRectF(6,6,12,12));p.drawLine(12,1,12,7);p.drawLine(12,17,12,23);p.drawLine(1,12,7,12);p.drawLine(17,12,23,12)
     else:
         p.drawEllipse(QRectF(3,3,18,18));p.drawEllipse(QRectF(8,3,8,18));p.drawLine(3,12,21,12)
     p.end();return QIcon(pix)
@@ -121,7 +124,7 @@ class ArtworkHero(QWidget):
         else:self.effect.setOpacity(1.)
         self.update()
     def banner_height(self):
-        return (116 if self.page_index==4 else 150) if self.width()<760 else (150 if self.page_index==4 else 186)
+        return (116 if self.page_index in (4,5) else 150) if self.width()<760 else (150 if self.page_index in (4,5) else 186)
     def resizeEvent(self,event):
         self.setFixedHeight(self.banner_height())
         self.title.setStyleSheet('font-size:24px;' if self.width()<760 else 'font-size:28px;')

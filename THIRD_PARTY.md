@@ -16,3 +16,5 @@ Application source is MIT (LICENSE). That license does not relicense Valve conte
 - User-selected artwork and eye logo: supplied via the user's Pinterest references; see `assets/artwork/SOURCES.md`. Original ownership remains with the artists/owners; these images are excluded from the source MIT license.
 
 - Country/territory flag SVGs: flag-icons by Panayiotis Lipiridis and contributors, MIT. Upstream https://github.com/lipis/flag-icons ; pinned commit in `assets/flags/SOURCE.md`, full license in `assets/licenses/flag-icons-MIT.txt`. The unknown-region globe is original code-native SVG.
+
+- Crosshair numerical catalog snapshots: attributed to Deadlock Labs with per-entry source links and dates; see `docs/CROSSHAIR_SOURCES.md`. They are not claims of independently verified current player preferences. No player photographs, site code, or remote media are bundled; previews are drawn by Toolbox.

@@ -2,14 +2,16 @@
 
 # Deadlock Toolbox
 
+**الجديد في 2.2.2:** واجهة Crosshair Designer بالإنجليزي، تصميم جديد بتبويبات Shape / Outline / Behavior، ومعرض PRO Crosshairs يحتوي 50 تصميمًا مع بحث وفلترة حسب الشكل، وتطبيق مع نسخ احتياطي. [دليل المصمم](docs/CROSSHAIR_GUIDE.md) • [مصادر إعدادات اللاعبين](docs/CROSSHAIR_SOURCES.md).
+
 برنامج مكتبي مفتوح المصدر لتخصيص Deadlock على **Windows وLinux**: تخفيف الرسوم، تركيب المودات، اختيار مناطق اتصال Steam، والنسخ الاحتياطي. واجهة عربية بتصميم فحمي وذهبي. **يحافظ على دقة الشاشة والعرض الداخلي وإعدادات FSR/DLSS.**
 
 ![الواجهة](docs/screenshot.png)
 
-## تحميل الإصدار 2.1.3
+## تحميل الإصدار 2.2.2
 
-- [Windows x64 — ZIP](https://github.com/exelight7/deadlock-fps-/releases/download/v2.1.3/DeadlockToolbox-windows-x64.zip)
-- [Linux x64 — ZIP](https://github.com/exelight7/deadlock-fps-/releases/download/v2.1.3/DeadlockToolbox-linux-x64.zip)
+- [Windows x64 — ZIP](https://github.com/exelight7/deadlock-fps-/releases/download/v2.2.2/DeadlockToolbox-windows-x64.zip)
+- [Linux x64 — ZIP](https://github.com/exelight7/deadlock-fps-/releases/download/v2.2.2/DeadlockToolbox-linux-x64.zip)
 - [كل الإصدارات والتحقق من SHA256](https://github.com/exelight7/deadlock-fps-/releases)
 
 فك ضغط الحزمة **كاملًا**، ثم افتح `DeadlockToolbox.exe` على Windows أو `DeadlockToolbox` على Linux. ملفات Qt ومجلد `_internal` ضرورية. حزمة Windows غير موقعة رقميًا. Linux يحتاج مكتبات Qt المكتبية؛ هذه حزمة محمولة وليست AppImage.

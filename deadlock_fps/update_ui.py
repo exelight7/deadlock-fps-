@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, QStandardPaths, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QWidget,QFrame,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QScrollArea,QPlainTextEdit,QCheckBox,QProgressBar
 from . import __version__
-from .design import nav_icon
+from .design import nav_icon,UtilityHeader
 from .updates import UpdateStore,Version,RELEASES_URL,platform_key
 from .update_client import UpdateClient
 
@@ -32,11 +32,9 @@ class UpdatePage(QWidget):
         self.client=UpdateClient(self.store,self,manager)
         root=QVBoxLayout(self);root.setContentsMargins(0,0,0,0);root.setSpacing(12)
         scroll=QScrollArea();scroll.setWidgetResizable(True);body=QWidget();v=QVBoxLayout(body);v.setContentsMargins(0,0,10,0);v.setSpacing(12);scroll.setWidget(body);root.addWidget(scroll,1)
+        v.addWidget(UtilityHeader(6,'Update Center','آخر الإصدارات، ملاحظاتها وتنزيل آمن لحزمة جهازك.','STAY CURRENT / 07'))
         frame,c=panel();v.addWidget(frame)
-        row=QHBoxLayout();icon=QLabel();icon.setPixmap(nav_icon(6).pixmap(42,42));row.addWidget(icon)
-        title=text('Update Center','heroTitle');title.setLayoutDirection(Qt.LeftToRight);row.addWidget(title,1)
-        self.channel=text('نسخة تجريبية محلية' if self.current.pre else 'إصدارات مستقرة','badge');row.addWidget(self.channel);c.addLayout(row)
-        c.addWidget(text('تابع إصدارات Toolbox، نزّل حزمة نظامك، وانتقل للنسخة الجديدة بخطوات واضحة.'))
+        self.channel=text('نسخة تجريبية محلية' if self.current.pre else 'إصدارات مستقرة','badge');c.addWidget(self.channel,0,Qt.AlignRight)
         row=QHBoxLayout();self.check_button=QPushButton('التحقق من التحديثات');self.check_button.setObjectName('positive');self.check_button.clicked.connect(self.check);row.addWidget(self.check_button)
         self.release_button=QPushButton('صفحة الإصدارات ↗');self.release_button.clicked.connect(self.open_release);row.addWidget(self.release_button);row.addStretch();c.addLayout(row)
         row=QHBoxLayout();v.addLayout(row)

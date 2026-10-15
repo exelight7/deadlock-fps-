@@ -15,7 +15,7 @@ target='windows' if sys.platform=='win32' else sys.platform
 archive=root/'dist'/f'DeadlockToolbox-{target}-x64.zip'
 with zipfile.ZipFile(archive) as z:
     assert 'DeadlockToolbox/THIRD_PARTY.md' in z.namelist()
-process=subprocess.Popen([str(binary)]+[flag for flag in ('--crosshair','--updates') if flag in sys.argv],cwd=folder,env=dict(os.environ,QT_QPA_PLATFORM='offscreen'),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+process=subprocess.Popen([str(binary)]+[flag for flag in ('--crosshair','--updates','--inspector','--mods') if flag in sys.argv],cwd=folder,env=dict(os.environ,QT_QPA_PLATFORM='offscreen'),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 try:
     try:
         process.wait(timeout=2.5)

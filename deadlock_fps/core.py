@@ -66,7 +66,7 @@ def ensure_closed():
             raise ValueError('أغلق Deadlock قبل التطبيق أو الاسترجاع.')
 
 def vpk_entries(path):
-    b=path.read_bytes()
+    b=path if isinstance(path,bytes) else path.read_bytes()
     if len(b)<12: raise ValueError('VPK header truncated')
     magic,version,size=struct.unpack_from('<III',b)
     if magic!=0x55AA1234 or version not in (1,2): raise ValueError('Invalid VPK header')
@@ -174,6 +174,10 @@ class Studio:
         self.manifest=self.store/'state.json'
     def state(self):
         return json.loads(self.manifest.read_text()) if self.manifest.exists() else {'files':{}}
+    @staticmethod
+    def graphics_managed(state):
+        if 'graphics_managed' in state:return bool(state['graphics_managed'])
+        return any(Path(name).name=='video.txt' or any(keys and scope in (['GameInfo','ConVars'],['GameInfo','SceneSystem']) for scope,keys in entry.get('owned',[])) for name,entry in state.get('files',{}).items())
     def checked_path(self,p):
         p=Path(p)
         resolved=p.resolve()
@@ -214,6 +218,10 @@ class Studio:
         ensure_closed();state=self.state()
         if not state.get('settings'):return 'طبّق مستوى التخفيف أولًا لحفظه.'
         settings=Settings.from_dict(state['settings']);new=json.loads(json.dumps(state))
+        if settings.mods:
+            from .mods import ModLibrary
+            from .mod_inspector import require_mods
+            require_mods(ModLibrary(mod_folder),self.root,settings.mods)
         stamp=datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')
         archive=self.store/'history'/stamp
         atomic(archive/'state.json',json.dumps(state,indent=2).encode())
@@ -232,7 +240,9 @@ class Studio:
             e['applied']=digest(current) if current is not None else None
         try:
             atomic(self.manifest,json.dumps(new,indent=2).encode())
-            plan=self.plan(settings,mod_folder);result=self.apply(plan,settings)
+            graphics=self.graphics_managed(state)
+            plan=self.plan(settings,mod_folder) if graphics else self.plan_mods(settings.mods,mod_folder)
+            result=self.apply(plan,settings,mod_only=not graphics)
         except Exception:
             atomic(self.manifest,json.dumps(state,indent=2).encode());raise
         return 'تم إصلاح التعديلات على الملفات الحالية مع حفظ الدقة وتغييرات تحديث اللعبة. '+result
@@ -302,7 +312,7 @@ class Studio:
     def apply(self,plan,s,mod_only=False):
         ensure_closed()
         if not plan:
-            state=self.state();state['settings']=s.to_dict();atomic(self.manifest,json.dumps(state,indent=2).encode())
+            state=self.state();state['graphics_managed']=not mod_only or self.graphics_managed(state);state['settings']=s.to_dict();atomic(self.manifest,json.dumps(state,indent=2).encode())
             return 'الإعدادات مطبقة بالفعل.'
         state=self.state(); previous={}; new=json.loads(json.dumps(state))
         self.store.mkdir(parents=True,exist_ok=True)
@@ -325,7 +335,7 @@ class Studio:
                     if not s.engine:
                         c={'r_aspectratio':c['r_aspectratio']} if s.aspect_ratio is not None else {};scene={}
                     entry['owned']=[(['video.cfg'],list(v))] if p.name=='video.txt' else [(['GameInfo','ConVars'],list(c)),(['GameInfo','SceneSystem'],list(scene))]
-        new['schema']=2;new['settings']=s.to_dict(); new['updated']=datetime.now(timezone.utc).isoformat()
+        new['schema']=2;new['graphics_managed']=not mod_only or self.graphics_managed(state);new['settings']=s.to_dict(); new['updated']=datetime.now(timezone.utc).isoformat()
         try:
             for p,b in plan.items(): self.write(p,b)
             atomic(self.manifest,json.dumps(new,indent=2).encode())

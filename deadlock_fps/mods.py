@@ -21,16 +21,16 @@ class ImportReport:
     ignored:list
 
 class ModLibrary:
-    def __init__(self,cache):self.cache=Path(cache);self._verified={}
+    def __init__(self,cache):self.cache=Path(cache)
     def verify(self,path,key):
         try:
             if path.is_symlink():return False
             stat=path.stat()
             if not 12<=stat.st_size<=MAX_FILE:return False
-            signature=(stat.st_size,stat.st_mtime_ns,stat.st_ctime_ns,stat.st_ino,HASHES[key])
-            cached=self._verified.get(path)
-            if cached and cached[0]==signature:return cached[1]
-            valid=hashlib.sha256(path.read_bytes()).hexdigest()==HASHES[key];self._verified[path]=(signature,valid);return valid
+            # Some filesystems retain identical stat timestamps for rapid edits.
+            # Four bounded known files are checked on user actions, never polled.
+            with path.open('rb') as stream:data=stream.read(MAX_FILE+1)
+            return 12<=len(data)<=MAX_FILE and hashlib.sha256(data).hexdigest()==HASHES[key]
         except OSError:return False
     def available(self):return {k for k,(name,_,_) in MODS.items() if self.verify(self.cache/name,k)}
     def installed(self,root):
@@ -92,7 +92,7 @@ class ModLibrary:
                 if previous[target] is None:target.unlink(missing_ok=True)
                 else:atomic(target,previous[target])
             raise
-        self._verified.clear();return ImportReport(set(matched),ignored)
+        return ImportReport(set(matched),ignored)
     def discover(self):
         bases=[Path.cwd(),Path(__file__).resolve().parents[2],Path(sys.executable).resolve().parent,Path.home()/'Downloads']
         if getattr(sys,'frozen',False):bases+=list(Path(sys.executable).resolve().parents)[:4]

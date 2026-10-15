@@ -1,6 +1,7 @@
 """Regression coverage for imports, isolated mod installs and desktop controls."""
 import hashlib,threading,time,zipfile
 from unittest.mock import patch
+from pathlib import Path
 from PySide6.QtCore import QMimeData,QUrl,QThreadPool
 from deadlock_fps.core import Studio,atomic
 from deadlock_fps.settings import MODS
@@ -41,10 +42,11 @@ class Imports(fixtures.GameFixture):
         with patch.dict(HASHES,daylock=hashlib.sha256(a).hexdigest(),sinner=hashlib.sha256(b).hexdigest()),patch('deadlock_fps.mods.atomic',side_effect=failing):
             with self.assertRaises(OSError):self.library.import_report([path])
         self.assertEqual(list(self.library.cache.glob('*')),[])
-    def test_verification_cache_detects_replaced_file(self):
+    def test_verification_detects_same_size_edits_even_with_unchanged_timestamps(self):
         data=vpk();path=self.library.cache/MODS['daylock'][0];path.parent.mkdir();path.write_bytes(data)
         with patch.dict(HASHES,daylock=hashlib.sha256(data).hexdigest()):
-            self.assertIn('daylock',self.library.available());path.write_bytes(vpk(b'B'));self.assertNotIn('daylock',self.library.available())
+            self.assertIn('daylock',self.library.available());old_stat=path.stat();path.write_bytes(vpk(b'B'))
+            with patch.object(Path,'stat',return_value=old_stat):self.assertNotIn('daylock',self.library.available())
 
 class Installation(fixtures.GameFixture):
     def setUp(self):

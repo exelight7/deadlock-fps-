@@ -9,11 +9,13 @@ internal=folder/'_internal'
 for path in ['assets/artwork/rem.jpg','assets/artwork/deadlock.jpg','assets/artwork/duo.jpg','assets/artwork/logo.jpg','assets/fonts/NotoSansArabic.ttf','assets/flags/ae.svg','assets/check.svg','assets/chevron-down.svg']:
     assert (internal/path).is_file(),path
 assert list(internal.rglob('*qsvgicon*')), 'SVG icon plugin missing'
+assert list(internal.glob('PySide6/QtNetwork*')), 'Qt Network module missing'
+assert any(p.is_dir() and any(p.iterdir()) for p in internal.rglob('tls')), 'Qt TLS backends missing'
 target='windows' if sys.platform=='win32' else sys.platform
 archive=root/'dist'/f'DeadlockToolbox-{target}-x64.zip'
 with zipfile.ZipFile(archive) as z:
     assert 'DeadlockToolbox/THIRD_PARTY.md' in z.namelist()
-process=subprocess.Popen([str(binary)]+(['--crosshair'] if '--crosshair' in sys.argv else []),cwd=folder,env=dict(os.environ,QT_QPA_PLATFORM='offscreen'),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+process=subprocess.Popen([str(binary)]+[flag for flag in ('--crosshair','--updates') if flag in sys.argv],cwd=folder,env=dict(os.environ,QT_QPA_PLATFORM='offscreen'),stdout=subprocess.PIPE,stderr=subprocess.PIPE)
 try:
     try:
         process.wait(timeout=2.5)

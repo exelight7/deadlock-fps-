@@ -2,16 +2,18 @@
 
 # Deadlock Toolbox
 
+**الجديد في 2.3.0:** أُضيف Update Center لفحص إصدارات GitHub وتنزيل حزمة النظام مع التحقق من SHA-256، والإلغاء، وملاحظات الإصدار، وفحص اختياري عند التشغيل مرة يوميًا. [دليل التحديثات](docs/UPDATE_CENTER.md).
+
 **الجديد في 2.2.2:** واجهة Crosshair Designer بالإنجليزي، تصميم جديد بتبويبات Shape / Outline / Behavior، ومعرض PRO Crosshairs يحتوي 50 تصميمًا مع بحث وفلترة حسب الشكل، وتطبيق مع نسخ احتياطي. [دليل المصمم](docs/CROSSHAIR_GUIDE.md) • [مصادر إعدادات اللاعبين](docs/CROSSHAIR_SOURCES.md).
 
 برنامج مكتبي مفتوح المصدر لتخصيص Deadlock على **Windows وLinux**: تخفيف الرسوم، تركيب المودات، اختيار مناطق اتصال Steam، والنسخ الاحتياطي. واجهة عربية بتصميم فحمي وذهبي. **يحافظ على دقة الشاشة والعرض الداخلي وإعدادات FSR/DLSS.**
 
 ![الواجهة](docs/screenshot.png)
 
-## تحميل الإصدار 2.2.2
+## تحميل الإصدار 2.3.0
 
-- [Windows x64 — ZIP](https://github.com/exelight7/deadlock-fps-/releases/download/v2.2.2/DeadlockToolbox-windows-x64.zip)
-- [Linux x64 — ZIP](https://github.com/exelight7/deadlock-fps-/releases/download/v2.2.2/DeadlockToolbox-linux-x64.zip)
+- [Windows x64 — ZIP](https://github.com/exelight7/deadlock-fps-/releases/download/v2.3.0/DeadlockToolbox-windows-x64.zip)
+- [Linux x64 — ZIP](https://github.com/exelight7/deadlock-fps-/releases/download/v2.3.0/DeadlockToolbox-linux-x64.zip)
 - [كل الإصدارات والتحقق من SHA256](https://github.com/exelight7/deadlock-fps-/releases)
 
 فك ضغط الحزمة **كاملًا**، ثم افتح `DeadlockToolbox.exe` على Windows أو `DeadlockToolbox` على Linux. ملفات Qt ومجلد `_internal` ضرورية. حزمة Windows غير موقعة رقميًا. Linux يحتاج مكتبات Qt المكتبية؛ هذه حزمة محمولة وليست AppImage.

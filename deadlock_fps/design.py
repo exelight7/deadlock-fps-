@@ -11,6 +11,7 @@ PAGES = [
     ('RECOVERY / 04', 'جرّب وأنت مطمئن.', 'نسخك الأصلية محفوظة. استرجعها أو شارك إعداداتك بسهولة.', 'deadlock.jpg', (0, .62, 1, .36)),
     ('CONNECTION / 05', 'اتصال أوضح. اختيار أسهل.', 'قِس زمن الاستجابة واختر مناطق اتصال Steam المناسبة لك.', 'rem.jpg', (0, .2, 1, .6)),
     ('CROSSHAIR / 06', 'Crosshair Designer', 'Preview, customize and apply your crosshair to Deadlock.', 'deadlock.jpg', (0, .62, 1, .36)),
+    ('UPDATES / 07', 'Update Center', 'تابع آخر إصدارات Deadlock Toolbox.', 'deadlock.jpg', (0, .62, 1, .36)),
 ]
 
 STYLE = '''
@@ -37,7 +38,7 @@ QPushButton {background:#292d31;border:1px solid #3c4044;border-radius:9px;paddi
 QPushButton:hover {background:#353a3f;border-color:#ad8e60;}
 QPushButton:pressed {background:#443a2b;}
 QPushButton:focus {border-color:#d0aa72;}
-QPushButton#nav {background:transparent;border:1px solid transparent;text-align:right;padding:10px 14px;color:#b4b6b5;font-size:13px;}
+QPushButton#nav {background:transparent;border:1px solid transparent;text-align:right;padding:8px 14px;color:#b4b6b5;font-size:13px;}
 QPushButton#nav:hover {background:#24272b;color:#f7f0e4;}
 QPushButton#nav:checked {background:#342d23;color:#f4d9ae;border:1px solid #655039;}
 QPushButton#primary {background:#e7c08a;color:#251f16;border:1px solid #e7c08a;font-size:13px;padding:12px 18px;font-weight:700;}
@@ -95,6 +96,9 @@ def nav_icon(index):
         p.drawArc(QRectF(4,4,16,16),20*16,300*16);p.drawLine(3,3,3,9);p.drawLine(3,9,9,9);p.drawLine(12,7,12,12);p.drawLine(12,12,16,14)
     elif index==5:
         p.drawEllipse(QRectF(6,6,12,12));p.drawLine(12,1,12,7);p.drawLine(12,17,12,23);p.drawLine(1,12,7,12);p.drawLine(17,12,23,12)
+    elif index==6:
+        p.drawLine(12,2,12,15);p.drawLine(7,10,12,15);p.drawLine(12,15,17,10)
+        p.drawLine(3,16,3,21);p.drawLine(3,21,21,21);p.drawLine(21,21,21,16)
     else:
         p.drawEllipse(QRectF(3,3,18,18));p.drawEllipse(QRectF(8,3,8,18));p.drawLine(3,12,21,12)
     p.end();return QIcon(pix)

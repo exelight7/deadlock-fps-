@@ -8,6 +8,7 @@ from .settings import Settings, PRESETS, MODS, TEXTURE_LABELS, level_info, MAX_L
 from .mods import ModLibrary
 from .server_ui import ServerPage
 from .crosshair_ui import CrosshairPage
+from .update_ui import UpdatePage
 from .design import STYLE, ArtworkHero, BrandMark, nav_icon
 from . import __version__
 
@@ -30,15 +31,15 @@ class Window(QMainWindow):
         legacy=Path(QStandardPaths.writableLocation(QStandardPaths.GenericDataLocation))/'exelight7/DeadlockFPSStudio/mods'
         self.library=ModLibrary(legacy if legacy.exists() else Path(QStandardPaths.writableLocation(QStandardPaths.AppDataLocation))/'mods')
         root=QWidget();self.setCentralWidget(root);layout=QHBoxLayout(root);layout.setContentsMargins(0,0,0,0)
-        sidebar=QFrame();sidebar.setObjectName('sidebar');sidebar.setFixedWidth(218);side=QVBoxLayout(sidebar);side.setContentsMargins(18,26,18,22);side.setSpacing(8)
+        sidebar=QFrame();sidebar.setObjectName('sidebar');sidebar.setFixedWidth(218);side=QVBoxLayout(sidebar);side.setContentsMargins(18,22,18,18);side.setSpacing(6)
         brandrow=QHBoxLayout();brandrow.setSpacing(10);brandrow.addWidget(BrandMark())
         brandcopy=QVBoxLayout();brandcopy.setSpacing(0)
         brand=label('Toolbox','brand');brand.setLayoutDirection(Qt.LeftToRight);brand.setAlignment(Qt.AlignRight);brandcopy.addWidget(brand)
         eyebrow=label('DEADLOCK','eyebrow');eyebrow.setLayoutDirection(Qt.LeftToRight);eyebrow.setAlignment(Qt.AlignRight);brandcopy.addWidget(eyebrow)
         brandrow.addLayout(brandcopy,1);side.addLayout(brandrow)
-        side.addSpacing(20);side.addWidget(label('مساحة التحكم','sectionLabel'))
+        side.addSpacing(14);side.addWidget(label('مساحة التحكم','sectionLabel'))
         self.stack=QStackedWidget();self.nav=[];self.guard_signature=None;self.guard_retries=0;self.guard_attempts={}
-        for index,text in enumerate(['لوحة التحكم','تخصيص الرسوم','المودات','النسخ والاسترجاع','السيرفرات','Crosshair Designer']):
+        for index,text in enumerate(['لوحة التحكم','تخصيص الرسوم','المودات','النسخ والاسترجاع','السيرفرات','Crosshair Designer','Update Center']):
             b=QPushButton(text);b.setObjectName('nav');b.setIcon(nav_icon(index));b.setIconSize(QSize(21,21));b.setCheckable(True);b.clicked.connect(lambda _,i=index:self.navigate(i));side.addWidget(b);self.nav.append(b)
         side.addStretch();side.addWidget(label('أدواتك. إعداداتك. اختيارك.','subtitle'));side.addSpacing(6);version=label(__version__,'badge');version.setLayoutDirection(Qt.LeftToRight);side.addWidget(version,0,Qt.AlignRight);side.addWidget(label('مفتوح المصدر • Windows + Linux','sectionLabel'))
         git=QPushButton('GitHub ↗');git.clicked.connect(lambda:QDesktopServices.openUrl(QUrl('https://github.com/exelight7/deadlock-fps-')));side.addWidget(git)
@@ -51,7 +52,11 @@ class Window(QMainWindow):
         actionbar=QFrame();self.actionbar=actionbar;actionbar.setObjectName('actionbar');footer=QHBoxLayout(actionbar);footer.setContentsMargins(16,10,16,10);self.summary=label('دقة اللعبة محفوظة • خامات بسيطة','subtitle');footer.addWidget(self.summary,1)
         apply=QPushButton('معاينة وتطبيق الإعدادات ←');apply.setObjectName('primary');apply.clicked.connect(self.primary_action);self.apply_button=apply;footer.addWidget(apply);v.addWidget(actionbar)
         layout.addWidget(content,1)
-        self.dashboard();self.graphics();self.mods();self.backups();self.servers=ServerPage(self);server_scroll=QScrollArea();server_scroll.setWidgetResizable(True);server_scroll.setWidget(self.servers);self.stack.addWidget(server_scroll);self.servers.layout().removeWidget(self.servers.actions_panel);v.addWidget(self.servers.actions_panel);self.crosshair=CrosshairPage(lambda:(self.path.text(),self.accounts.currentData()),self);self.stack.addWidget(self.crosshair);self.crosshair.layout().removeWidget(self.crosshair.actions_panel);v.addWidget(self.crosshair.actions_panel);self.navigate(0);self.load_preset('performance')
+        self.dashboard();self.graphics();self.mods();self.backups();self.servers=ServerPage(self);server_scroll=QScrollArea();server_scroll.setWidgetResizable(True);server_scroll.setWidget(self.servers);self.stack.addWidget(server_scroll);self.servers.layout().removeWidget(self.servers.actions_panel);v.addWidget(self.servers.actions_panel);self.crosshair=CrosshairPage(lambda:(self.path.text(),self.accounts.currentData()),self);self.stack.addWidget(self.crosshair);self.crosshair.layout().removeWidget(self.crosshair.actions_panel);v.addWidget(self.crosshair.actions_panel)
+        self.updates=UpdatePage(self);self.stack.addWidget(self.updates);self.updates.updateAvailable.connect(lambda available:self.nav[6].setText('Update Center •' if available else 'Update Center'))
+        if self.updates.release and self.updates.release.version>self.updates.current:self.nav[6].setText('Update Center •')
+        self.update_startup_timer=QTimer(self);self.update_startup_timer.setSingleShot(True);self.update_startup_timer.timeout.connect(self.updates.automatic_check)
+        self.navigate(0);self.load_preset('performance')
         games=detect_games()
         if games:self.path.setText(str(games[0]));self.refresh_accounts()
         try:
@@ -62,29 +67,31 @@ class Window(QMainWindow):
         self.guard_timer=QTimer(self);self.guard_timer.setInterval(5000);self.guard_timer.timeout.connect(self.guard_tick);self.guard_timer.start()
     def resizeEvent(self,event):
         super().resizeEvent(event)
-        if hasattr(self,'hero') and hasattr(self,'stack'):self.hero.setVisible(self.stack.currentIndex()!=5)
+        if hasattr(self,'hero') and hasattr(self,'stack'):self.hero.setVisible(self.stack.currentIndex() not in (5,6))
     def closeEvent(self,event):
         if self.servers.busy:
             self.status.setText('انتظر اكتمال عملية السيرفرات قبل إغلاق البرنامج.');self.servers.status.setText(self.status.text());event.ignore()
         else:
             if hasattr(self,'guard_timer'):self.guard_timer.stop()
+            self.update_startup_timer.stop();self.updates.client.cancel()
             super().closeEvent(event)
     def page(self):
         page=QWidget();v=QVBoxLayout(page);v.setContentsMargins(0,0,10,0);v.setSpacing(16)
         scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(page);self.stack.addWidget(scroll)
         return v
     def primary_action(self):
-        if self.stack.currentIndex()==5:self.crosshair.review()
+        if self.stack.currentIndex()==6:self.updates.check()
+        elif self.stack.currentIndex()==5:self.crosshair.review()
         elif self.stack.currentIndex()==4:self.servers.block_selected()
         elif self.stack.currentIndex()==2:self.install_mods()
         else:self.preview()
     def navigate(self,i):
         self.stack.setCurrentIndex(i)
-        self.hero.setVisible(i!=5)
+        self.hero.setVisible(i not in (5,6))
         self.hero.set_page(i)
-        self.status.setVisible(i not in (4,5))
-        self.actionbar.setVisible(i not in (4,5));self.servers.actions_panel.setVisible(i==4);self.crosshair.actions_panel.setVisible(i==5)
-        self.heading.setText(('Workspace / ' if i==5 else 'مساحة العمل / ')+self.nav[i].text());self.private_badge.setText('Open source' if i==5 else 'مفتوح المصدر')
+        self.status.setVisible(i not in (4,5,6))
+        self.actionbar.setVisible(i not in (4,5,6));self.servers.actions_panel.setVisible(i==4);self.crosshair.actions_panel.setVisible(i==5)
+        self.heading.setText(('Workspace / ' if i==5 else 'مساحة العمل / ')+self.nav[i].text().removesuffix(' •'));self.private_badge.setText('Open source' if i==5 else 'مفتوح المصدر')
         if hasattr(self,'apply_button'):self.apply_button.setText('حظر السيرفرات المحددة' if i==4 else ('تركيب / تحديث المودات المختارة' if i==2 else 'معاينة وتطبيق الإعدادات ←'))
         for j,b in enumerate(self.nav):b.setChecked(j==i)
         if i==4:self.summary.setText('اختيار مناطق اتصال Steam • يحتاج صلاحية المدير عند التطبيق')
@@ -293,4 +300,5 @@ def main():
     app=QApplication(sys.argv);app.setApplicationName('DeadlockToolbox');app.setApplicationDisplayName('Deadlock Toolbox');app.setOrganizationName('exelight7');app.setLayoutDirection(Qt.RightToLeft);app.setStyle('Fusion');QFontDatabase.addApplicationFont(str(ASSETS/'fonts/NotoSansArabic.ttf'));app.setStyleSheet(STYLE)
     window=Window()
     if '--crosshair' in sys.argv:window.navigate(5)
-    window.show();sys.exit(app.exec())
+    if '--updates' in sys.argv:window.navigate(6)
+    window.show();window.update_startup_timer.start(3000);sys.exit(app.exec())

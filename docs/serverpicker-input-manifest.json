@@ -1,0 +1,27 @@
+[
+  {
+    "name": "libHarfBuzzSharp.so",
+    "size": 2808040,
+    "sha256": "1d5c3afef13545bf34bf8f068b14e25ee619c3b6dee235c44e260fe61cb24018"
+  },
+  {
+    "name": "libSkiaSharp.so",
+    "size": 11170296,
+    "sha256": "66c856eaf1a47a00b23204c30c6ee407987bf5086ecc0a1a6b4fd67526b0cd02"
+  },
+  {
+    "name": "RunServerPickerX.sh",
+    "size": 280,
+    "sha256": "03e74f2d3bbb2b523322dbd697735d153a5b60817fce50668fd708d0b9d23975"
+  },
+  {
+    "name": "ServerPickerX",
+    "size": 37173628,
+    "sha256": "48a408463c9c2aaf7e8f100014b66a687db23d8212991402044d61c88e991033"
+  },
+  {
+    "name": "ServerPickerX.pdb",
+    "size": 96500,
+    "sha256": "cf5c4ce49660f9d39d2a498a39feff610881d29c948206604887e034a982f9e4"
+  }
+]

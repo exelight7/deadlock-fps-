@@ -9,3 +9,10 @@ Application source is MIT (LICENSE). That license does not relicense Valve conte
 - Daylock, Remove Name Tags, Old Healthbars, Sinner Fix: imported at runtime from user-supplied files. Original authors/licenses were not supplied. The repository and downloadable builds do not distribute these VPKs.
 - Process Lasso and RTSS installers: audited as supplied binary attachments, not executed, verified safe, bundled, or required. Their licenses and behavior are outside this project.
 - Deadlock and Steam names belong to their respective owners. This is an independent community utility.
+
+- ServerPickerX by FN-FAL113 and contributors: https://github.com/FN-FAL113/server-picker-x (GPL-3.0). Supplied binary inspected as an integration reference. Toolbox implements the relay selection workflow independently; upstream code/assets/binaries are not bundled or relicensed. Valve's public SDR catalog snapshot is cached data, not part of the MIT source grant.
+
+- Noto Sans Arabic: bundled for consistent Arabic typography on Windows and Linux; SIL Open Font License 1.1, included at `assets/licenses/Noto-OFL.txt`.
+- User-selected artwork and eye logo: supplied via the user's Pinterest references; see `assets/artwork/SOURCES.md`. Original ownership remains with the artists/owners; these images are excluded from the source MIT license.
+
+- Country/territory flag SVGs: flag-icons by Panayiotis Lipiridis and contributors, MIT. Upstream https://github.com/lipis/flag-icons ; pinned commit in `assets/flags/SOURCE.md`, full license in `assets/licenses/flag-icons-MIT.txt`. The unknown-region globe is original code-native SVG.

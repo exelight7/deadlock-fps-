@@ -54,9 +54,12 @@ class Models(unittest.TestCase):
 
 class Files(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name)/'Deadlock';(self.root/'game/citadel/cfg').mkdir(parents=True)
+        # Windows temporary folders can use 8.3 names (RUNNER~1). Match the
+        # canonical paths returned by real video_files(), rather than mocking
+        # it with aliases that the store correctly rejects after resolving.
+        self.temp=tempfile.TemporaryDirectory();self.root=(Path(self.temp.name)/'Deadlock').resolve();(self.root/'game/citadel/cfg').mkdir(parents=True)
         (self.root/'game/citadel/gameinfo.gi').write_text('GameInfo {}')
-        self.video=Path(self.temp.name)/'Steam/userdata/1/1422450/local/cfg/video.txt';self.video.parent.mkdir(parents=True);self.video.write_text('video.cfg {}')
+        self.video=(Path(self.temp.name)/'Steam/userdata/1/1422450/local/cfg/video.txt').resolve();self.video.parent.mkdir(parents=True);self.video.write_text('video.cfg {}')
         self.remote=self.video.parent.parent.parent/'remote/cfg/citadel_hero_settings.lst';self.remote.parent.mkdir(parents=True)
         self.local=self.root/'game/citadel/cfg/citadel_hero_settings.lst'
         for p in (self.local,self.remote):p.write_bytes(fixture().encode())

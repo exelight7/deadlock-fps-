@@ -9,7 +9,7 @@ root=Path(__file__).resolve().parents[1]
 name='DeadlockToolbox.exe' if os.name=='nt' else 'DeadlockToolbox'
 source=root/'dist/DeadlockToolbox'/name
 with tempfile.TemporaryDirectory(prefix='toolbox-install-smoke-') as temp:
-    folder=Path(temp)
+    folder=Path(temp).resolve()
     env=dict(os.environ,QT_QPA_PLATFORM='offscreen',XDG_DATA_HOME=str(folder/'data'),
              XDG_CONFIG_HOME=str(folder/'config'),XDG_CACHE_HOME=str(folder/'cache'),
              LOCALAPPDATA=str(folder/'local'))
@@ -26,6 +26,11 @@ with tempfile.TemporaryDirectory(prefix='toolbox-install-smoke-') as temp:
         else:raise RuntimeError('Per-user installation did not complete')
         # Give the UI time to receive its worker result before closing the process.
         time.sleep(1)
+        if os.name=='nt':
+            # Confirm the actual Start Menu link, including its target, on Windows.
+            script="$p=Join-Path ([Environment]::GetFolderPath('Programs')) 'Deadlock Toolbox.lnk'; $w=New-Object -ComObject WScript.Shell; for($i=0;$i -lt 100;$i++){if((Test-Path $p) -and $w.CreateShortcut($p).TargetPath -eq $env:TOOLBOX_EXPECTED_BINARY){exit 0}; Start-Sleep -Milliseconds 100}; throw 'Start Menu shortcut missing or incorrect'"
+            subprocess.run(['powershell.exe','-NoProfile','-NonInteractive','-Command',script],
+                           env=dict(env,TOOLBOX_EXPECTED_BINARY=str(installed[0])),check=True,timeout=30)
     finally:
         if process.poll() is None:process.terminate()
         _,error=process.communicate(timeout=10)

@@ -12,7 +12,7 @@ class Workspace(unittest.TestCase):
     @classmethod
     def setUpClass(cls):cls.app=QApplication.instance() or QApplication([])
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name)
+        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name).resolve()
         self.game=self.root/'Deadlock';gi=self.game/'game/citadel/gameinfo.gi';gi.parent.mkdir(parents=True);gi.write_text('test')
         self.files=[self.root/f'Steam/userdata/{account}/1422450/local/cfg/video.txt' for account in ('111','222')]
         for file in self.files:file.parent.mkdir(parents=True);file.write_text('test')

@@ -12,7 +12,7 @@ from deadlock_fps.installation import install_archive, install_folder, executabl
 class Installation(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         self.source = self.root / 'portable'
         (self.source / '_internal').mkdir(parents=True)
         executable(self.source).write_bytes(b'program')

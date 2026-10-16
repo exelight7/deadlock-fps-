@@ -1,5 +1,6 @@
 """Exercise the shipped --install UI, then launch the installed binary."""
 import os
+import json
 from pathlib import Path
 import subprocess
 import tempfile
@@ -21,16 +22,23 @@ with tempfile.TemporaryDirectory(prefix='toolbox-install-smoke-') as temp:
         while time.monotonic()<deadline:
             if process.poll() is not None:raise RuntimeError('Installer exited: '+process.communicate()[1].decode(errors='replace'))
             installed=list(base.glob('*/'+name))
-            if installed and (os.name=='nt' or (folder/'data/applications/deadlock-toolbox.desktop').is_file()):break
+            if installed and (base/'last-install.json').is_file():break
             time.sleep(.1)
         else:raise RuntimeError('Per-user installation did not complete')
+        diagnostics=json.loads((base/'last-install.json').read_text(encoding='utf-8'))
+        if diagnostics['shortcut_error']:raise RuntimeError('Shortcut creation failed: '+diagnostics['shortcut_error'])
+        if os.name!='nt':assert (folder/'data/applications/deadlock-toolbox.desktop').is_file()
         # Give the UI time to receive its worker result before closing the process.
         time.sleep(1)
         if os.name=='nt':
             # Confirm the actual Start Menu link, including its target, on Windows.
             script="$p=Join-Path ([Environment]::GetFolderPath('Programs')) 'Deadlock Toolbox.lnk'; $w=New-Object -ComObject WScript.Shell; for($i=0;$i -lt 100;$i++){if((Test-Path $p) -and $w.CreateShortcut($p).TargetPath -eq $env:TOOLBOX_EXPECTED_BINARY){exit 0}; Start-Sleep -Milliseconds 100}; throw 'Start Menu shortcut missing or incorrect'"
-            subprocess.run(['powershell.exe','-NoProfile','-NonInteractive','-Command',script],
-                           env=dict(env,TOOLBOX_EXPECTED_BINARY=str(installed[0])),check=True,timeout=30)
+            try:
+                subprocess.run(['powershell.exe','-NoProfile','-NonInteractive','-Command',script],
+                               env=dict(env,TOOLBOX_EXPECTED_BINARY=str(installed[0])),check=True,timeout=30)
+            except subprocess.SubprocessError as error:
+                status=base/'last-install.json'
+                raise RuntimeError('Shortcut verification failed. Install diagnostics: '+(status.read_text(encoding='utf-8') if status.exists() else 'not written')) from error
     finally:
         if process.poll() is None:process.terminate()
         _,error=process.communicate(timeout=10)

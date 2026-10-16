@@ -2,6 +2,7 @@
 from pathlib import Path, PurePosixPath
 import hashlib
 import hmac
+import json
 import os
 import shutil
 import stat
@@ -37,7 +38,7 @@ def create_shortcut(binary):
         script = "$w=New-Object -ComObject WScript.Shell; $p=Join-Path ([Environment]::GetFolderPath('Programs')) 'Deadlock Toolbox.lnk'; $s=$w.CreateShortcut($p); $s.TargetPath=$env:TOOLBOX_BINARY; $s.WorkingDirectory=$env:TOOLBOX_FOLDER; $s.Save()"
         subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', script],
                        env=dict(os.environ, TOOLBOX_BINARY=str(binary), TOOLBOX_FOLDER=str(binary.parent)), check=True, timeout=30,
-                       capture_output=True)
+                       stdin=subprocess.DEVNULL, capture_output=True, creationflags=subprocess.CREATE_NO_WINDOW)
     else:
         from .core import atomic
         applications = Path(os.environ.get('XDG_DATA_HOME', Path.home() / '.local/share')) / 'applications'
@@ -69,11 +70,18 @@ def install_folder(source, version=__version__, base=None, shortcut=True):
         raise
     binary = executable(target)
     warning = ''
+    shortcut_error = ''
     if shortcut:
         try:
             create_shortcut(binary)
         except (OSError, subprocess.SubprocessError) as error:
             warning = 'تم التثبيت لكن تعذر إنشاء الاختصار. افتح التطبيق من: ' + str(binary)
+            output=getattr(error,'stderr',None)
+            shortcut_error=output.decode(errors='replace').strip() if isinstance(output,bytes) else str(error)
+    # Keep non-secret diagnostics for support, including windowed Windows builds.
+    from .core import atomic
+    try:atomic(base/'last-install.json',json.dumps({'binary':str(binary),'shortcut_error':shortcut_error},ensure_ascii=False).encode('utf-8'))
+    except OSError:pass
     return binary, warning
 
 

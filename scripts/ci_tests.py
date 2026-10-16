@@ -11,6 +11,6 @@ result=subprocess.run([sys.executable,'-m','unittest','discover','-s','tests','-
 sys.stdout.reconfigure(encoding='utf-8')
 print(result.stdout,end='')
 if result.returncode and os.environ.get('GITHUB_ACTIONS')=='true':
-    details=result.stdout[-16000:].replace('%','%25').replace('\r','%0D').replace('\n','%0A')
+    details=result.stdout[-3500:].replace('%','%25').replace('\r','%0D').replace('\n','%0A')
     print('::error title=Unit and interface test failure::'+details)
 sys.exit(result.returncode)

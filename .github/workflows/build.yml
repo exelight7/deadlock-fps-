@@ -24,7 +24,7 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libegl1 libopengl0 libxcb-cursor0
       - name: Unit and interface tests
-        run: python -m unittest discover -s tests -v
+        run: python scripts/ci_tests.py
         env:
           QT_QPA_PLATFORM: offscreen
       - name: Windows firewall integration smoke test

@@ -30,14 +30,15 @@ jobs:
       - name: Windows firewall integration smoke test
         if: runner.os == 'Windows'
         run: python scripts/smoke_windows_firewall.py
-      - run: python build.py
+      - run: python scripts/ci_tests.py build.py
       - name: Portable executable startup
+        shell: bash
         run: |
-          python scripts/smoke_desktop.py --crosshair
-          python scripts/smoke_desktop.py --updates
-          python scripts/smoke_desktop.py --inspector
-          python scripts/smoke_desktop.py --mods
-          python scripts/smoke_installation.py
+          python scripts/ci_tests.py scripts/smoke_desktop.py --crosshair
+          python scripts/ci_tests.py scripts/smoke_desktop.py --updates
+          python scripts/ci_tests.py scripts/smoke_desktop.py --inspector
+          python scripts/ci_tests.py scripts/smoke_desktop.py --mods
+          python scripts/ci_tests.py scripts/smoke_installation.py
       - uses: actions/upload-artifact@v4
         with:
           name: DeadlockToolbox-${{ matrix.os }}

@@ -23,7 +23,7 @@ class UpdateClient(QObject):
 
     def __init__(self,store,parent=None,manager=None):
         super().__init__(parent);self.store=store;self.manager=manager or QNetworkAccessManager(self)
-        self._reply=None;self.phase='';self.buffer=bytearray();self.writer=None;self.release=None;self.asset=None;self.folder=None
+        self._reply=None;self.phase='';self.buffer=bytearray();self.writer=None;self.release=None;self.asset=None;self.folder=None;self.downloaded_hash=''
 
     @property
     def busy(self):return bool(self.phase)
@@ -39,7 +39,7 @@ class UpdateClient(QObject):
         if self.busy:return
         asset=release.package();manifest=release.asset('SHA256SUMS.txt')
         if not asset or not manifest:self.failed.emit('لا تتوفر حزمة متوافقة مع نظامك وملف تحقق لهذا الإصدار.');return
-        self.release=release;self.asset=asset;self.folder=folder;self.phase='checksum'
+        self.release=release;self.asset=asset;self.folder=folder;self.downloaded_hash='';self.phase='checksum'
         self.busyChanged.emit(True);self.phaseChanged.emit(self.phase);self._get(manifest.url)
 
     def _get(self,url):
@@ -107,7 +107,7 @@ class UpdateClient(QObject):
                     self.progress.emit(0,self.asset.size)
                     if self.phase=='download':self._get(self.asset.url)
             elif self.phase=='download':
-                path=self.writer.commit();self.writer=None;self._idle();self.downloaded.emit(path)
+                expected=self.writer.expected;path=self.writer.commit();self.downloaded_hash=expected;self.writer=None;self._idle();self.downloaded.emit(path)
         except Exception as e:self._fail(str(e))
         finally:reply.deleteLater()
 

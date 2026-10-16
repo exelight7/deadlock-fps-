@@ -20,7 +20,10 @@ def atomic(path,data):
         if os.path.exists(name): os.unlink(name)
 
 def game_root(path):
+    if not str(path).strip():raise ValueError('اربط اللعبة أولًا: اختر مجلد Deadlock من صفحة ابدأ هنا.')
     p=Path(path).expanduser().resolve()
+    for candidate in [p,p.parent,p.parent.parent]:
+        if (candidate/'game/citadel/gameinfo.gi').is_file():return candidate
     if not (p/'game/citadel/gameinfo.gi').is_file(): raise ValueError('اختر مجلد Deadlock الذي يحتوي game/citadel/gameinfo.gi')
     return p
 

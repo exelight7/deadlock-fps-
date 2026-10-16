@@ -153,6 +153,20 @@ class Network(NetworkFixture):
 
 
 class Interface(NetworkFixture):
+    def test_verified_download_can_install_in_background_and_retry_failure(self):
+        from deadlock_fps.update_ui import UpdatePage
+        from PySide6.QtCore import QThreadPool
+        page=UpdatePage(store=self.store,current='2.1.0',manager=self.manager)
+        page.saved_path=self.folder/'download.zip';page.saved_hash=HASH;page.saved_version='v2.2.2';page.refresh_buttons()
+        with patch('deadlock_fps.installation.install_archive',side_effect=OSError('disk full')):
+            page.install_download();self.assertTrue(page.installing);self.assertFalse(page.check_button.isEnabled())
+            QThreadPool.globalInstance().waitForDone();self.app.processEvents()
+        self.assertFalse(page.installing);self.assertTrue(page.install_button.isEnabled());self.assertIn('disk full',page.detail.text())
+        binary=self.folder/'installed/DeadlockToolbox'
+        with patch('deadlock_fps.installation.install_archive',return_value=(binary,'')) as install:
+            page.install_download();QThreadPool.globalInstance().waitForDone();self.app.processEvents()
+            install.assert_called_once_with(page.saved_path,'v2.2.2',HASH)
+        self.assertEqual(page.installed_binary,binary);self.assertFalse(page.install_button.isEnabled());self.assertFalse(page.launch_button.isHidden());page.close()
     def test_release_states_cache_and_persistent_auto_preference(self):
         from deadlock_fps.update_ui import UpdatePage
         page=UpdatePage(store=self.store,current='2.1.0',manager=self.manager,download_folder=self.folder/'downloads')

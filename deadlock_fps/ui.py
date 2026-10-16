@@ -29,7 +29,15 @@ def card(title,description=None):
 
 class Window(QMainWindow):
     def __init__(self):
-        super().__init__();self.setWindowIcon(QIcon(str(ASSETS/'app.png')));self.setWindowTitle('Deadlock Toolbox');self.resize(1360,920);self.setMinimumSize(940,680)
+        super().__init__();self.setWindowIcon(QIcon(str(ASSETS/'app.png')));self.setWindowTitle('Deadlock Toolbox');self.resize(1200,820);self.setMinimumSize(940,680)
+        self.preferences_file=Path(QStandardPaths.writableLocation(QStandardPaths.AppDataLocation))/'workspace.json'
+        self.preferred_account=None;self.saved_game=''
+        try:
+            saved=json.loads(self.preferences_file.read_text(encoding='utf-8'))
+            if isinstance(saved,dict):
+                self.saved_game=saved.get('game','') if isinstance(saved.get('game'),str) else ''
+                self.preferred_account=saved.get('account') if isinstance(saved.get('account'),str) else None
+        except (OSError,ValueError):pass
         self.controls={};self.mod_checks={};self.mod_labels={}
         legacy=Path(QStandardPaths.writableLocation(QStandardPaths.GenericDataLocation))/'exelight7/DeadlockFPSStudio/mods'
         self.library=ModLibrary(legacy if legacy.exists() else Path(QStandardPaths.writableLocation(QStandardPaths.AppDataLocation))/'mods')
@@ -44,7 +52,7 @@ class Window(QMainWindow):
         nav_body=QWidget();nav_body.setObjectName('navContent');nav_body.setStyleSheet('QWidget#navContent {background:#101a22;}');nav_layout=QVBoxLayout(nav_body);nav_layout.setContentsMargins(0,0,0,0);nav_layout.setSpacing(6)
         self.nav_scroll=QScrollArea();self.nav_scroll.setWidgetResizable(True);self.nav_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff);self.nav_scroll.setWidget(nav_body);side.addWidget(self.nav_scroll,1)
         self.stack=QStackedWidget();self.nav=[];self.guard_signature=None;self.guard_retries=0;self.guard_attempts={}
-        for index,text in enumerate(['لوحة التحكم','تخصيص الرسوم','المودات','النسخ والاسترجاع','السيرفرات','Crosshair Designer','Update Center','Mod Inspector']):
+        for index,text in enumerate(['ابدأ هنا','الرسوم والأداء','المودات','النسخ والاسترجاع','السيرفرات','الكروس هير','التحديث والتثبيت','فحص المودات']):
             b=QPushButton(text);b.setObjectName('nav');b.setIcon(nav_icon(index));b.setIconSize(QSize(21,21));b.setCheckable(True);b.clicked.connect(lambda _,i=index:self.navigate(i));nav_layout.addWidget(b);self.nav.append(b)
         nav_layout.addStretch();side.addWidget(label('أدواتك. إعداداتك. اختيارك.','subtitle'));side.addSpacing(6);version=label(__version__,'badge');version.setLayoutDirection(Qt.LeftToRight);side.addWidget(version,0,Qt.AlignRight);side.addWidget(label('مفتوح المصدر • Windows + Linux','sectionLabel'))
         git=QPushButton('GitHub ↗');git.clicked.connect(lambda:QDesktopServices.openUrl(QUrl('https://github.com/exelight7/deadlock-fps-')));side.addWidget(git)
@@ -53,20 +61,21 @@ class Window(QMainWindow):
         top=QHBoxLayout();self.heading=label('مساحة العمل / لوحة التحكم','crumb');top.addWidget(self.heading,1)
         self.game_chip=QPushButton('ربط اللعبة');self.game_chip.setObjectName('quiet');self.game_chip.clicked.connect(self.focus_game);top.addWidget(self.game_chip)
         self.private_badge=label('مفتوح المصدر','badge');top.addWidget(self.private_badge);v.addLayout(top)
-        self.hero=ArtworkHero();v.addWidget(self.hero);v.addWidget(self.stack,1)
+        self.hero=ArtworkHero();v.addWidget(self.hero);self.page_hint=label('','stepPill');v.addWidget(self.page_hint);v.addWidget(self.stack,1)
         self.status=label('جاهز • اختر إعدادًا، ثم راجع التغييرات.','subtitle');v.addWidget(self.status)
         actionbar=QFrame();self.actionbar=actionbar;actionbar.setObjectName('actionbar');footer=QHBoxLayout(actionbar);footer.setContentsMargins(16,10,16,10);self.summary=label('دقة اللعبة محفوظة • خامات بسيطة','subtitle');footer.addWidget(self.summary,1)
         apply=QPushButton('معاينة وتطبيق الإعدادات ←');apply.setObjectName('primary');apply.clicked.connect(self.primary_action);self.apply_button=apply;footer.addWidget(apply);v.addWidget(actionbar)
         layout.addWidget(content,1)
         self.dashboard();self.graphics();self.mods();self.backups();self.servers=ServerPage(self);server_scroll=QScrollArea();server_scroll.setWidgetResizable(True);server_scroll.setWidget(self.servers);self.stack.addWidget(server_scroll);self.servers.layout().removeWidget(self.servers.actions_panel);v.addWidget(self.servers.actions_panel);self.crosshair=CrosshairPage(lambda:(self.path.text(),self.accounts.currentData()),self);self.stack.addWidget(self.crosshair);self.crosshair.layout().removeWidget(self.crosshair.actions_panel);v.addWidget(self.crosshair.actions_panel)
-        self.updates=UpdatePage(self);self.stack.addWidget(self.updates);self.updates.updateAvailable.connect(lambda available:self.nav[6].setText('Update Center •' if available else 'Update Center'))
-        if self.updates.release and self.updates.release.version>self.updates.current:self.nav[6].setText('Update Center •')
+        self.updates=UpdatePage(self);self.stack.addWidget(self.updates);self.updates.updateAvailable.connect(lambda available:self.nav[6].setText('التحديث والتثبيت •' if available else 'التحديث والتثبيت'))
+        if self.updates.release and self.updates.release.version>self.updates.current:self.nav[6].setText('التحديث والتثبيت •')
         self.inspector=InspectorPage(self);self.stack.addWidget(self.inspector)
         self.path.editingFinished.connect(self.inspector.invalidate)
         self.update_startup_timer=QTimer(self);self.update_startup_timer.setSingleShot(True);self.update_startup_timer.timeout.connect(self.updates.automatic_check)
-        self.navigate(0);self.load_preset('performance')
+        self.navigate(0);self.load_preset('balanced')
         games=detect_games()
-        if games:self.path.setText(str(games[0]));self.refresh_accounts()
+        if self.saved_game and (Path(self.saved_game)/'game/citadel/gameinfo.gi').is_file():self.path.setText(self.saved_game);self.refresh_accounts()
+        elif games:self.path.setText(str(games[0]));self.refresh_accounts()
         try:
             candidates=self.library.discover()
             if candidates:self.library.import_sources(candidates)
@@ -75,8 +84,10 @@ class Window(QMainWindow):
         self.guard_timer=QTimer(self);self.guard_timer.setInterval(5000);self.guard_timer.timeout.connect(self.guard_tick);self.guard_timer.start()
     def resizeEvent(self,event):
         super().resizeEvent(event)
-        if hasattr(self,'hero') and hasattr(self,'stack'):self.hero.setVisible(self.stack.currentIndex()<5 and self.height()>=800)
+        if hasattr(self,'hero') and hasattr(self,'stack'):self.hero.setVisible(self.stack.currentIndex() in (2,3,4) and self.height()>=800)
     def closeEvent(self,event):
+        if self.updates.installing:
+            self.updates.detail.setText('انتظر اكتمال التثبيت قبل إغلاق البرنامج.');event.ignore();return
         if self.mods_page.applying:
             self.mods_page.status.setText('أكمل حفظ الملفات أولًا؛ ينتهي التركيب بعد لحظات.');event.ignore();return
         if self.servers.busy:
@@ -99,7 +110,17 @@ class Window(QMainWindow):
         else:self.preview()
     def navigate(self,i):
         self.stack.setCurrentIndex(i)
-        self.hero.setVisible(i<5 and self.height()>=800)
+        self.page_hint.setText([
+            'ابدأ من هنا: اربط اللعبة ← اختر الأداء ← راجع وطبّق.',
+            'اختر مستوى التخفيف. نسبة الأبعاد وحد الإطارات اختيارات إضافية.',
+            'أضف ZIP أو VPK ← اختر المودات ← راجع التركيب. الفحص يتم قبل الحفظ.',
+            'تبي ترجع؟ استرجع الأصل. تبي تنقل خياراتك؟ صدّر إعداداتك.',
+            'انتظر القياس ← حدد المناطق ← اختر السماح بها فقط أو الحظر. فك كل الحظر متاح دائمًا.',
+            'اختر تصميمًا جاهزًا، جرّب المعاينة، ثم راجع تطبيقه على حسابك.',
+            'تحقق من التحديثات ← نزّل ← ثبّت ← افتح النسخة الجديدة.',
+            'الفحص يوضح الملفات الناقصة والتالفة. عالج الأخطاء ثم ارجع للمودات للتركيب.'
+        ][i])
+        self.hero.setVisible(i in (2,3,4) and self.height()>=800)
         self.hero.set_page(i)
         self.status.setVisible(i in (0,1,3))
         self.actionbar.setVisible(i in (0,1));self.servers.actions_panel.setVisible(i==4);self.crosshair.actions_panel.setVisible(i==5)
@@ -114,18 +135,26 @@ class Window(QMainWindow):
         v=self.page();shortcuts=QHBoxLayout()
         for title,index in [('المودات',2),('فحص المودات',7),('السيرفرات',4)]:
             button=QPushButton(title);button.setIcon(nav_icon(index));button.setIconSize(QSize(24,24));button.setObjectName('shortcut');button.clicked.connect(lambda _,i=index:self.navigate(i));shortcuts.addWidget(button,1)
-        v.addLayout(shortcuts);f,c=card('ابدأ بلعبتك','نكتشف Steam تلقائيًا. إذا لم يظهر المسار، اختر مجلد Deadlock.');v.addWidget(f)
+        v.addLayout(shortcuts);f,c=card('1 · اربط اللعبة مرة واحدة','نكتشف Steam تلقائيًا ونحفظ اختيارك. اختر مجلد Deadlock أو مجلد game بداخله.');v.addWidget(f)
+        self.connection_note=label('اختر مجلد اللعبة للبدء. تقدر تستخدم التحديث والمكتبة بدون ربط.','stepPill');c.addWidget(self.connection_note)
         row=QHBoxLayout();self.path=QLineEdit();self.path.setLayoutDirection(Qt.LeftToRight);self.path.setPlaceholderText('…/steamapps/common/Deadlock');row.addWidget(self.path,1)
-        b=QPushButton('تصفح');b.clicked.connect(self.browse_game);row.addWidget(b);c.addLayout(row)
+        b=QPushButton('اختيار المجلد');b.clicked.connect(self.browse_game);row.addWidget(b)
+        b=QPushButton('بحث تلقائي');b.clicked.connect(self.detect_game);row.addWidget(b);c.addLayout(row)
         self.path.editingFinished.connect(self.refresh_accounts)
-        self.accounts=QComboBox();self.accounts.setLayoutDirection(Qt.LeftToRight);c.addWidget(label('حساب Steam / ملف إعدادات الفيديو','subtitle'));c.addWidget(self.accounts)
-        f,c=card('مستوى التخفيف','الرقم الأعلى = رسوم أبسط وحمل أقل. اختر مستوى يناسب وضوحك؛ الدقة تبقى كما هي.');v.addWidget(f)
+        self.accounts=QComboBox();self.accounts.setLayoutDirection(Qt.LeftToRight);self.accounts.currentIndexChanged.connect(self.remember_account);self.account_label=label('حساب Steam · اختر الحساب الذي تلعب عليه','subtitle');c.addWidget(self.account_label);c.addWidget(self.accounts);self.account_label.hide();self.accounts.hide()
+        f,c=card('2 · اختر الأداء المناسب','ابدأ بمتوازن. ارفع التخفيف إذا احتجت أداء أعلى؛ دقة اللعبة محفوظة.');v.addWidget(f)
+        row=QHBoxLayout()
+        for title,key in [('متوازن','balanced'),('أداء أعلى','performance'),('تخفيف شديد','ultra')]:
+            b=QPushButton(title);b.clicked.connect(lambda _,k=key:self.load_preset(k));row.addWidget(b)
+        c.addLayout(row)
         self.presets={}
         self.level=QSlider(Qt.Horizontal);self.level.setLayoutDirection(Qt.LeftToRight);self.level.setRange(0,MAX_LEVEL);self.level.setTickInterval(25);self.level.setTickPosition(QSlider.TicksBelow);self.level.valueChanged.connect(self.level_changed)
         ends=QWidget();ends.setStyleSheet('background:transparent;');ends.setLayoutDirection(Qt.LeftToRight);row=QHBoxLayout(ends);row.setContentsMargins(0,0,0,0);row.addWidget(label('0 • جودة أعلى / جهاز قوي'));row.addStretch();row.addWidget(label(f'{MAX_LEVEL} • أقصى تخفيف تجريبي'));c.addWidget(ends);c.addWidget(self.level)
         self.level_title=label('','cardtitle');self.level_description=label('','subtitle');c.addWidget(self.level_title);c.addWidget(self.level_description)
         self.level_effects=label('','subtitle');c.addWidget(self.level_effects)
-        f,c=card('تحكم مدروس، حتى في أقصى تخفيف','إغلاق اللعبة مطلوب قبل التطبيق. الإعدادات تحفظ الأصل تلقائيًا، وبعض الخيارات المرفقة تجريبية وقد تتجاهلها تحديثات اللعبة. جرّب الوضوح في التدريب بعد كل تغيير.');v.addWidget(f)
+        customize=QPushButton('تخصيص المستوى يدويًا');customize.setCheckable(True);c.addWidget(customize)
+        for widget in (ends,self.level,self.level_effects):widget.hide();customize.toggled.connect(widget.setVisible)
+        f,c=card('3 · راجع وطبّق','أغلق اللعبة ثم اضغط معاينة وتطبيق أسفل الشاشة. نحفظ الأصل تلقائيًا؛ تقدر تتراجع من النسخ والاسترجاع. جرّب الوضوح في التدريب.');v.addWidget(f)
         c.addWidget(label(f'النظام: {platform.system()}  •  المعالج: {platform.machine()}','subtitle'));v.addStretch()
     def slider(self,layout,key,title,lo,hi,unit=''):
         row=QHBoxLayout();row.addWidget(label(title),1);out=label('');row.addWidget(out);layout.addLayout(row)
@@ -227,22 +256,44 @@ class Window(QMainWindow):
     def mod_task_busy(self):
         if self.mods_page.busy:self.status.setText('انتظر اكتمال عملية المودات الحالية، ثم أعد المحاولة.');return True
         return False
+    def detect_game(self):
+        if self.mods_page.applying:return
+        games=detect_games()
+        if games:self.path.setText(str(games[0]));self.refresh_accounts()
+        else:self.connection_note.setText('ما لقينا اللعبة تلقائيًا. من Steam: إدارة اللعبة ← استعراض الملفات المحلية، ثم اختر المجلد هنا.')
+    def remember_account(self,*_):
+        self.preferred_account=self.accounts.currentData();self.save_workspace()
+    def save_workspace(self):
+        from .core import atomic
+        try:atomic(self.preferences_file,json.dumps({'game':self.path.text(),'account':self.preferred_account},ensure_ascii=False).encode('utf-8'))
+        except OSError:self.status.setText('اللعبة مرتبطة، لكن تعذر حفظ اختيار المجلد للجلسة القادمة.')
     def refresh_accounts(self):
-        self.accounts.clear()
+        self.accounts.blockSignals(True);self.accounts.clear()
         try:
             from .core import game_root
             root=game_root(self.path.text())
-            for f in video_files(root):self.accounts.addItem(str(f),str(f))
+            self.path.setText(str(root))
+            for f in video_files(root):
+                account=next((p.name for p in f.parents if p.parent.name=='userdata'),None)
+                self.accounts.addItem('Steam '+account if account else 'إعدادات محلية للعبة',str(f));self.accounts.setItemData(self.accounts.count()-1,str(f),Qt.ToolTipRole)
+            index=self.accounts.findData(self.preferred_account)
+            if index>=0:self.accounts.setCurrentIndex(index)
+            self.preferred_account=self.accounts.currentData()
+            self.connection_note.setText('✓ اللعبة مرتبطة · اختر الأداء بالأسفل، ثم راجع وطبّق.');self.save_workspace()
+            if not self.accounts.count():self.connection_note.setText('✓ اللعبة مرتبطة · شغّل اللعبة مرة واحدة إذا احتجت إعدادات الفيديو والكروس هير.')
             self.status.setText('اللعبة مرتبطة • جاهز للتخصيص.');self.game_chip.setText('اللعبة مرتبطة')
             saved=Studio(root,self.accounts.currentData()).state().get('settings')
             if saved:self.load_settings(Settings.from_dict(saved))
-        except Exception as e:self.status.setText(str(e));self.game_chip.setText('ربط اللعبة')
+        except Exception as e:self.status.setText(str(e));self.connection_note.setText('اختر مجلد Deadlock الصحيح أو استخدم البحث التلقائي.');self.game_chip.setText('ربط اللعبة')
+        finally:
+            self.accounts.blockSignals(False);self.accounts.setVisible(self.accounts.count()>1);self.account_label.setVisible(self.accounts.count()>1)
         self.refresh_mod_library()
         if hasattr(self,'inspector'):self.inspector.invalidate()
     def studio(self):return Studio(self.path.text(),self.accounts.currentData())
     def error(self,e):QMessageBox.warning(self,'تعذر إكمال العملية',str(e));self.status.setText(str(e))
     def preview(self):
         if self.mod_task_busy():return
+        if not self.path.text().strip():self.focus_game();self.connection_note.setText('باقي خطوة واحدة: اختر مجلد اللعبة أولًا.');return
         try:
             studio=self.studio();s=self.settings();plan=studio.plan(s,self.library.cache)
             require_mods(self.library,studio.root,s.mods)
@@ -256,7 +307,9 @@ class Window(QMainWindow):
                     old=p.read_text(errors='replace') if p.exists() else ''
                     parts.append(''.join(difflib.unified_diff(old.splitlines(True),b.decode().splitlines(True),fromfile='current',tofile='proposed')))
                 else:parts.append('Remove managed file' if b is None else f'Install VPK: {len(b):,} bytes')
-            out.setPlainText('\n\n'.join(parts));v.addWidget(out,1)
+            name,description=level_info(s.level)
+            v.addWidget(label(f'الأداء: {name} · المستوى {s.level}/{MAX_LEVEL}\nحد الإطارات: '+(str(s.fps)+' FPS' if s.fps else 'بدون حد')+'\nدقة اللعبة محفوظة. تستطيع التراجع من النسخ والاسترجاع.','subtitle'))
+            out.setPlainText('\n\n'.join(parts));out.hide();more=QPushButton('إظهار تفاصيل الملفات');more.setCheckable(True);more.toggled.connect(out.setVisible);v.addWidget(more);v.addWidget(out,1)
             buttons=QDialogButtonBox();ok=buttons.addButton('تطبيق وحفظ نسخة احتياطية',QDialogButtonBox.AcceptRole);buttons.addButton('إلغاء',QDialogButtonBox.RejectRole);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);v.addWidget(buttons)
             if dialog.exec()==QDialog.Accepted:
                 # Regenerate after preview to detect file changes before committing.
@@ -293,4 +346,6 @@ def main():
     if '--updates' in sys.argv:window.navigate(6)
     if '--inspector' in sys.argv:window.navigate(7)
     if '--mods' in sys.argv:window.navigate(2)
+    if '--install' in sys.argv:
+        window.navigate(6);QTimer.singleShot(100,window.updates.install_current)
     window.show();window.update_startup_timer.start(3000);sys.exit(app.exec())

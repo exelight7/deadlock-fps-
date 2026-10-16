@@ -7,6 +7,9 @@ subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--win
 folder=root/'dist/DeadlockToolbox'
 shutil.copytree(root/'docs',folder/'docs',dirs_exist_ok=True)
 for name in ['LICENSE','THIRD_PARTY.md','README.md']:shutil.copy2(root/name,folder/name)
+installer='Install.cmd' if sys.platform=='win32' else 'Install.sh'
+shutil.copy2(root/installer,folder/installer)
+if sys.platform!='win32':(folder/installer).chmod(0o755)
 # Include distribution license and notice files without flattening paths.
 from importlib.metadata import distribution
 for package in ['PySide6','PySide6_Essentials','PySide6_Addons','shiboken6','psutil','pyinstaller']:

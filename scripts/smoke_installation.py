@@ -1,0 +1,45 @@
+"""Exercise the shipped --install UI, then launch the installed binary."""
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+import time
+
+root=Path(__file__).resolve().parents[1]
+name='DeadlockToolbox.exe' if os.name=='nt' else 'DeadlockToolbox'
+source=root/'dist/DeadlockToolbox'/name
+with tempfile.TemporaryDirectory(prefix='toolbox-install-smoke-') as temp:
+    folder=Path(temp)
+    env=dict(os.environ,QT_QPA_PLATFORM='offscreen',XDG_DATA_HOME=str(folder/'data'),
+             XDG_CONFIG_HOME=str(folder/'config'),XDG_CACHE_HOME=str(folder/'cache'),
+             LOCALAPPDATA=str(folder/'local'))
+    base=folder/('local' if os.name=='nt' else 'data')/'DeadlockToolbox'
+    process=subprocess.Popen([str(source),'--install'],cwd=source.parent,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    try:
+        deadline=time.monotonic()+60
+        installed=[]
+        while time.monotonic()<deadline:
+            if process.poll() is not None:raise RuntimeError('Installer exited: '+process.communicate()[1].decode(errors='replace'))
+            installed=list(base.glob('*/'+name))
+            if installed and (os.name=='nt' or (folder/'data/applications/deadlock-toolbox.desktop').is_file()):break
+            time.sleep(.1)
+        else:raise RuntimeError('Per-user installation did not complete')
+        # Give the UI time to receive its worker result before closing the process.
+        time.sleep(1)
+    finally:
+        if process.poll() is None:process.terminate()
+        _,error=process.communicate(timeout=10)
+        if error:raise RuntimeError(error.decode(errors='replace'))
+    binary=installed[0]
+    assert (binary.parent/'_internal/assets/app.png').is_file()
+    process=subprocess.Popen([str(binary),'--updates'],cwd=binary.parent,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    try:
+        try:
+            process.wait(timeout=2.5)
+            raise RuntimeError('Installed GUI exited: '+process.communicate()[1].decode(errors='replace'))
+        except subprocess.TimeoutExpired:pass
+    finally:
+        if process.poll() is None:process.terminate()
+        _,error=process.communicate(timeout=10)
+        if error:raise RuntimeError(error.decode(errors='replace'))
+    print('Per-user GUI installation, bundled resources and installed startup verified.')

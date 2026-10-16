@@ -158,7 +158,7 @@ class Interface(unittest.TestCase):
         p.copy_code();self.assertEqual(read_code(self.app.clipboard().text()),p.model)
         w.resize(940,680);self.app.processEvents();self.assertEqual(w.size().toTuple(),(940,680));self.assertFalse(w.hero.isVisible())
         for b in [p.reload_button,p.apply_button,p.restore_button]:self.assertTrue(w.rect().contains(b.mapTo(w,b.rect().center())))
-        w.navigate(0);self.assertFalse(w.hero.isVisible());self.assertFalse(p.actions_panel.isVisible());w.resize(1360,920);self.app.processEvents();self.assertTrue(w.hero.isVisible());w.close()
+        w.navigate(0);self.assertFalse(w.hero.isVisible());self.assertFalse(p.actions_panel.isVisible());w.resize(1360,920);self.app.processEvents();self.assertFalse(w.hero.isVisible());w.navigate(2);self.assertTrue(w.hero.isVisible());w.close()
     def test_native_base_gap_spread_and_static_reference_geometry(self):
         from deadlock_fps.crosshair_ui import CrosshairPreview
         p=CrosshairPreview();reference=replace(Crosshair(),gap=-8.6,dot=5.8,color='#aa0000',opacity=.78)

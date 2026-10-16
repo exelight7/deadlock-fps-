@@ -6,7 +6,7 @@
 
 <p dir="rtl">خلّ Deadlock أخف، واضبطها على ذوقك.<br>الرسوم، المودات، الكروس هير والسيرفرات في برنامج واحد لويندوز ولينكس.</p>
 
-**[تحميل Windows](https://github.com/exelight7/deadlock-fps-/releases/download/v2.4.0/DeadlockToolbox-windows-x64.zip)** · **[تحميل Linux](https://github.com/exelight7/deadlock-fps-/releases/download/v2.4.0/DeadlockToolbox-linux-x64.zip)** · [آخر الإصدارات](https://github.com/exelight7/deadlock-fps-/releases)
+**[تحميل Windows](https://github.com/exelight7/deadlock-fps-/releases/download/v2.5.0/DeadlockToolbox-windows-x64.zip)** · **[تحميل Linux](https://github.com/exelight7/deadlock-fps-/releases/download/v2.5.0/DeadlockToolbox-linux-x64.zip)** · [آخر الإصدارات](https://github.com/exelight7/deadlock-fps-/releases)
 
 </div>
 
@@ -25,7 +25,7 @@
 ## ابدأ بثلاث خطوات
 
 1. نزّل نسخة نظامك وفك ضغط المجلد **كاملًا**.
-2. افتح البرنامج واربطه بمجلد **Deadlock**.
+2. افتح `Install.cmd` على Windows، أو شغّل `bash Install.sh` على Linux، ثم افتح التطبيق من قائمة التطبيقات واربطه بمجلد **Deadlock**.
 3. أغلق اللعبة، اختر تعديلاتك، ثم راجع وطبّق.
 
 المودات غير مرفقة؛ أضف حزمك المدعومة من صفحة المودات. جرّب النتيجة في التدريب، خصوصًا عند التخفيف العالي. قياس البنق للمناطق تقريبي وقد يختلف عن بنق المباراة.
@@ -37,7 +37,7 @@
 <details>
 <summary>معلومات إضافية</summary>
 
-يعمل على Windows وLinux بمعمارية x64. عند التحديث، أغلق النسخة القديمة وفك الحزمة الجديدة كاملةً. في Linux قد تحتاج إعادة تطبيق حظر السيرفرات بعد إعادة التشغيل؛ أدوات السيرفرات تحتاج `ping` و`iptables` وpolkit.
+يعمل على Windows وLinux بمعمارية x64. للتحديث من 2.5 وما بعده: التحديث والتثبيت ← تحقق ← نزّل ← ثبّت. القادم من إصدار أقدم يفك الحزمة كاملة ويشغّل ملف التثبيت مرة واحدة. في Linux قد تحتاج إعادة تطبيق حظر السيرفرات بعد إعادة التشغيل؛ أدوات السيرفرات تحتاج `ping` و`iptables` وpolkit.
 
 الكود مفتوح المصدر ويمكنك تعديله. [البناء من المصدر](docs/BUILD.md) · [ترخيص الكود](LICENSE) · [حقوق المحتوى](THIRD_PARTY.md).
 

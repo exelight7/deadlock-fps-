@@ -47,7 +47,7 @@ jobs:
   release:
     # Only this explicitly authorized release commit publishes. Ordinary pushes
     # and manual runs build/test without creating or changing releases.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'Release Deadlock Toolbox v2.6.0')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'Release Deadlock Toolbox v2.6.0')
     needs: build
     runs-on: ubuntu-latest
     permissions:

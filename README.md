@@ -6,7 +6,7 @@
 
 <p dir="rtl">خلّ Deadlock أخف، واضبطها على ذوقك.<br>الرسوم، المودات، الكروس هير والسيرفرات في برنامج واحد لويندوز ولينكس.</p>
 
-**[تحميل Windows](https://github.com/exelight7/deadlock-fps-/releases/download/v2.5.0/DeadlockToolbox-windows-x64.zip)** · **[تحميل Linux](https://github.com/exelight7/deadlock-fps-/releases/download/v2.5.0/DeadlockToolbox-linux-x64.zip)** · [آخر الإصدارات](https://github.com/exelight7/deadlock-fps-/releases)
+**[تحميل Windows](https://github.com/exelight7/deadlock-fps-/releases/download/v2.6.0/DeadlockToolbox-windows-x64.zip)** · **[تحميل Linux](https://github.com/exelight7/deadlock-fps-/releases/download/v2.6.0/DeadlockToolbox-linux-x64.zip)** · [آخر الإصدارات](https://github.com/exelight7/deadlock-fps-/releases)
 
 </div>
 

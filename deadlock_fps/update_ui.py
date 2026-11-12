@@ -44,7 +44,7 @@ class UpdatePage(QWidget):
         frame,c=panel();v.addWidget(frame);self.state=text('ابدأ بفحص الإصدارات.','cardtitle');c.addWidget(self.state);self.detail=text('الفحص والتنزيل يعملان في الخلفية.');c.addWidget(self.detail)
         self.checked=text('لم يتم الفحص بعد.','sectionLabel');c.addWidget(self.checked)
         self.progress=QProgressBar();self.progress.setRange(0,100);self.progress.setLayoutDirection(Qt.LeftToRight);self.progress.setTextVisible(False)
-        self.progress.setStyleSheet('QProgressBar {border:0;border-radius:4px;background:#363b3d;min-height:8px;max-height:8px;} QProgressBar::chunk {background:#e7c08a;border-radius:4px;}');c.addWidget(self.progress);self.progress.hide()
+        self.progress.setStyleSheet('QProgressBar {border:0;border-radius:4px;background:#1a2a35;min-height:8px;max-height:8px;} QProgressBar::chunk {background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #c79d5f,stop:1 #f7deb2);border-radius:4px;}');c.addWidget(self.progress);self.progress.hide()
         self.progress_text=text('','sectionLabel');self.progress_text.setLayoutDirection(Qt.LeftToRight);c.addWidget(self.progress_text);self.progress_text.hide()
         frame,c=panel();v.addWidget(frame);c.addWidget(text('ما الجديد؟','cardtitle'));self.notes=QPlainTextEdit();self.notes.setReadOnly(True);self.notes.setMinimumHeight(145);self.notes.setMaximumHeight(220);self.notes.setLayoutDirection(Qt.LeftToRight);self.notes.setPlainText('ستظهر ملاحظات الإصدار هنا بعد الفحص.');c.addWidget(self.notes)
         frame,c=panel();v.addWidget(frame);c.addWidget(text('تركيب النسخة الجديدة','cardtitle'))

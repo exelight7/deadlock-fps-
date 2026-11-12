@@ -1,6 +1,6 @@
 """Shared visual language and lightweight, locally rendered page artwork."""
 from PySide6.QtCore import Qt, QRectF, QSize, QVariantAnimation
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QLinearGradient, QPixmap, QIcon
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QLinearGradient, QPixmap, QIcon, QImage, QPen
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QGraphicsOpacityEffect
 from .core import ASSETS
 
@@ -16,90 +16,111 @@ PAGES = [
 ]
 
 STYLE = '''
-QWidget {background:#0b1218;color:#e5eef2;font-family:"Noto Sans Arabic","Segoe UI",sans-serif;font-size:13px;}
-QMainWindow {background:#0b1218;}
+QWidget {background:#0a1016;color:#e8eff3;font-family:"Noto Sans Arabic","Segoe UI",sans-serif;font-size:13px;}
+QMainWindow {background:#0a1016;}
 QLabel {background:transparent;}
-QFrame#sidebar {background:#101a22;border-left:1px solid #303236;}
-QLabel#brand {color:#f1f4f2;font-size:25px;font-weight:800;}
-QLabel#eyebrow {color:#ddbb87;font-size:10px;font-weight:700;}
-QLabel#sectionLabel {color:#8196a4;font-size:11px;}
-QLabel#crumb {color:#8da0ac;font-size:12px;}
-QLabel#badge {color:#e4c492;background:#232b2c;border:1px solid #475349;border-radius:10px;padding:3px 10px;font-size:10px;}
-QLabel#heroTitle {color:#f4f5ef;font-size:28px;font-weight:800;background:transparent;}
-QLabel#heroDescription {color:#afc0ca;font-size:13px;background:transparent;}
-QLabel#heroEyebrow {color:#e5c492;font-size:10px;font-weight:700;background:transparent;}
-QLabel#subtitle {color:#a5b7c3;font-size:13px;}
-QLabel#selectionNotice {color:#a0b4c0;font-size:12px;padding:5px 10px;border:1px solid #2a3c48;border-radius:8px;}
-QLabel#selectionNotice[hasSelection="true"] {color:#f7dbac;background:#343729;border-color:#7b7850;font-weight:700;}
-QLabel#cardtitle {color:#edf3f4;font-size:17px;font-weight:700;}
-QFrame#card {background:#121f28;border:1px solid #283a46;border-radius:16px;}
+QFrame#sidebar {background:#0d151c;border-left:1px solid #1b2934;}
+QLabel#brand {color:#f4f6f3;font-size:25px;font-weight:800;}
+QLabel#eyebrow {color:#e9c48c;font-size:10px;font-weight:700;letter-spacing:3px;}
+QLabel#sectionLabel {color:#74899a;font-size:11px;}
+QLabel#crumb {color:#8da1ae;font-size:12px;}
+QLabel#badge {color:#ecd0a1;background:#1b2224;border:1px solid #4a4634;border-radius:10px;padding:3px 10px;font-size:10px;font-weight:600;}
+QLabel#heroTitle {color:#f6f6f0;font-size:28px;font-weight:800;background:transparent;}
+QLabel#heroDescription {color:#b4c4ce;font-size:13px;background:transparent;}
+QLabel#heroEyebrow {color:#e9c48c;font-size:10px;font-weight:700;letter-spacing:1px;background:transparent;}
+QLabel#subtitle {color:#9fb3c0;font-size:13px;}
+QLabel#selectionNotice {color:#9fb3c0;font-size:12px;padding:5px 10px;border:1px solid #223340;border-radius:9px;}
+QLabel#selectionNotice[hasSelection="true"] {color:#f7dbac;background:#2d2c21;border-color:#7b6c48;font-weight:700;}
+QLabel#cardtitle {color:#f0f5f6;font-size:17px;font-weight:700;}
+QFrame#card {background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #14212b,stop:1 #0f1a22);border:1px solid #223441;border-top-color:#30475a;border-radius:16px;}
 QFrame#card QLabel {background:transparent;}
-QFrame#actionbar {background:#13212b;border:1px solid #334957;border-radius:14px;}
-QPushButton {background:#1b2c37;border:1px solid #344a59;border-radius:9px;padding:8px 14px;font-weight:600;}
-QPushButton:hover {background:#273d4a;border-color:#c9b185;}
-QPushButton:pressed {background:#39402e;}
-QPushButton:focus {border-color:#e6c391;}
+QFrame#actionbar {background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #16242e,stop:1 #101b23);border:1px solid #2b4150;border-radius:15px;}
+QFrame#actionbar QLabel {background:transparent;}
+QPushButton {background:#17252f;border:1px solid #2a3e4b;border-radius:10px;padding:8px 14px;font-weight:600;}
+QPushButton:hover {background:#203441;border-color:#bfa172;color:#ffffff;}
+QPushButton:pressed {background:#2a3328;border-color:#e9c48c;}
+QPushButton:focus {border-color:#e9c48c;}
+QPushButton:checked {background:#2a3328;border-color:#8f8259;color:#f5dfb7;}
 QPushButton#nav {background:transparent;border:1px solid transparent;text-align:right;padding:7px 12px;color:#a6b9c5;font-size:13px;}
-QPushButton#nav:hover {background:#1a2a35;color:#f4f5ef;}
-QPushButton#nav:checked {background:#2b352e;color:#f5dfb7;border:1px solid #627057;}
-QPushButton#primary {background:#e6c391;color:#1b2226;border:1px solid #e6c391;font-size:13px;padding:12px 18px;font-weight:700;}
-QPushButton#primary:hover {background:#f4d9ae;border-color:#f4d9ae;}
-QPushButton#positive {background:#173a36;color:#aeeddc;border-color:#35796d;}
-QPushButton#positive:hover {background:#23544a;border-color:#88d7bd;}
-QPushButton#positive:disabled {color:#657985;background:#14212a;border-color:#253944;}
-QPushButton:disabled {color:#657985;background:#14212a;border-color:#253944;}
-QLineEdit,QComboBox,QSpinBox,QDoubleSpinBox,QPlainTextEdit {background:#0e1921;border:1px solid #304958;border-radius:8px;padding:8px;selection-background-color:#4b624e;}
-QLineEdit:focus,QComboBox:focus,QSpinBox:focus {border-color:#e6c391;}
-QComboBox QAbstractItemView {background:#14232e;selection-background-color:#344331;color:#e5eef2;}
+QPushButton#primary {background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #f6dcae,stop:1 #deb679);color:#191e21;border:1px solid #f0cf9b;font-size:13px;padding:12px 18px;font-weight:700;}
+QPushButton#primary:hover {background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #fdeccb,stop:1 #e9c48c);border-color:#fdeccb;color:#191e21;}
+QPushButton#primary:pressed {background:#d4ab6f;border-color:#d4ab6f;}
+QPushButton#positive {background:#13332f;color:#aeeddc;border-color:#2f6e63;}
+QPushButton#positive:hover {background:#1b4a42;border-color:#86e3c3;color:#d5fbf0;}
+QPushButton#positive:disabled {color:#5d7280;background:#111b23;border-color:#1f303c;}
+QPushButton:disabled {color:#5d7280;background:#111b23;border-color:#1f303c;}
+QLineEdit,QComboBox,QSpinBox,QDoubleSpinBox,QPlainTextEdit {background:#0c151c;border:1px solid #263a47;border-radius:9px;padding:8px;selection-background-color:#5d5237;selection-color:#ffffff;}
+QLineEdit:hover,QComboBox:hover,QSpinBox:hover {border-color:#3b5564;}
+QLineEdit:focus,QComboBox:focus,QSpinBox:focus {border-color:#e9c48c;}
+QComboBox QAbstractItemView {background:#121e27;border:1px solid #2b4150;selection-background-color:#3a3a2a;color:#e8eff3;outline:0;}
 QCheckBox {spacing:10px;padding:8px 0;background:transparent;}
-QCheckBox::indicator {width:20px;height:20px;border:1px solid #5d7887;border-radius:5px;background:#0e1921;}
-QCheckBox::indicator:checked {background:#e6c391;border-color:#e6c391;image:url("CHECK_ASSET");}
+QCheckBox::indicator {width:20px;height:20px;border:1px solid #4d6676;border-radius:6px;background:#0c151c;}
+QCheckBox::indicator:hover {border-color:#e9c48c;}
+QCheckBox::indicator:checked {background:#e9c48c;border-color:#e9c48c;image:url("CHECK_ASSET");}
+QCheckBox::indicator:disabled {border-color:#2a3e4b;background:#111b23;}
 QSlider {min-height:28px;background:transparent;}
-QSlider::groove:horizontal {height:5px;background:#2c4553;border-radius:2px;}
-QSlider::sub-page:horizontal {background:#d9bc8c;border-radius:2px;}
-QSlider::handle:horizontal {width:18px;margin:-7px 0;background:#f1d8ac;border:3px solid #798367;border-radius:9px;}
-QSlider::handle:horizontal:hover {background:#fff0d5;border-color:#bdc397;}
+QSlider::groove:horizontal {height:6px;background:#1c2d39;border-radius:3px;}
+QSlider::sub-page:horizontal {background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #c79d5f,stop:1 #f3d6a4);border-radius:3px;}
+QSlider::handle:horizontal {width:12px;margin:-7px 0;background:#fff3dc;border:4px solid #c9a064;border-radius:10px;}
+QSlider::handle:horizontal:hover {background:#ffffff;border-color:#f3d6a4;}
+QSlider::handle:horizontal:pressed {background:#ffffff;border-color:#e9c48c;}
 QScrollArea {border:0;background:transparent;}
-QScrollBar:vertical {background:transparent;width:7px;margin:2px;}
-QScrollBar::handle:vertical {background:#536c7a;border-radius:3px;min-height:30px;}
+QScrollBar:vertical {background:transparent;width:8px;margin:2px;}
+QScrollBar::handle:vertical {background:#2f4553;border-radius:3px;min-height:30px;}
+QScrollBar::handle:vertical:hover {background:#b99a68;}
 QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical {height:0;}
 QScrollBar::add-page:vertical,QScrollBar::sub-page:vertical {background:transparent;}
-QScrollBar:horizontal {height:8px;background:#0f1c25;}
-QScrollBar::handle:horizontal {background:#536c7a;border-radius:3px;min-width:30px;}
+QScrollBar:horizontal {height:8px;background:transparent;margin:2px;}
+QScrollBar::handle:horizontal {background:#2f4553;border-radius:3px;min-width:30px;}
+QScrollBar::handle:horizontal:hover {background:#b99a68;}
 QScrollBar::add-line:horizontal,QScrollBar::sub-line:horizontal {width:0;}
-QTableWidget {background:#101b24;alternate-background-color:#15242e;gridline-color:#293d49;border:1px solid #304653;border-radius:10px;}
+QScrollBar::add-page:horizontal,QScrollBar::sub-page:horizontal {background:transparent;}
+QTableWidget {background:#0d171e;alternate-background-color:#111d26;gridline-color:#1f303c;border:1px solid #223441;border-radius:12px;}
 QTableWidget::item {padding:7px;font-size:12px;}
-QTableWidget::item:selected {background:#39422f;color:#f8e4c1;}
-QHeaderView::section {background:#1d303d;color:#bacdd4;border:0;border-bottom:1px solid #3d5662;padding:9px;font-size:11px;font-weight:600;}
-QMenu {background:#142630;color:#e5eef2;border:1px solid #4b655e;padding:6px;}
-QMenu::item {padding:9px 20px;}
-QMenu::item:selected {background:#344331;border-radius:5px;}
-QToolTip {color:#e9f3f3;background:#1a2e39;border:1px solid #67816e;padding:8px;}
-QDialog {background:#0f1c25;}
+QTableWidget::item:selected {background:#3a3a2a;color:#f8e4c1;}
+QHeaderView {background:transparent;}
+QHeaderView::section {background:#15232d;color:#a9bdc8;border:0;border-bottom:1px solid #2b4150;padding:9px;font-size:11px;font-weight:600;}
+QTableCornerButton::section {background:#15232d;border:0;}
+QMenu {background:#121e27;color:#e8eff3;border:1px solid #2f4553;padding:6px;}
+QMenu::item {padding:9px 20px;border-radius:6px;background:transparent;}
+QMenu::item:selected {background:#3a3a2a;color:#f8e4c1;}
+QMenu::separator {height:1px;background:#263a47;margin:5px 8px;}
+QToolTip {color:#f0f5f6;background:#16242e;border:1px solid #6e6246;padding:8px;}
+QDialog {background:#0d151c;}
 
-QPushButton#quiet {background:transparent;border:1px solid #344a59;color:#afc5cd;}
-QPushButton#danger {background:#37262a;border-color:#754b4e;color:#f0b0a7;}
-QPushButton#danger:hover {background:#4b2e33;border-color:#d2978f;}
-QPushButton#primary:disabled {background:#223440;border-color:#344a59;color:#8196a4;}
-QLabel#statusPill {background:#1a2d38;border:1px solid #355260;border-radius:8px;padding:2px 8px;font-size:10px;color:#a7beca;}
-QLabel#statusPill[tone="success"] {background:#173a36;border-color:#35796d;color:#aeeddc;}
-QLabel#statusPill[tone="ready"] {background:#303929;border-color:#64704c;color:#e4d5aa;}
-QLabel#stepPill {background:#12232e;border:1px solid #2d4553;border-radius:9px;padding:6px 10px;font-size:11px;color:#b7cdd6;}
-QLabel#modTitle {font-size:15px;font-weight:700;color:#eef5f6;}
-QLabel#noticeWarning {background:#38372a;border:1px solid #746d4d;border-radius:10px;color:#eed7a3;padding:10px;}
-QFrame#modCard {background:#12232d;border:1px solid #2b4554;border-radius:14px;}
-QFrame#modCard:hover {background:#172d38;border-color:#5f7c87;}
-QFrame#modCard[selected="true"] {background:#21362f;border:2px solid #b9bd88;}
-QFrame#dropArea {background:#11242d;border:1px dashed #577a83;border-radius:16px;}
-QFrame#dropArea[dragging="true"] {background:#1c3c38;border:2px solid #b9d5ab;}
-QProgressBar {border:0;background:#223c49;border-radius:3px;}
-QProgressBar::chunk {background:#a5dac4;border-radius:3px;}
-QFrame#workspaceHeader {background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #1c333e,stop:1 #12212c);border:1px solid #36515f;border-radius:17px;}
-QLabel#utilityTitle {font-size:25px;font-weight:800;color:#f0f5f4;}
-QLabel#utilityKicker {font-size:10px;font-weight:700;color:#d7c298;}
-QLabel#utilityIcon {background:#293b37;border:1px solid #54675a;border-radius:12px;padding:10px;}
-QPushButton#shortcut {background:#142834;border:1px solid #34505e;border-radius:12px;padding:12px;font-size:13px;}
-QPushButton#shortcut:hover {background:#203b43;border-color:#89b5ac;}
+QPushButton[active="true"] {background:#2b2a1f;border-color:#d9bc88;color:#f7deb2;}
+QPushButton#quiet {background:transparent;border:1px solid #2a3e4b;color:#afc5cd;}
+QPushButton#quiet:hover {background:#17252f;border-color:#bfa172;color:#ffffff;}
+QPushButton#chip {background:#101b23;border:1px solid #2a3e4b;border-radius:13px;padding:6px 14px;color:#cfdde3;font-size:12px;}
+QPushButton#chip:hover {background:#17252f;border-color:#bfa172;color:#ffffff;}
+QPushButton#danger {background:#33211f;border-color:#6f4441;color:#f3b4aa;}
+QPushButton#danger:hover {background:#462a27;border-color:#f08f85;color:#ffd9d2;}
+QPushButton#primary:disabled {background:#1a2832;border-color:#2a3e4b;color:#74899a;}
+QLabel#statusPill {background:#15222c;border:1px solid #2a3e4b;border-radius:9px;padding:2px 9px;font-size:10px;font-weight:600;color:#a0b5c1;}
+QLabel#statusPill[tone="success"] {background:#13332f;border-color:#2f6e63;color:#aeeddc;}
+QLabel#statusPill[tone="ready"] {background:#2b2a1f;border-color:#6e6246;color:#ecd9aa;}
+QLabel#pageHint {background:#0e1921;border:1px solid #1f303c;border-right:3px solid #e9c48c;border-radius:10px;padding:7px 12px;font-size:12px;color:#c6d6de;}
+QLabel#stepPill {background:#0e1921;border:1px solid #1f303c;border-radius:10px;padding:6px 11px;font-size:11px;color:#b9cbd5;}
+QLabel#modTitle {font-size:15px;font-weight:700;color:#f0f5f6;}
+QLabel#noticeWarning {background:#2e2b1f;border:1px solid #6e6246;border-radius:10px;color:#eed7a3;padding:10px;}
+QFrame#modCard {background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #14212b,stop:1 #0f1a22);border:1px solid #223441;border-radius:15px;}
+QFrame#modCard:hover {background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #192a35,stop:1 #12202a);border-color:#56707e;}
+QFrame#modCard[selected="true"] {background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #26301f,stop:1 #172320);border:2px solid #d9bc88;}
+QFrame#modCard QLabel {background:transparent;}
+QFrame#dropArea {background:#0e1a22;border:1px dashed #44606e;border-radius:16px;}
+QFrame#dropArea:hover {border-color:#bfa172;}
+QFrame#dropArea[dragging="true"] {background:#16302c;border:2px solid #86e3c3;}
+QFrame#dropArea QLabel {background:transparent;}
+QProgressBar {border:0;background:#1a2a35;border-radius:3px;}
+QProgressBar::chunk {background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #86e3c3,stop:1 #e9c48c);border-radius:3px;}
+QFrame#workspaceHeader {background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #1b2f3a,stop:.55 #13212b,stop:1 #101a22);border:1px solid #2b4150;border-radius:17px;}
+QFrame#workspaceHeader QLabel {background:transparent;}
+QLabel#utilityTitle {font-size:25px;font-weight:800;color:#f4f6f3;}
+QLabel#utilityKicker {font-size:10px;font-weight:700;color:#e9c48c;letter-spacing:2px;}
+QLabel#utilityIcon {background:#2a2c20;border:1px solid #6e6246;border-radius:13px;padding:10px;}
+QPushButton#shortcut {background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #15232d,stop:1 #101b23);border:1px solid #263a47;border-radius:13px;padding:12px;font-size:13px;}
+QPushButton#shortcut:hover {background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 #1c3038,stop:1 #14232b);border-color:#86c9bd;color:#ffffff;}
+QPushButton#shortcut:pressed {background:#14232b;border-color:#86e3c3;}
 QComboBox {min-height:21px;padding-left:28px;}
 QComboBox::drop-down {width:24px;border:0;background:transparent;}
 QComboBox::down-arrow {image:url("ARROW_ASSET");width:11px;height:8px;}
@@ -107,9 +128,8 @@ QComboBox::down-arrow {image:url("ARROW_ASSET");width:11px;height:8px;}
 
 
 def mod_icon(key):
-    pix=QPixmap(32,32);pix.fill(Qt.transparent);p=QPainter(pix);p.setRenderHint(QPainter.Antialiasing)
-    from PySide6.QtGui import QPen
-    p.setPen(QPen(QColor('#e6c391'),1.8,Qt.SolidLine,Qt.RoundCap,Qt.RoundJoin));p.setBrush(Qt.NoBrush)
+    pix=QPixmap(64,64);pix.setDevicePixelRatio(2);pix.fill(Qt.transparent);p=QPainter(pix);p.setRenderHint(QPainter.Antialiasing)
+    p.setPen(QPen(QColor('#e9c48c'),1.8,Qt.SolidLine,Qt.RoundCap,Qt.RoundJoin));p.setBrush(Qt.NoBrush)
     if key=='daylock':
         p.drawEllipse(QRectF(10,10,12,12))
         for rotation in range(0,360,45):p.save();p.translate(16,16);p.rotate(rotation);p.drawLine(0,-11,0,-14);p.restore()
@@ -123,15 +143,14 @@ def mod_icon(key):
 
 def nav_icon(index):
     """Small vector icons, with no font-dependent symbols."""
-    pix = QPixmap(24,24); pix.fill(Qt.transparent)
+    pix = QPixmap(48,48); pix.setDevicePixelRatio(2); pix.fill(Qt.transparent)
     p = QPainter(pix);p.setRenderHint(QPainter.Antialiasing)
-    from PySide6.QtGui import QPen
-    p.setPen(QPen(QColor('#d7b989'),1.6,Qt.SolidLine,Qt.RoundCap,Qt.RoundJoin));p.setBrush(Qt.NoBrush)
+    p.setPen(QPen(QColor('#e9c48c'),1.6,Qt.SolidLine,Qt.RoundCap,Qt.RoundJoin));p.setBrush(Qt.NoBrush)
     if index == 0:
         for x,y in [(3,3),(14,3),(3,14),(14,14)]:p.drawRoundedRect(QRectF(x,y,7,7),2,2)
     elif index == 1:
         for x,y in [(5,8),(12,16),(19,10)]:
-            p.drawLine(x,3,x,21);p.setBrush(QColor('#101a22'));p.drawEllipse(QRectF(x-3,y-3,6,6));p.setBrush(Qt.NoBrush)
+            p.drawLine(x,3,x,21);p.setBrush(QColor('#0d151c'));p.drawEllipse(QRectF(x-3,y-3,6,6));p.setBrush(Qt.NoBrush)
     elif index == 2:
         path=QPainterPath();path.moveTo(3,7);path.lineTo(12,2);path.lineTo(21,7);path.lineTo(21,17);path.lineTo(12,22);path.lineTo(3,17);path.closeSubpath();p.drawPath(path)
         p.drawLine(3,7,12,12);p.drawLine(12,12,21,7);p.drawLine(12,12,12,22)
@@ -163,20 +182,20 @@ class ArtworkHero(QWidget):
         self.images={name:QPixmap(str(ASSETS/'artwork'/name)) for name in ('rem.jpg','deadlock.jpg','duo.jpg')}
         self.page_index=0
         self.copy=QWidget(self);self.copy.setStyleSheet('background:transparent;')
-        layout=QVBoxLayout(self.copy);layout.setContentsMargins(0,12,24,12);layout.setSpacing(5)
+        layout=QVBoxLayout(self.copy);layout.setContentsMargins(0,12,30,12);layout.setSpacing(5)
         self.eyebrow=QLabel();self.eyebrow.setObjectName('heroEyebrow');self.eyebrow.setLayoutDirection(Qt.LeftToRight);self.eyebrow.setAlignment(Qt.AlignRight)
         self.title=QLabel();self.title.setObjectName('heroTitle');self.title.setWordWrap(True)
         self.description=QLabel();self.description.setObjectName('heroDescription');self.description.setWordWrap(True)
         layout.addWidget(self.eyebrow);layout.addStretch();layout.addWidget(self.title);layout.addWidget(self.description);layout.addStretch()
         self.effect=QGraphicsOpacityEffect(self.copy);self.copy.setGraphicsEffect(self.effect)
-        self.animation=QVariantAnimation(self);self.animation.setDuration(170);self.animation.valueChanged.connect(self.effect.setOpacity)
+        self.animation=QVariantAnimation(self);self.animation.setDuration(260);self.animation.valueChanged.connect(self.effect.setOpacity)
     def set_page(self,index,animate=True):
         self.page_index=index;eyebrow,title,description,_,_=PAGES[index]
         self.eyebrow.setText('DEADLOCK TOOLBOX   /   '+eyebrow);self.title.setText(title);self.description.setText(description)
         self.setFixedHeight(self.banner_height())
         self.animation.stop()
         if animate and self.isVisible():
-            self.animation.setStartValue(.4);self.animation.setEndValue(1.);self.animation.start()
+            self.animation.setStartValue(.25);self.animation.setEndValue(1.);self.animation.start()
         else:self.effect.setOpacity(1.)
         self.update()
     def banner_height(self):
@@ -188,7 +207,7 @@ class ArtworkHero(QWidget):
     def paintEvent(self,event):
         p=QPainter(self);p.setRenderHints(QPainter.Antialiasing|QPainter.SmoothPixmapTransform)
         bounds=QRectF(self.rect()).adjusted(.5,.5,-.5,-.5);clip=QPainterPath();clip.addRoundedRect(bounds,18,18);p.setClipPath(clip)
-        p.fillRect(self.rect(),QColor('#15252e'))
+        p.fillRect(self.rect(),QColor('#111c25'))
         _,_,_,name,crop=PAGES[self.page_index];pix=self.images[name]
         if not pix.isNull():
             source=QRectF(pix.width()*crop[0],pix.height()*crop[1],pix.width()*crop[2],pix.height()*crop[3])
@@ -201,16 +220,33 @@ class ArtworkHero(QWidget):
                 h=source.width()/ratio;source.setTop(source.top()+max(0,(source.height()-h)*(0 if name=='duo.jpg' or self.page_index==1 else .28)));source.setHeight(h)
             p.drawPixmap(dest,pix,source)
         gradient=QLinearGradient(0,0,self.width(),0)
-        for stop,color in [(0,'#15202020'),(.20,'#28232523'),(.43,'#ee15252e'),(.6,'#ff15252e'),(1,'#ff15252e')]:gradient.setColorAt(stop,QColor(color))
+        for stop,color in [(0,'#f5111c25'),(.07,'#3a111c25'),(.20,'#30111c25'),(.43,'#ee111c25'),(.58,'#ff111c25'),(1,'#ff16242e')]:gradient.setColorAt(stop,QColor(color))
         p.fillRect(self.rect(),gradient)
-        p.setClipping(False);p.setPen(QColor('#36505e'));p.setBrush(Qt.NoBrush);p.drawRoundedRect(bounds,18,18);p.end()
+        # A warm edge on the reading side ties the banner to the gold accent.
+        warm=QLinearGradient(self.width(),0,self.width()*.62,0);warm.setColorAt(0,QColor(233,196,140,26));warm.setColorAt(1,QColor(233,196,140,0));p.fillRect(self.rect(),warm)
+        bar=QLinearGradient(0,22,0,self.height()-22);bar.setColorAt(0,QColor('#f7deb2'));bar.setColorAt(1,QColor(233,196,140,40))
+        p.setPen(Qt.NoPen);p.setBrush(bar);p.drawRoundedRect(QRectF(self.width()-15,22,3,max(0,self.height()-44)),1.5,1.5)
+        p.setClipping(False);p.setPen(QColor('#2b4150'));p.setBrush(Qt.NoBrush);p.drawRoundedRect(bounds,18,18);p.end()
+
+
+def brand_logo(size=160):
+    """The sketched eye mark as light strokes on transparency, cut from the black artwork."""
+    art=QImage(str(ASSETS/'artwork/logo.jpg'))
+    if art.isNull():return QPixmap()
+    art=art.copy(55,205,626,626).scaled(size,size,Qt.KeepAspectRatio,Qt.SmoothTransformation)
+    strokes=QImage(art.size(),QImage.Format_ARGB32);strokes.fill(QColor('#f4efe4'))
+    strokes.setAlphaChannel(art.convertToFormat(QImage.Format_Grayscale8))
+    return QPixmap.fromImage(strokes)
 
 
 class BrandMark(QWidget):
     def __init__(self,parent=None):
-        super().__init__(parent);self.setFixedSize(68,58);self.pix=QPixmap(str(ASSETS/'artwork/logo.jpg'))
+        super().__init__(parent);self.setFixedSize(58,58);self.pix=brand_logo(116)
     def paintEvent(self,event):
         p=QPainter(self);p.setRenderHints(QPainter.Antialiasing|QPainter.SmoothPixmapTransform)
-        path=QPainterPath();path.addRoundedRect(QRectF(self.rect()),12,12);p.setClipPath(path);p.fillRect(self.rect(),QColor('#000000'))
-        if not self.pix.isNull():p.drawPixmap(QRectF(6,7,56,44),self.pix,QRectF(70,300,600,430))
+        tile=QRectF(self.rect()).adjusted(.5,.5,-.5,-.5)
+        fill=QLinearGradient(0,0,0,self.height());fill.setColorAt(0,QColor('#1c2a2a'));fill.setColorAt(1,QColor('#0a1016'))
+        ring=QLinearGradient(0,0,self.width(),self.height());ring.setColorAt(0,QColor('#f7deb2'));ring.setColorAt(1,QColor(233,196,140,70))
+        p.setPen(QPen(ring,1));p.setBrush(fill);p.drawRoundedRect(tile,15,15)
+        if not self.pix.isNull():p.drawPixmap(QRectF(6,6,46,46),self.pix,QRectF(self.pix.rect()))
         p.end()

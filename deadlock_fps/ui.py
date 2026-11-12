@@ -12,7 +12,8 @@ from .update_ui import UpdatePage
 from .inspector_ui import InspectorPage
 from .mod_inspector import require_mods
 from .mod_ui import ModPage
-from .design import STYLE, ArtworkHero, BrandMark, nav_icon
+from .design import STYLE, ArtworkHero, BrandMark, nav_icon, brand_logo
+from .motion import PageTransition, NavButton, NavIndicator, StatusChip, LevelMeter, Intro, enliven
 from . import __version__
 
 
@@ -49,23 +50,25 @@ class Window(QMainWindow):
         eyebrow=label('DEADLOCK','eyebrow');eyebrow.setLayoutDirection(Qt.LeftToRight);eyebrow.setAlignment(Qt.AlignRight);brandcopy.addWidget(eyebrow)
         brandrow.addLayout(brandcopy,1);side.addLayout(brandrow)
         side.addSpacing(14);side.addWidget(label('مساحة التحكم','sectionLabel'))
-        nav_body=QWidget();nav_body.setObjectName('navContent');nav_body.setStyleSheet('QWidget#navContent {background:#101a22;}');nav_layout=QVBoxLayout(nav_body);nav_layout.setContentsMargins(0,0,0,0);nav_layout.setSpacing(6)
+        nav_body=QWidget();nav_body.setObjectName('navContent');nav_body.setStyleSheet('QWidget#navContent {background:#0d151c;}');nav_layout=QVBoxLayout(nav_body);nav_layout.setContentsMargins(0,0,0,0);nav_layout.setSpacing(6)
         self.nav_scroll=QScrollArea();self.nav_scroll.setWidgetResizable(True);self.nav_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff);self.nav_scroll.setWidget(nav_body);side.addWidget(self.nav_scroll,1)
+        self.nav_indicator=NavIndicator(nav_body);self.intro_played=False
         self.stack=QStackedWidget();self.nav=[];self.guard_signature=None;self.guard_retries=0;self.guard_attempts={}
         for index,text in enumerate(['ابدأ هنا','الرسوم والأداء','المودات','النسخ والاسترجاع','السيرفرات','الكروس هير','التحديث والتثبيت','فحص المودات']):
-            b=QPushButton(text);b.setObjectName('nav');b.setIcon(nav_icon(index));b.setIconSize(QSize(21,21));b.setCheckable(True);b.clicked.connect(lambda _,i=index:self.navigate(i));nav_layout.addWidget(b);self.nav.append(b)
+            b=NavButton(text,nav_icon(index));b.clicked.connect(lambda _,i=index:self.navigate(i));nav_layout.addWidget(b);self.nav.append(b)
         nav_layout.addStretch();side.addWidget(label('أدواتك. إعداداتك. اختيارك.','subtitle'));side.addSpacing(6);version=label(__version__,'badge');version.setLayoutDirection(Qt.LeftToRight);side.addWidget(version,0,Qt.AlignRight);side.addWidget(label('مفتوح المصدر • Windows + Linux','sectionLabel'))
         git=QPushButton('GitHub ↗');git.clicked.connect(lambda:QDesktopServices.openUrl(QUrl('https://github.com/exelight7/deadlock-fps-')));side.addWidget(git)
         layout.addWidget(sidebar)
         content=QWidget();v=QVBoxLayout(content);v.setContentsMargins(24,18,24,18);v.setSpacing(12)
         top=QHBoxLayout();self.heading=label('مساحة العمل / لوحة التحكم','crumb');top.addWidget(self.heading,1)
-        self.game_chip=QPushButton('ربط اللعبة');self.game_chip.setObjectName('quiet');self.game_chip.clicked.connect(self.focus_game);top.addWidget(self.game_chip)
+        self.game_chip=StatusChip('ربط اللعبة');self.game_chip.clicked.connect(self.focus_game);top.addWidget(self.game_chip)
         self.private_badge=label('مفتوح المصدر','badge');top.addWidget(self.private_badge);v.addLayout(top)
-        self.hero=ArtworkHero();v.addWidget(self.hero);self.page_hint=label('','stepPill');v.addWidget(self.page_hint);v.addWidget(self.stack,1)
+        self.hero=ArtworkHero();v.addWidget(self.hero);self.page_hint=label('','pageHint');v.addWidget(self.page_hint);v.addWidget(self.stack,1)
         self.status=label('جاهز • اختر إعدادًا، ثم راجع التغييرات.','subtitle');v.addWidget(self.status)
         actionbar=QFrame();self.actionbar=actionbar;actionbar.setObjectName('actionbar');footer=QHBoxLayout(actionbar);footer.setContentsMargins(16,10,16,10);self.summary=label('دقة اللعبة محفوظة • خامات بسيطة','subtitle');footer.addWidget(self.summary,1)
         apply=QPushButton('معاينة وتطبيق الإعدادات ←');apply.setObjectName('primary');apply.clicked.connect(self.primary_action);self.apply_button=apply;footer.addWidget(apply);v.addWidget(actionbar)
         layout.addWidget(content,1)
+        self.transition=PageTransition(content,lambda:top.geometry().bottom()+1,lambda:self.stack.geometry().bottom()+1)
         self.dashboard();self.graphics();self.mods();self.backups();self.servers=ServerPage(self);server_scroll=QScrollArea();server_scroll.setWidgetResizable(True);server_scroll.setWidget(self.servers);self.stack.addWidget(server_scroll);self.servers.layout().removeWidget(self.servers.actions_panel);v.addWidget(self.servers.actions_panel);self.crosshair=CrosshairPage(lambda:(self.path.text(),self.accounts.currentData()),self);self.stack.addWidget(self.crosshair);self.crosshair.layout().removeWidget(self.crosshair.actions_panel);v.addWidget(self.crosshair.actions_panel)
         self.updates=UpdatePage(self);self.stack.addWidget(self.updates);self.updates.updateAvailable.connect(lambda available:self.nav[6].setText('التحديث والتثبيت •' if available else 'التحديث والتثبيت'))
         if self.updates.release and self.updates.release.version>self.updates.current:self.nav[6].setText('التحديث والتثبيت •')
@@ -82,6 +85,11 @@ class Window(QMainWindow):
         except Exception:pass
         self.refresh_mod_library()
         self.guard_timer=QTimer(self);self.guard_timer.setInterval(5000);self.guard_timer.timeout.connect(self.guard_tick);self.guard_timer.start()
+        enliven(self)
+    def showEvent(self,event):
+        super().showEvent(event)
+        if not self.intro_played:
+            self.intro_played=True;Intro(self.centralWidget(),brand_logo(264),'Deadlock Toolbox','VERSION '+__version__)
     def resizeEvent(self,event):
         super().resizeEvent(event)
         if hasattr(self,'hero') and hasattr(self,'stack'):self.hero.setVisible(self.stack.currentIndex() in (2,3,4) and self.height()>=800)
@@ -109,6 +117,8 @@ class Window(QMainWindow):
         elif self.stack.currentIndex()==2:self.install_mods()
         else:self.preview()
     def navigate(self,i):
+        moving=i!=self.stack.currentIndex()
+        if moving:self.transition.capture(1 if i>self.stack.currentIndex() else -1)
         self.stack.setCurrentIndex(i)
         self.page_hint.setText([
             'ابدأ من هنا: اربط اللعبة ← اختر الأداء ← راجع وطبّق.',
@@ -121,13 +131,14 @@ class Window(QMainWindow):
             'الفحص يوضح الملفات الناقصة والتالفة. عالج الأخطاء ثم ارجع للمودات للتركيب.'
         ][i])
         self.hero.setVisible(i in (2,3,4) and self.height()>=800)
-        self.hero.set_page(i)
+        self.hero.set_page(i,animate=not moving)
         self.status.setVisible(i in (0,1,3))
         self.actionbar.setVisible(i in (0,1));self.servers.actions_panel.setVisible(i==4);self.crosshair.actions_panel.setVisible(i==5)
         self.heading.setText(('Workspace / ' if i==5 else 'مساحة العمل / ')+self.nav[i].text().removesuffix(' •'));self.private_badge.setText('Open source' if i==5 else 'مفتوح المصدر')
         linked=self.game_chip.text() in ('اللعبة مرتبطة','Game connected');self.game_chip.setText(('Game connected' if linked else 'Connect game') if i==5 else ('اللعبة مرتبطة' if linked else 'ربط اللعبة'))
         if hasattr(self,'apply_button'):self.apply_button.setText('حظر السيرفرات المحددة' if i==4 else ('تركيب / تحديث المودات المختارة' if i==2 else 'معاينة وتطبيق الإعدادات ←'))
         for j,b in enumerate(self.nav):b.setChecked(j==i)
+        self.nav_indicator.move_to(self.nav[i])
         self.nav_scroll.ensureWidgetVisible(self.nav[i])
         if i==4:self.summary.setText('اختيار مناطق اتصال Steam • يحتاج صلاحية المدير عند التطبيق')
         else:self.changed()
@@ -143,14 +154,15 @@ class Window(QMainWindow):
         self.path.editingFinished.connect(self.refresh_accounts)
         self.accounts=QComboBox();self.accounts.setLayoutDirection(Qt.LeftToRight);self.accounts.currentIndexChanged.connect(self.remember_account);self.account_label=label('حساب Steam · اختر الحساب الذي تلعب عليه','subtitle');c.addWidget(self.account_label);c.addWidget(self.accounts);self.account_label.hide();self.accounts.hide()
         f,c=card('2 · اختر الأداء المناسب','ابدأ بمتوازن. ارفع التخفيف إذا احتجت أداء أعلى؛ دقة اللعبة محفوظة.');v.addWidget(f)
-        row=QHBoxLayout()
+        row=QHBoxLayout();self.preset_buttons={}
         for title,key in [('متوازن','balanced'),('أداء أعلى','performance'),('تخفيف شديد','ultra')]:
-            b=QPushButton(title);b.clicked.connect(lambda _,k=key:self.load_preset(k));row.addWidget(b)
+            b=QPushButton(title);b.clicked.connect(lambda _,k=key:self.load_preset(k));row.addWidget(b);self.preset_buttons[key]=b
         c.addLayout(row)
         self.presets={}
         self.level=QSlider(Qt.Horizontal);self.level.setLayoutDirection(Qt.LeftToRight);self.level.setRange(0,MAX_LEVEL);self.level.setTickInterval(25);self.level.setTickPosition(QSlider.TicksBelow);self.level.valueChanged.connect(self.level_changed)
         ends=QWidget();ends.setStyleSheet('background:transparent;');ends.setLayoutDirection(Qt.LeftToRight);row=QHBoxLayout(ends);row.setContentsMargins(0,0,0,0);row.addWidget(label('0 • جودة أعلى / جهاز قوي'));row.addStretch();row.addWidget(label(f'{MAX_LEVEL} • أقصى تخفيف تجريبي'));c.addWidget(ends);c.addWidget(self.level)
-        self.level_title=label('','cardtitle');self.level_description=label('','subtitle');c.addWidget(self.level_title);c.addWidget(self.level_description)
+        self.level_title=label('','cardtitle');self.level_description=label('','subtitle');c.addWidget(self.level_title)
+        self.level_meter=LevelMeter(MAX_LEVEL,[preset.level for preset in PRESETS.values()]);self.level.valueChanged.connect(self.level_meter.set_value);self.level.valueChanged.connect(self.mark_preset);c.addWidget(self.level_meter);c.addWidget(self.level_description)
         self.level_effects=label('','subtitle');c.addWidget(self.level_effects)
         customize=QPushButton('تخصيص المستوى يدويًا');customize.setCheckable(True);c.addWidget(customize)
         for widget in (ends,self.level,self.level_effects):widget.hide();customize.toggled.connect(widget.setVisible)
@@ -178,6 +190,10 @@ class Window(QMainWindow):
         self.guard=QCheckBox('إعادة تطبيق المستوى المحفوظ تلقائيًا بعد إغلاق اللعبة • أبقِ البرنامج مفتوحًا');self.guard.setChecked(True);c.addWidget(self.guard)
         self.guard_status=label('الحماية جاهزة • لا يكتب البرنامج ملفات أثناء تشغيل اللعبة.','subtitle');c.addWidget(self.guard_status)
         button=QPushButton('فحص وإصلاح رجوع الإعدادات الآن');button.clicked.connect(self.repair_settings);c.addWidget(button);v.addStretch()
+    def mark_preset(self,value):
+        for key,button in self.preset_buttons.items():
+            active=PRESETS[key].level==value
+            if bool(button.property('active'))!=active:button.setProperty('active',active);button.style().unpolish(button);button.style().polish(button)
     def aspect_changed(self,value):
         self.aspect_value.setText(f'{value/100:.2f}');self.changed()
     def level_changed(self,value):

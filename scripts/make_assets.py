@@ -1,6 +1,6 @@
 """Generate every visual asset of Deadlock Toolbox from code (PySide6 only).
 
-    python scripts/make_assets.py              write assets/ and docs/contact-sheet.png
+    python scripts/make_assets.py              write assets/, docs/contact-sheet.png and docs/banner.png
     python scripts/make_assets.py --contrast   print the WCAG contrast table and exit
 
 All artwork is original and drawn here: an art-deco keyhole emblem, a skyline
@@ -523,6 +523,42 @@ def contact_sheet(target):
     return target
 
 
+def readme_banner(target):
+    """The README masthead: the emblem banner with the name and tagline set on its calm half."""
+    from PySide6.QtCore import QRectF, Qt
+    from PySide6.QtGui import QColor, QFont, QFontDatabase, QPainter, QPen
+    for name in T.FONT_FILES:
+        QFontDatabase.addApplicationFont(str(ASSETS / 'fonts' / name))
+    image = render(banner_svg('emblem', BANNERS['emblem']), 1600, 300)
+    p = QPainter(image)
+    p.setRenderHints(QPainter.Antialiasing | QPainter.TextAntialiasing)
+
+    def text(y, height, value, stack, size, color, weight=400, spacing=0):
+        f = QFont()
+        f.setFamilies(list(stack))
+        f.setPixelSize(size)
+        f.setWeight(QFont.Weight(weight))
+        if spacing:
+            f.setLetterSpacing(QFont.AbsoluteSpacing, spacing)
+        p.setFont(f)
+        p.setPen(QColor(color))
+        p.drawText(QRectF(700, y, 840, height), int(Qt.AlignRight | Qt.AlignVCenter), value)
+
+    text(40, 24, 'COMMUNITY TOOL  ·  WINDOWS + LINUX', T.BODY, 13, T.BRASS, 600, 4)
+    text(66, 92, 'Deadlock Toolbox', T.DISPLAY, 76, T.TEXT, 600)
+    p.setPen(QPen(QColor(T.BRASS_DEEP), 1.5))
+    p.drawLine(1180, 166, 1540, 166)
+    p.setPen(Qt.NoPen)
+    p.setBrush(QColor(T.BRASS))
+    p.drawPolygon([__import__('PySide6.QtCore', fromlist=['QPointF']).QPointF(x, y) for x, y in ((1540, 160), (1546, 166), (1540, 172), (1534, 166))])
+    text(178, 44, 'خلّ Deadlock أخف، واضبطها على ذوقك.', T.BODY, 26, T.TEXT_SOFT, 500)
+    text(222, 26, 'Independent project. Not affiliated with Valve.', T.BODY, 13, T.TEXT_MUTED)
+    p.end()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    image.save(str(target))
+    return target
+
+
 def main():
     if '--contrast' in sys.argv:
         sys.exit(0 if contrast_table() else 1)
@@ -530,6 +566,7 @@ def main():
     app = QGuiApplication.instance() or QGuiApplication([])
     written = build()
     sheet = contact_sheet(ROOT / 'docs/contact-sheet.png')
+    print('readme banner: %s' % readme_banner(ROOT / 'docs/banner.png'))
     print('%d assets in %s' % (len(written), ASSETS))
     print('contact sheet: %s' % sheet)
     del app

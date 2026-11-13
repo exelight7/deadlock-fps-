@@ -9,17 +9,22 @@ from .mods import ImportCancelled
 from .mod_install import prepare_mods,commit_mods
 from .server_ui import Job
 from .update_ui import text,panel
-from .design import nav_icon,mod_icon
+from .design import nav_icon,mod_icon,icon,Panel,ActionBar,Plate,Rule,repolish
+from . import theme as T
 
-class DropArea(QFrame):
+class DropArea(Panel):
     dropped=Signal(object)
     def __init__(self):
-        super().__init__();self.setObjectName('dropArea');self.setAcceptDrops(True);self.setMinimumHeight(100)
-        layout=QHBoxLayout(self);layout.setContentsMargins(22,16,22,16);icon=QLabel();icon.setPixmap(nav_icon(2).pixmap(42,42));layout.addWidget(icon)
-        copy=QVBoxLayout();copy.setSpacing(2);copy.addWidget(text('اسحب الحزمة هنا. واترك الباقي للأداة.','cardtitle'));copy.addWidget(text('ZIP أو VPK أو مجلد MODS • يتعرف على المودات حتى لو تغيّر اسم الملف.','subtitle'));layout.addLayout(copy,1)
+        super().__init__(name='dropArea',margins=(18,14,18,14),spacing=0);self.setAcceptDrops(True);self.setMinimumHeight(96);self.dashed=True;self.pattern='chevron'
+        layout=QHBoxLayout();layout.setSpacing(14);self.body.addLayout(layout);layout.addWidget(Plate(icon_name='mods',size=48),0,Qt.AlignVCenter)
+        copy=QVBoxLayout();copy.setSpacing(2);copy.addWidget(text('اسحب الحزمة هنا. واترك الباقي للأداة.','lead'));copy.addWidget(text('ZIP أو VPK أو مجلد MODS • يتعرف على المودات حتى لو تغيّر اسم الملف.','subtitle'));layout.addLayout(copy,1)
+        self.actions=QHBoxLayout();self.actions.setSpacing(8);layout.addLayout(self.actions)
+    def look(self):
+        if self.property('dragging'):return T.VERDIGRIS_WASH,T.VERDIGRIS,T.VERDIGRIS,2.
+        return (T.SUNKEN,T.LINE_STRONG if self.isEnabled() else T.LINE,T.BRASS_DEEP,1.)
     @staticmethod
     def paths(mime):return [Path(url.toLocalFile()) for url in mime.urls()] if mime.hasUrls() and all(url.isLocalFile() for url in mime.urls()) else []
-    def highlight(self,value):self.setProperty('dragging',value);self.style().unpolish(self);self.style().polish(self)
+    def highlight(self,value):self.setProperty('dragging',value);repolish(self)
     def dragEnterEvent(self,event):
         if self.isEnabled() and self.paths(event.mimeData()):event.acceptProposedAction();self.highlight(True)
         else:event.ignore()
@@ -29,14 +34,21 @@ class DropArea(QFrame):
         if self.isEnabled() and paths:event.acceptProposedAction();self.dropped.emit(paths)
         else:event.ignore()
 
-class ModCard(QFrame):
+class ModCard(Panel):
     def __init__(self,key):
-        super().__init__();self.key=key;self.setObjectName('modCard');self.setMinimumHeight(148)
-        v=QVBoxLayout(self);v.setContentsMargins(18,15,18,15);v.setSpacing(8);row=QHBoxLayout();icon=QLabel();icon.setPixmap(mod_icon(key).pixmap(28,28));row.addWidget(icon)
-        title=text(MODS[key][1],'modTitle');title.setLayoutDirection(Qt.LeftToRight);row.addWidget(title,1);self.state=text('أضف الحزمة','statusPill');row.addWidget(self.state);v.addLayout(row)
+        super().__init__(name='modCard',margins=(18,14,18,12),spacing=8);self.key=key;self.setMinimumHeight(140);self.setAttribute(Qt.WA_Hover);self.setCursor(Qt.PointingHandCursor)
+        v=self.body;row=QHBoxLayout();row.setSpacing(12);row.addWidget(Plate(icon_name=key,size=36),0,Qt.AlignVCenter)
+        title=text(MODS[key][1],'modTitle');title.setLayoutDirection(Qt.LeftToRight);title.setAlignment(Qt.AlignRight|Qt.AlignVCenter);row.addWidget(title,1);self.state=text('أضف الحزمة','statusPill');self.state.setWordWrap(False);row.addWidget(self.state,0,Qt.AlignVCenter);v.addLayout(row)
         descriptions={'daylock':'إضاءة نهارية للخريطة. جرّب الوضوح في التدريب.','names':'إخفاء أسماء اللاعبين. يتعارض مع شريط الصحة القديم.','health':'شكل شريط الصحة القديم. اختره أو إخفاء الأسماء.','sinner':'تعديل Sinner المرجعي. افحص النتيجة داخل اللعبة.'}
-        v.addWidget(text(descriptions[key]));self.check=QCheckBox('أريده في اللعبة');v.addWidget(self.check);self.check.toggled.connect(self.mark)
-    def mark(self,value):self.setProperty('selected',value);self.style().unpolish(self);self.style().polish(self)
+        v.addWidget(text(descriptions[key]));v.addStretch();self.check=QCheckBox('أريده في اللعبة');v.addWidget(self.check);self.check.toggled.connect(self.mark)
+    def look(self):
+        if self.property('selected'):return T.BRASS_WASH,T.BRASS,T.BRASS_BRIGHT,1.5
+        if self.underMouse() and self.check.isEnabled():return T.RAISED,T.LINE_STRONG,T.BRASS_DEEP,1.
+        return T.SURFACE,T.LINE,T.BRASS_DEEP,1.
+    def event(self,event):
+        if event.type() in (event.Type.HoverEnter,event.Type.HoverLeave):self.update()
+        return super().event(event)
+    def mark(self,value):self.setProperty('selected',value);repolish(self)
     def mouseReleaseEvent(self,event):
         if event.button()==Qt.LeftButton and self.check.isEnabled():self.check.toggle();event.accept()
         else:super().mouseReleaseEvent(event)
@@ -44,7 +56,7 @@ class ModCard(QFrame):
 class ModReview(QDialog):
     def __init__(self,prepared,parent=None):
         super().__init__(parent);self.setWindowTitle('تأكيد المودات');self.resize(600,450);self.setMinimumWidth(490);v=QVBoxLayout(self);v.setContentsMargins(24,22,24,22);v.setSpacing(14)
-        v.addWidget(text('كل شيء جاهز. راجع اختيارك.','heroTitle'));v.addWidget(text('تتغير المودات فقط. الدقة والرسوم محفوظة، والأصل يُحفظ تلقائيًا.'))
+        v.addWidget(text('كل شيء جاهز. راجع اختيارك.','pageTitle'));v.addWidget(text('تتغير المودات فقط. الدقة والرسوم محفوظة، والأصل يُحفظ تلقائيًا.'));v.addWidget(Rule())
         installed=[];removed=[]
         for path,data in prepared.plan.items():
             if path.suffix!='.vpk':continue
@@ -56,33 +68,33 @@ class ModReview(QDialog):
         warnings=[f.title+' — '+f.detail for f in prepared.report.findings if f.severity=='warning']
         if warnings:warning=text('\n'.join(warnings),'noticeWarning');v.addWidget(warning)
         self.details=QPlainTextEdit();self.details.setReadOnly(True);self.details.setLayoutDirection(Qt.LeftToRight);self.details.setPlainText('\n'.join(str(p)+('  → remove' if b is None else f'  → {len(b):,} bytes') for p,b in prepared.plan.items()));self.details.hide();v.addWidget(self.details,1)
-        more=QPushButton('تفاصيل الملفات');more.setObjectName('quiet');more.setCheckable(True);more.toggled.connect(self.details.setVisible);v.addWidget(more);v.addStretch()
-        row=QHBoxLayout();cancel=QPushButton('رجوع');cancel.clicked.connect(self.reject);row.addWidget(cancel);ok=QPushButton('تأكيد التركيب' if prepared.settings.mods else 'تأكيد الإزالة');ok.setObjectName('primary');ok.clicked.connect(self.accept);row.addWidget(ok,1);v.addLayout(row)
-
+        more=QPushButton('تفاصيل الملفات');more.setObjectName('quiet');more.setIcon(icon('file',T.TEXT_SOFT));more.setCheckable(True);more.toggled.connect(self.details.setVisible);v.addWidget(more,0,Qt.AlignLeading);v.addStretch()
+        row=QHBoxLayout();row.setSpacing(8);ok=QPushButton('تأكيد التركيب' if prepared.settings.mods else 'تأكيد الإزالة');ok.setObjectName('primary');ok.clicked.connect(self.accept);row.addWidget(ok);cancel=QPushButton('رجوع');cancel.clicked.connect(self.reject);row.addWidget(cancel);row.addStretch();v.addLayout(row)
 class ModPage(QWidget):
     def __init__(self,window):
         super().__init__(window);self.window=window;self.stage='';self._job=None;self.sequence=0;self.cancel_event=None;self.cards={};self.checks={};self.labels={};self._columns=0;self._can_install=False
-        root=QVBoxLayout(self);root.setContentsMargins(0,0,0,0);root.setSpacing(12)
-        steps=QHBoxLayout()
-        for number,title in [('01','أضف الحزمة'),('02','اختر المودات'),('03','ركّب بأمان')]:
-            label=text(number+'  /  '+title,'stepPill');steps.addWidget(label,1)
+        root=QVBoxLayout(self);root.setContentsMargins(0,0,0,0);root.setSpacing(10)
+        # The three steps, as a ribbon.
+        steps=QHBoxLayout();steps.setSpacing(10)
+        for number,title in [('1','أضف الحزمة'),('2','اختر المودات'),('3','ركّب بأمان')]:
+            steps.addWidget(Plate(number,size=26));label=text(title,'subtitle');label.setWordWrap(False);steps.addWidget(label);steps.addWidget(Rule(),1)
         root.addLayout(steps)
-        scroll=QScrollArea();scroll.setWidgetResizable(True);body=QWidget();v=QVBoxLayout(body);v.setContentsMargins(0,0,8,0);v.setSpacing(12);scroll.setWidget(body);root.addWidget(scroll,1)
+        scroll=QScrollArea();scroll.setWidgetResizable(True);body=QWidget();v=QVBoxLayout(body);v.setContentsMargins(0,0,12,0);v.setSpacing(12);scroll.setWidget(body);root.addWidget(scroll,1)
         self.drop=DropArea();self.drop.dropped.connect(self.import_paths);v.addWidget(self.drop)
-        row=QHBoxLayout();self.add_button=QPushButton('إضافة حزمة');self.add_button.setIcon(nav_icon(2));self.add_button.setObjectName('primary');self.add_button.clicked.connect(self.browse_files);row.addWidget(self.add_button)
-        self.more_button=QPushButton('خيارات الإضافة ▾');menu=QMenu(self.more_button);menu.addAction('اختيار مجلد',self.browse_folder);menu.addAction('العثور على الحزمة تلقائيًا',self.discover);self.more_button.setMenu(menu);row.addWidget(self.more_button)
-        self.link_button=QPushButton('ربط اللعبة');self.link_button.clicked.connect(window.focus_game);row.addWidget(self.link_button);row.addStretch();v.addLayout(row)
-        self.import_note=text('أضف الحزمة مرة واحدة. تبقى المودات محفوظة للجلسات القادمة.','subtitle');v.addWidget(self.import_note)
+        self.add_button=QPushButton('إضافة حزمة');self.add_button.setIcon(icon('plus',T.ON_BRASS));self.add_button.setIconSize(QSize(16,16));self.add_button.setObjectName('primary');self.add_button.clicked.connect(self.browse_files);self.drop.actions.addWidget(self.add_button)
+        self.more_button=QPushButton('خيارات الإضافة');self.more_button.setProperty('menu',True);menu=QMenu(self.more_button);menu.addAction('اختيار مجلد',self.browse_folder);menu.addAction('العثور على الحزمة تلقائيًا',self.discover);self.more_button.setMenu(menu);self.drop.actions.addWidget(self.more_button)
+        row=QHBoxLayout();row.setSpacing(8);self.import_note=text('أضف الحزمة مرة واحدة. تبقى المودات محفوظة للجلسات القادمة.','subtitle');row.addWidget(self.import_note,1)
+        self.link_button=QPushButton('ربط اللعبة');self.link_button.setObjectName('quiet');self.link_button.setIcon(icon('link',T.TEXT_SOFT));self.link_button.setIconSize(QSize(16,16));self.link_button.clicked.connect(window.focus_game);row.addWidget(self.link_button);v.addLayout(row)
         self.grid=QGridLayout();self.grid.setContentsMargins(0,0,0,0);self.grid.setSpacing(12);v.addLayout(self.grid)
         for key in MODS:
             card=ModCard(key);self.cards[key]=card;self.checks[key]=card.check;self.labels[key]=card.state;card.check.toggled.connect(lambda checked,k=key:window.mod_selected(k,checked))
         self.arrange(2);v.addWidget(text('المودات المدعومة هي الملفات المرجعية المرفقة. إضافة الحزمة لا تغيّر اللعبة.','sectionLabel'));v.addStretch()
-        self.actions_panel=QFrame();self.actions_panel.setObjectName('actionbar');actions=QVBoxLayout(self.actions_panel);actions.setContentsMargins(18,12,18,12);actions.setSpacing(8)
-        self.status=text('اختر ما تريده في اللعبة، ثم اضغط التركيب.');actions.addWidget(self.status)
-        self.progress=QProgressBar();self.progress.setTextVisible(False);self.progress.setRange(0,0);self.progress.setFixedHeight(5);self.progress.hide();actions.addWidget(self.progress)
-        row=QHBoxLayout();self.install_button=QPushButton('فحص وتركيب الاختيار');self.install_button.setObjectName('primary');self.install_button.clicked.connect(self.install);row.addWidget(self.install_button,1)
-        self.inspect_button=QPushButton('تفاصيل الفحص');self.inspect_button.setIcon(nav_icon(7));self.inspect_button.clicked.connect(lambda:window.navigate(7));row.addWidget(self.inspect_button)
-        self.cancel_button=QPushButton('إلغاء');self.cancel_button.clicked.connect(self.cancel);self.cancel_button.hide();row.addWidget(self.cancel_button);actions.addLayout(row);root.addWidget(self.actions_panel)
+        self.actions_panel=ActionBar();actions=self.actions_panel.body
+        row=QHBoxLayout();row.setSpacing(8);copy=QVBoxLayout();copy.setSpacing(6);self.status=text('اختر ما تريده في اللعبة، ثم اضغط التركيب.');copy.addWidget(self.status)
+        self.progress=QProgressBar();self.progress.setTextVisible(False);self.progress.setRange(0,0);self.progress.hide();copy.addWidget(self.progress);row.addLayout(copy,1)
+        self.inspect_button=QPushButton('تفاصيل الفحص');self.inspect_button.setObjectName('quiet');self.inspect_button.setIcon(icon('inspector',T.TEXT_SOFT));self.inspect_button.setIconSize(QSize(16,16));self.inspect_button.clicked.connect(lambda:window.navigate(7));row.addWidget(self.inspect_button)
+        self.cancel_button=QPushButton('إلغاء');self.cancel_button.clicked.connect(self.cancel);self.cancel_button.hide();row.addWidget(self.cancel_button)
+        self.install_button=QPushButton('فحص وتركيب الاختيار');self.install_button.setObjectName('primary');self.install_button.clicked.connect(self.install);row.addWidget(self.install_button);actions.addLayout(row);root.addWidget(self.actions_panel)
     @property
     def busy(self):return bool(self.stage)
     @property
@@ -103,7 +115,7 @@ class ModPage(QWidget):
             if key in installed:message='مركّب' if str(target.resolve()) in managed else 'موجود من قبل';state='success'
             elif key in available:message='جاهز';state='ready'
             else:message='أضف الحزمة';state='muted'
-            card.state.setText(message);card.state.setProperty('tone',state);card.state.style().unpolish(card.state);card.state.style().polish(card.state)
+            card.state.setText(message);card.state.setProperty('tone',state);repolish(card.state)
         self.link_button.setText('اللعبة مرتبطة' if (Path(self.window.path.text())/'game/citadel/gameinfo.gi').is_file() else 'ربط اللعبة')
         count=len(self.selected())
         owned=any(str((Path(self.window.path.text())/'game/citadel/fps_studio'/name.split(' - ')[0]).resolve()) in managed for name,_,_ in MODS.values());self._can_install=bool(count or owned)

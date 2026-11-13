@@ -671,7 +671,6 @@ class ArtworkHero(QWidget):
         painter.fillRect(self.rect(), QColor(T.BASE))
         ground = self.height() * 262 / 300
         painter.fillRect(QRectF(0, ground, self.width(), self.height() - ground), QColor(T.INK))
-        painter.fillRect(QRectF(0, ground, self.width(), 1.5), QColor(T.BRASS))
         # The artwork's ground rules and zigzag run on across the calm half.
         scale = self.height() / 300
         painter.setPen(QPen(QColor(T.BRASS_DEEP), 1))
@@ -691,5 +690,6 @@ class ArtworkHero(QWidget):
             painter.scale(-1, 1)
             painter.drawPixmap(QPointF(0, 0), self.cache[1])
             painter.restore()
+        painter.fillRect(QRectF(0, round(ground), self.width(), 1), QColor(T.BRASS))
         painter.setClipping(False)
         paint_panel(painter, self.rect(), None, T.LINE_STRONG, T.BRASS)

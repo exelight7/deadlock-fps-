@@ -1,6 +1,6 @@
 """Render every screen of the app to PNG without touching a real game, real settings or the network.
 
-    python scripts/make_screenshots.py [output folder] [--size 1200x820] [--only 0,4] [--docs]
+    python scripts/make_screenshots.py [output folder] [--size 1200x820] [--only 0,4] [--dialogs] [--ltr] [--docs]
 
 The window runs against a throw-away Deadlock folder and a temporary data
 folder, ping results are sample values, and nothing is applied. `--docs`
@@ -50,7 +50,7 @@ def main():
     only = [int(v) for v in option('--only', ','.join(map(str, range(8)))).split(',')]
     target.mkdir(parents=True, exist_ok=True)
     app = QApplication.instance() or QApplication([])
-    app.setLayoutDirection(Qt.RightToLeft)
+    app.setLayoutDirection(Qt.LeftToRight if '--ltr' in sys.argv else Qt.RightToLeft)   # --ltr checks that layouts mirror
     app.setStyle('Fusion')
     load_fonts()
     app.setPalette(dark_palette())

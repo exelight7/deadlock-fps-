@@ -43,7 +43,7 @@ class ModCard(Panel):
     def __init__(self,key):
         super().__init__(name='modCard',margins=(18,14,18,12),spacing=8);self.key=key;self.setMinimumHeight(140);self.setAttribute(Qt.WA_Hover);self.setCursor(Qt.PointingHandCursor)
         v=self.body;row=QHBoxLayout();row.setSpacing(12);row.addWidget(Plate(icon_name=key,size=36),0,Qt.AlignVCenter)
-        title=text(MODS[key][1],'modTitle');title.setLayoutDirection(Qt.LeftToRight);title.setAlignment(Qt.AlignRight|Qt.AlignVCenter);row.addWidget(title,1);self.state=text('أضف الحزمة','statusPill');self.state.setWordWrap(False);row.addWidget(self.state,0,Qt.AlignVCenter);v.addLayout(row)
+        title=text(MODS[key][1],'modTitle');row.addWidget(title,1);self.state=text('أضف الحزمة','statusPill');self.state.setWordWrap(False);row.addWidget(self.state,0,Qt.AlignVCenter);v.addLayout(row)
         descriptions={'daylock':'إضاءة نهارية للخريطة. جرّب الوضوح في التدريب.','names':'إخفاء أسماء اللاعبين. يتعارض مع شريط الصحة القديم.','health':'شكل شريط الصحة القديم. اختره أو إخفاء الأسماء.','sinner':'تعديل Sinner المرجعي. افحص النتيجة داخل اللعبة.'}
         v.addWidget(text(descriptions[key]));v.addStretch();self.check=QCheckBox('أريده في اللعبة');v.addWidget(self.check);self.check.toggled.connect(self.mark)
     def look(self):

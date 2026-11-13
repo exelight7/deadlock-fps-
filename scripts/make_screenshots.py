@@ -23,6 +23,7 @@ os.environ.setdefault('QT_ENABLE_HIGHDPI_SCALING', '0')
 from PySide6.QtCore import Qt, QThreadPool  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+SHOWN_PATH = r'C:\Program Files (x86)\Steam\steamapps\common\Deadlock'
 NAMES = ['overview', 'graphics', 'mods', 'backups', 'servers', 'crosshair', 'update-center', 'mod-inspector']
 DOCS = {'overview': 'screenshot.png', 'graphics': 'graphics.png', 'mods': 'mods.png', 'backups': 'backups.png', 'servers': 'servers.png',
         'crosshair': 'crosshair.png', 'update-center': 'update-center.png', 'mod-inspector': 'mod-inspector.png'}
@@ -91,8 +92,29 @@ def main():
                     app.processEvents()
                     time.sleep(.01)
                 name = DOCS[NAMES[index]] if docs else '%d-%s-%dx%d.png' % (index, NAMES[index], width, height)
+                real = window.path.text()
+                window.path.setText(SHOWN_PATH)      # never publish the temporary folder (it contains the user name)
+                app.processEvents()
                 window.grab().save(str(target / name))
+                window.path.setText(real)
                 print(target / name)
+            if '--dialogs' in sys.argv or docs:
+                from types import SimpleNamespace
+                from deadlock_fps.crosshair_ui import CrosshairGallery
+                from deadlock_fps.mod_ui import ModReview
+                gallery = CrosshairGallery(window.crosshair.profiles, window.crosshair)
+                plan = {game / 'game/citadel/fps_studio/pak01_dir.vpk': b'0' * 48213, game / 'game/citadel/gameinfo.gi': b'0' * 9120}
+                finding = SimpleNamespace(severity='warning', title='Daylock', detail='جرّب الوضوح داخل التدريب بعد التركيب.')
+                review = ModReview(SimpleNamespace(plan=plan, settings=SimpleNamespace(mods=('daylock',)), report=SimpleNamespace(findings=[finding])), window.mods_page)
+                for name, dialog in (('crosshair-gallery', gallery), ('mod-review', review)):
+                    dialog.setAttribute(Qt.WA_DontShowOnScreen)
+                    dialog.show()
+                    settle(app, 2)
+                    if not (docs and name == 'mod-review'):
+                        path = target / (name + '.png' if docs else 'dialog-%s.png' % name)
+                        dialog.grab().save(str(path))
+                        print(path)
+                    dialog.close()
             window.close()
             settle(app, 2)
 

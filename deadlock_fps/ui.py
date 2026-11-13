@@ -109,9 +109,9 @@ class Window(QMainWindow):
             self.inspector.cancel();self.mods_page.cancel()
             super().closeEvent(event)
     def page(self):
-        # Form pages keep one readable column; it hugs the leading edge on wide windows.
+        # Form pages keep one readable column, centred once the window is wider than it.
         page=QWidget();outer=QHBoxLayout(page);outer.setContentsMargins(0,0,12,0);outer.setSpacing(0)
-        column=QWidget();column.setMaximumWidth(1080);v=QVBoxLayout(column);v.setContentsMargins(0,0,0,0);v.setSpacing(16);outer.addWidget(column,1);outer.addStretch(0)
+        column=QWidget();column.setMaximumWidth(1080);v=QVBoxLayout(column);v.setContentsMargins(0,0,0,0);v.setSpacing(16);outer.addStretch(1);outer.addWidget(column,1000);outer.addStretch(1)
         scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(page);self.stack.addWidget(scroll)
         return v
     def primary_action(self):

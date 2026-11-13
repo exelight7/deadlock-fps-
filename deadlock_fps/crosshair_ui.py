@@ -184,9 +184,9 @@ class CrosshairPage(QWidget):
         self.profiles={};self.load_profiles();root=QVBoxLayout(self);root.setContentsMargins(0,0,0,0);root.setSpacing(12)
 
         # One toolbar: what is loaded, where to get another, and how to keep it.
-        row=QHBoxLayout();row.setSpacing(8);row.addWidget(Kicker('DESIGN'));self.presets=Combo();self.presets.setPlaceholderText('Choose a preset');self.presets.setMinimumWidth(150);row.addWidget(self.presets,1);self.rebuild_presets();self.presets.currentIndexChanged.connect(self.choose_preset)
+        row=QHBoxLayout();row.setSpacing(8);self.design_kicker=Kicker('DESIGN');row.addWidget(self.design_kicker);self.presets=Combo();self.presets.setPlaceholderText('Choose a preset');self.presets.setMinimumWidth(150);row.addWidget(self.presets,1);self.rebuild_presets();self.presets.currentIndexChanged.connect(self.choose_preset)
         self.design_name=note('Custom','previewMode');self.design_name.setWordWrap(False);row.addWidget(self.design_name,0,Qt.AlignVCenter)
-        self.gallery_button=QPushButton('PRO Crosshairs');self.gallery_button.setObjectName('primary');self.gallery_button.setIcon(icon('gallery',T.ON_BRASS));self.gallery_button.setIconSize(QSize(16,16));self.gallery_button.clicked.connect(self.open_gallery);row.addWidget(self.gallery_button)
+        self.gallery_button=QPushButton('PRO Crosshairs');self.gallery_button.setObjectName('primary');self.gallery_button.setIcon(icon('gallery',T.ON_BRASS));self.gallery_button.setIconSize(QSize(16,16));self.gallery_button.clicked.connect(self.open_gallery);self.gallery_button.setMinimumWidth(self.gallery_button.sizeHint().width()+14);row.addWidget(self.gallery_button)
         save=QPushButton('Save');save.setIcon(icon('save',T.TEXT));save.setIconSize(QSize(16,16));save.clicked.connect(self.save_profile);row.addWidget(save);share=QPushButton('Share');share.setProperty('menu',True);menu=QMenu(share)
         for title,fn in [('Copy Toolbox code',self.copy_code),('Paste Toolbox code',self.paste_code),('Export JSON',self.export_file),('Import JSON',self.import_file),('Delete saved design',self.delete_profile)]:menu.addAction(title,fn)
         share.setMenu(menu);row.addWidget(share);root.addLayout(row)
@@ -245,7 +245,7 @@ class CrosshairPage(QWidget):
         super().showEvent(event)
         if not self.loaded or self.loaded_context!=self.context():self.reload_current()
     def resizeEvent(self,event):
-        desired=Qt.Vertical if self.width()<600 else Qt.Horizontal
+        desired=Qt.Vertical if self.width()<600 else Qt.Horizontal;self.design_kicker.setVisible(self.width()>=760)
         if self.splitter.orientation()!=desired:self.splitter.setOrientation(desired);self.splitter.setSizes([230,max(160,self.height()-230)] if desired==Qt.Vertical else [420,520])
         super().resizeEvent(event)
     def toggle_calibration(self,*_):

@@ -33,17 +33,17 @@ class ServerPage(QWidget):
 
         # Find and measure.
         row=QHBoxLayout();row.setSpacing(8);self.search=QLineEdit();self.search.setClearButtonEnabled(True);self.search.addAction(icon('search',T.TEXT_MUTED),QLineEdit.LeadingPosition);self.search.setPlaceholderText('ابحث بالعربي أو الإنجليزي: دبي، الإمارات، Frankfurt…');self.search.textChanged.connect(self.filter_rows);row.addWidget(self.search,1)
-        self.view_filter=QComboBox();self.view_filter.addItems(['كل المناطق','الحظر المحفوظ','المحددة فقط']);self.view_filter.setMinimumWidth(140);row.addWidget(self.view_filter)
+        self.view_filter=QComboBox();self.view_filter.addItems(['كل المناطق','الحظر المحفوظ','المحددة فقط']);self.view_filter.setMinimumWidth(128);row.addWidget(self.view_filter)
         self.ping_button=self.add_button(row,'قياس البنق',self.measure,'ping');self.ping_button.setToolTip('يقيس المناطق المحددة، أو كل المناطق الظاهرة إذا لم تحدد شيئًا.')
-        self.add_button(row,'تحديث القائمة',self.refresh,'refresh');layout.addLayout(row)
+        self.add_button(row,'تحديث القائمة',self.refresh,'refresh')
+        help_button=self.add_button(row,'',self.explain,'help');help_button.setToolTip('شرح');help_button.setAccessibleName('شرح');help_button.setFixedWidth(38);layout.addLayout(row)
 
         # Choose rows.
         row=QHBoxLayout();row.setSpacing(8);self.selection_note=QLabel();self.selection_note.setWordWrap(True);self.selection_note.setObjectName('selectionNotice');row.addWidget(self.selection_note,1)
         self.select_visible_button=self.add_button(row,'تحديد الظاهر',self.select_visible)
         clear_selection_button=self.add_button(row,'مسح التحديد',self.clear_selection)
         sort_button=self.add_button(row,'الأقل بنقًا',self.sort_ping,'sort')
-        saved=self.add_button(row,'اختياراتي',lambda:None);saved.setProperty('menu',True);self.saved_menu=QMenu(saved);saved.setMenu(self.saved_menu)
-        help_button=self.add_button(row,'شرح',self.explain,'help');layout.addLayout(row)
+        saved=self.add_button(row,'اختياراتي',lambda:None);saved.setProperty('menu',True);self.saved_menu=QMenu(saved);saved.setMenu(self.saved_menu);layout.addLayout(row)
         for button in (self.select_visible_button,clear_selection_button,sort_button,saved,help_button):button.setObjectName('quiet')
         self.selection_buttons=[self.select_visible_button,clear_selection_button,sort_button,saved,help_button]
         text=QLabel('اضغط أي مكان في سطر المنطقة لتحديدها. التحديد لا يغيّر الحظر حتى تختار إجراءً بالأسفل.');text.setWordWrap(True);text.setObjectName('sectionLabel');layout.addWidget(text)
@@ -57,7 +57,7 @@ class ServerPage(QWidget):
         self.table.horizontalHeader().setMinimumSectionSize(40);self.table.horizontalHeader().setHighlightSections(False)
         for col,width in [(0,65),(2,50),(3,85),(4,85),(5,135),(6,115)]:
             self.table.horizontalHeader().setSectionResizeMode(col,QHeaderView.Fixed);self.table.setColumnWidth(col,width)
-        self.table.verticalHeader().setVisible(False);self.table.verticalHeader().setDefaultSectionSize(60);self.table.setMinimumHeight(250);self.table.setAlternatingRowColors(True)
+        self.table.verticalHeader().setVisible(False);self.table.verticalHeader().setDefaultSectionSize(56);self.table.setMinimumHeight(250);self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False);self.table.viewport().setCursor(Qt.PointingHandCursor);layout.addWidget(self.table,1)
         self.empty=empty_state(self.table,'empty-regions','لا توجد مناطق مطابقة','غيّر البحث أو اختر «كل المناطق» من القائمة.')
         self.view_filter.currentIndexChanged.connect(self.filter_rows)

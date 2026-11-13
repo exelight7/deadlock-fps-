@@ -539,6 +539,8 @@ class Intro(QWidget):
         # The sunburst opens behind the emblem as it arrives.
         painter.setPen(QPen(alpha(GOLD, .22), 1))
         for index in range(48):
+            if 45 < index * 7.5 < 135:      # keep the rays clear of the title below the emblem
+                continue
             angle = math.radians(index * 7.5)
             inner, outer = 96, 96 + (150 if index % 4 == 0 else 96) * arrive
             painter.drawLine(QPointF(center.x() + inner * math.cos(angle), center.y() + inner * math.sin(angle)),

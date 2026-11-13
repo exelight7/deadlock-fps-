@@ -234,7 +234,7 @@ QPushButton#danger {background:transparent;color:@CRIMSON_TEXT;border-color:@CRI
 QPushButton#danger:hover {background:@CRIMSON;border-color:@CRIMSON;color:@TEXT;}
 QPushButton#danger:pressed {background:@CRIMSON_LINE;color:@TEXT;}
 QPushButton#danger:disabled {color:@TEXT_OFF;background:@SUNKEN;border-color:@LINE;}
-QPushButton#quiet {background:transparent;border:1px solid @LINE;color:@TEXT_SOFT;}
+QPushButton#quiet {background:transparent;border:1px solid @LINE;color:@TEXT_SOFT;padding:7px 12px;}
 QPushButton#quiet:hover {background:@SURFACE;border-color:@BRASS_DEEP;color:@BRASS_BRIGHT;}
 QPushButton#quiet:checked {background:@BRASS_WASH;border-color:@BRASS_DEEP;color:@BRASS_BRIGHT;}
 QPushButton#quiet:disabled {color:@TEXT_OFF;border-color:@LINE;background:transparent;}
@@ -558,7 +558,7 @@ class EmptyState(QWidget):
         self.art = QLabel()
         self.art.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.art)
-        self.title = label(title, 'cardtitle')
+        self.title = label(title, 'lead')
         self.title.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.title)
         self.detail = label(detail, 'subtitle')

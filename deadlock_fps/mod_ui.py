@@ -2,7 +2,7 @@
 from pathlib import Path
 import threading
 from PySide6.QtCore import Qt,QThreadPool,QSize,Signal
-from PySide6.QtWidgets import QWidget,QFrame,QVBoxLayout,QHBoxLayout,QGridLayout,QLabel,QPushButton,QCheckBox,QScrollArea,QFileDialog,QMenu,QProgressBar,QDialog,QPlainTextEdit
+from PySide6.QtWidgets import QWidget,QFrame,QVBoxLayout,QHBoxLayout,QBoxLayout,QGridLayout,QLabel,QPushButton,QCheckBox,QScrollArea,QFileDialog,QMenu,QProgressBar,QDialog,QPlainTextEdit
 from .settings import MODS
 from .core import Studio,game_root
 from .mods import ImportCancelled
@@ -16,9 +16,14 @@ class DropArea(Panel):
     dropped=Signal(object)
     def __init__(self):
         super().__init__(name='dropArea',margins=(18,14,18,14),spacing=0);self.setAcceptDrops(True);self.setMinimumHeight(96);self.dashed=True;self.pattern='chevron'
-        layout=QHBoxLayout();layout.setSpacing(14);self.body.addLayout(layout);layout.addWidget(Plate(icon_name='mods',size=48),0,Qt.AlignVCenter)
+        self.flow=QBoxLayout(QBoxLayout.LeftToRight);self.flow.setSpacing(12);self.body.addLayout(self.flow);layout=QHBoxLayout();layout.setSpacing(14);self.flow.addLayout(layout,1);layout.addWidget(Plate(icon_name='mods',size=48),0,Qt.AlignVCenter)
         copy=QVBoxLayout();copy.setSpacing(2);copy.addWidget(text('اسحب الحزمة هنا. واترك الباقي للأداة.','lead'));copy.addWidget(text('ZIP أو VPK أو مجلد MODS • يتعرف على المودات حتى لو تغيّر اسم الملف.','subtitle'));layout.addLayout(copy,1)
-        self.actions=QHBoxLayout();self.actions.setSpacing(8);layout.addLayout(self.actions)
+        self.actions=QHBoxLayout();self.actions.setSpacing(8);self.flow.addLayout(self.actions)
+    def resizeEvent(self,event):
+        super().resizeEvent(event);narrow=self.width()<640
+        if narrow!=(self.flow.direction()==QBoxLayout.TopToBottom):
+            self.flow.setDirection(QBoxLayout.TopToBottom if narrow else QBoxLayout.LeftToRight);self.actions.setContentsMargins(62 if narrow else 0,0,0,0)
+            if narrow and self.actions.count()==2:self.actions.addStretch()
     def look(self):
         if self.property('dragging'):return T.VERDIGRIS_WASH,T.VERDIGRIS,T.VERDIGRIS,2.
         return (T.SUNKEN,T.LINE_STRONG if self.isEnabled() else T.LINE,T.BRASS_DEEP,1.)

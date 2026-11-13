@@ -88,7 +88,7 @@ class SelectionDelegate(ServerRowDelegate):
             painter.fillRect(QRect(leading, option.rect.top(), 3, option.rect.height()), QColor(CHECK_FILL))
             painter.setFont(cell_font(10))
             painter.setPen(QColor(T.BRASS_BRIGHT))
-            painter.drawText(option.rect.adjusted(0, 38, 0, 0), Qt.AlignCenter, 'محدد')
+            painter.drawText(option.rect.adjusted(0, 37, 0, 0), Qt.AlignCenter, 'محدد')
         painter.restore()
 
     def editorEvent(self, event, model, option, index):

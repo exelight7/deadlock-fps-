@@ -43,7 +43,7 @@ class UpdatePage(QWidget):
         self.download_folder=Path(download_folder or (Path(QStandardPaths.writableLocation(QStandardPaths.DownloadLocation) or str(Path.home()/'Downloads'))/'Deadlock Toolbox'))
         self.client=UpdateClient(self.store,self,manager)
         root=QVBoxLayout(self);root.setContentsMargins(0,0,0,0);root.setSpacing(12)
-        scroll=QScrollArea();scroll.setWidgetResizable(True);body=QWidget();outer=QHBoxLayout(body);outer.setContentsMargins(0,0,12,0);column=QWidget();column.setMaximumWidth(1080);v=QVBoxLayout(column);v.setContentsMargins(0,0,0,0);v.setSpacing(16);outer.addWidget(column,1);outer.addStretch(0);scroll.setWidget(body);root.addWidget(scroll,1)
+        scroll=QScrollArea();scroll.setWidgetResizable(True);body=QWidget();outer=QHBoxLayout(body);outer.setContentsMargins(0,0,12,0);column=QWidget();column.setMaximumWidth(1080);v=QVBoxLayout(column);v.setContentsMargins(0,0,0,0);v.setSpacing(16);outer.addStretch(1);outer.addWidget(column,1000);outer.addStretch(1);scroll.setWidget(body);root.addWidget(scroll,1)
         v.addWidget(UtilityHeader(6,'التحديث والتثبيت','افحص، نزّل، ثم ثبّت بضغطة. بدون نقل ملفات يدويًا.','UPDATE / INSTALL'))
 
         # Where things stand, and the one button that refreshes it.

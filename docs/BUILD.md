@@ -18,4 +18,13 @@ python build.py
 python scripts/smoke_desktop.py --updates
 ```
 
+The interface artwork is generated from code. After changing `deadlock_fps/theme.py` or `scripts/make_assets.py`, regenerate it and the documentation images (PySide6 only, no game or network needed):
+
+```sh
+python scripts/make_assets.py       # assets/ and docs/contact-sheet.png
+python scripts/make_screenshots.py --docs
+```
+
+The design rules are in [DESIGN.md](DESIGN.md).
+
 Portable packages are written to `dist/`. CI tests and builds on both platforms. Application data is stored outside the portable folder. See [third-party notices](../THIRD_PARTY.md) for content and dependency licenses.

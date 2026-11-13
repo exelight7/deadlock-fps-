@@ -6,7 +6,7 @@ folder=root/'dist/DeadlockToolbox'
 binary=folder/('DeadlockToolbox.exe' if os.name=='nt' else 'DeadlockToolbox')
 assert binary.is_file(), binary
 internal=folder/'_internal'
-for path in ['assets/artwork/rem.jpg','assets/artwork/deadlock.jpg','assets/artwork/duo.jpg','assets/artwork/logo.jpg','assets/fonts/NotoSansArabic.ttf','assets/flags/ae.svg','assets/check.svg','assets/chevron-down.svg']:
+for path in ['assets/app.png','assets/brand/emblem.svg','assets/art/banner-mods.svg','assets/patterns/lattice.svg','assets/illustrations/empty-search.svg','assets/fonts/NotoSansArabic.ttf','assets/fonts/NotoSans.ttf','assets/fonts/ReemKufi.ttf','assets/flags/ae.svg','assets/icons/overview.svg','assets/icons/qss/check.svg','assets/icons/qss/chevron-down.svg']:
     assert (internal/path).is_file(),path
 assert list(internal.rglob('*qsvgicon*')), 'SVG icon plugin missing'
 assert list(internal.glob('PySide6/QtNetwork*')), 'Qt Network module missing'
@@ -25,4 +25,6 @@ try:
 finally:
     if process.poll() is None:process.terminate()
     _,error=process.communicate(timeout=10)
+    # The offscreen platform has no size-hint support and says so; tests/test_motion.py treats that line as benign too.
+    error=b'\n'.join(line for line in error.splitlines() if line.strip() and b'propagateSizeHints' not in line)
     if error:raise RuntimeError(error.decode(errors='replace'))

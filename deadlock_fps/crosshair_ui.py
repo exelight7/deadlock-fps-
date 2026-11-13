@@ -3,13 +3,15 @@ from pathlib import Path
 from dataclasses import replace
 import json,difflib,html
 from PySide6.QtCore import Qt,QRect,QRectF,QSize,QStandardPaths
-from PySide6.QtGui import QColor,QPainter,QPainterPath,QPen,QPixmap,QLinearGradient,QImageReader,QIcon,QFont,QRadialGradient
+from PySide6.QtGui import QColor,QPainter,QPainterPath,QPen,QPixmap,QImageReader,QIcon,QFont
 from PySide6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QFrame,QLabel,QPushButton,QComboBox,QScrollArea,QSplitter,QSlider,QDoubleSpinBox,QCheckBox,QColorDialog,QInputDialog,QFileDialog,QMessageBox,QDialog,QPlainTextEdit,QDialogButtonBox,QApplication,QMenu,QLineEdit,QListWidget,QListWidgetItem,QListView,QAbstractItemView,QStyledItemDelegate,QStyle,QTabWidget,QAbstractSpinBox)
 from .crosshair import Crosshair,CrosshairStore,PRESETS,NUMBERS,PIXELS,export_design,import_design,share_code,read_code
 from .core import atomic,ensure_closed
 from .crosshair_catalog import entries,shape
 from .crosshair_style import STYLE as CROSSHAIR_STYLE
 from . import kv
+from . import theme as T
+from .design import Panel,ActionBar,Kicker,Rule,Combo,icon,chamfer,paint_panel,empty_state
 
 LABELS={'width':'Width','length':'Length','gap':'Gap offset','opacity':'Opacity',
  'border':'Thickness','border_gap':'Spacing','border_opacity':'Opacity',
@@ -29,7 +31,7 @@ def note(text,name='subtitle'):
     label=QLabel(text);label.setWordWrap(True);label.setObjectName(name);return label
 
 def panel(title):
-    frame=QFrame();frame.setObjectName('card');layout=QVBoxLayout(frame);layout.setContentsMargins(16,12,16,12);layout.setSpacing(8)
+    frame=Panel(margins=(16,12,16,14),spacing=8);layout=frame.body
     layout.addWidget(note(title,'cardtitle'));return frame,layout
 
 class CrosshairPreview(QWidget):
@@ -71,13 +73,12 @@ class CrosshairPreview(QWidget):
         if self.mode=='image' and not self.image.isNull():
             scaled=self.image.scaled(self.size(),Qt.KeepAspectRatioByExpanding,Qt.SmoothTransformation);p.drawPixmap((self.width()-scaled.width())//2,(self.height()-scaled.height())//2,scaled)
         else:
-            gradient=QRadialGradient(self.width()/2,self.height()*.48,max(self.width(),self.height())*.8)
-            gradient.setColorAt(0,QColor('#d9d6c8' if self.mode=='light' else '#223d39'));gradient.setColorAt(1,QColor('#aea99b' if self.mode=='light' else '#101a20'));p.fillRect(self.rect(),gradient)
-            p.setPen(QPen(QColor('#15000000' if self.mode=='light' else '#0cffffff'),1))
-            for x in range(0,self.width(),32):p.drawLine(x,0,x,self.height())
-            for y in range(0,self.height(),32):p.drawLine(0,y,self.width(),y)
-            p.setPen(QPen(QColor('#557f9387'),1))
-            for x,y,dx,dy in [(16,16,1,1),(self.width()-17,16,-1,1),(16,self.height()-17,1,-1),(self.width()-17,self.height()-17,-1,-1)]:p.drawLine(x,y,x+16*dx,y);p.drawLine(x,y,x,y+16*dy)
+            light=self.mode=='light';p.fillRect(self.rect(),QColor('#cdc7b6' if light else T.RAISED))
+            p.setPen(QPen(QColor(0,0,0,22) if light else QColor(255,255,255,10),1))
+            for x in range(self.width()//2%32,self.width(),32):p.drawLine(x,0,x,self.height())
+            for y in range(self.height()//2%32,self.height(),32):p.drawLine(0,y,self.width(),y)
+            p.setPen(QPen(QColor('#7d6a43' if light else T.BRASS_DEEP),1))
+            for x,y,dx,dy in [(10,10,1,1),(self.width()-11,10,-1,1),(10,self.height()-11,1,-1),(self.width()-11,self.height()-11,-1,-1)]:p.drawLine(x,y,x+14*dx,y);p.drawLine(x,y,x,y+14*dy)
         p.end()
     def paintEvent(self,event):
         self.paint_count+=1
@@ -100,47 +101,42 @@ class GalleryTileDelegate(QStyledItemDelegate):
         painter.save();painter.setRenderHint(QPainter.Antialiasing)
         selected=bool(option.state&QStyle.State_Selected);hovered=bool(option.state&QStyle.State_MouseOver)
         rect=option.rect.adjusted(5,5,-5,-5)
-        painter.setPen(QPen(QColor('#e7c18a' if selected else '#6d796e' if hovered else '#344145'),2 if selected else 1))
-        painter.setBrush(QColor('#32382e' if selected else '#1c2528'));painter.drawRoundedRect(rect,11,11)
+        paint_panel(painter,rect,T.BRASS_WASH if selected else T.RAISED if hovered else T.SURFACE,T.BRASS if selected else T.LINE_STRONG if hovered else T.LINE,T.BRASS_BRIGHT if selected else None,8,1.5 if selected else 1.)
         index.data(Qt.DecorationRole).paint(painter,QRect(rect.center().x()-90,rect.top()+9,180,88))
-        name,tag=index.data(Qt.DisplayRole).split('\n',1);font=QFont(option.font);font.setBold(selected);painter.setFont(font);painter.setPen(QColor('#f1ede4'))
+        name,tag=index.data(Qt.DisplayRole).split('\n',1);font=QFont(option.font);font.setBold(selected);painter.setFont(font);painter.setPen(QColor(T.BRASS_BRIGHT if selected else T.TEXT))
         painter.drawText(QRect(rect.left()+10,rect.top()+103,rect.width()-20,27),Qt.AlignCenter,painter.fontMetrics().elidedText(name,Qt.ElideRight,rect.width()-20))
         font.setBold(False)
-        if font.pixelSize()>0:font.setPixelSize(max(10,font.pixelSize()-2))
-        else:font.setPointSizeF(max(8,font.pointSizeF()-1))
-        painter.setFont(font);painter.setPen(QColor('#99aaa2'));painter.drawText(QRect(rect.left()+8,rect.top()+133,rect.width()-16,24),Qt.AlignCenter,tag)
-        if selected:
-            painter.setBrush(QColor('#e7c18a'));painter.setPen(Qt.NoPen);painter.drawEllipse(QRectF(rect.right()-23,rect.top()+13,12,12))
-            painter.setPen(QPen(QColor('#24291f'),1.5));painter.drawLine(rect.right()-20,rect.top()+19,rect.right()-18,rect.top()+21);painter.drawLine(rect.right()-18,rect.top()+21,rect.right()-14,rect.top()+16)
+        if font.pixelSize()>0:font.setPixelSize(max(10,font.pixelSize()-3))
+        else:font.setPointSizeF(max(7.5,font.pointSizeF()-1.5))
+        font.setLetterSpacing(QFont.AbsoluteSpacing,0 if T.has_arabic(tag) else 1.5);painter.setFont(font);painter.setPen(QColor(T.TEXT_MUTED));painter.drawText(QRect(rect.left()+8,rect.top()+133,rect.width()-16,24),Qt.AlignCenter,tag)
         painter.restore()
-
 class CrosshairGallery(QDialog):
     """Offline gallery, built on demand with cached native previews."""
     def __init__(self,profiles=None,parent=None):
         super().__init__(parent);self.setWindowTitle('PRO Crosshairs');self.setLayoutDirection(Qt.LeftToRight);self.setStyleSheet(CROSSHAIR_STYLE);self.resize(1000,820);self.setMinimumSize(780,650)
         self.catalog=entries(profiles);self.chosen=None;self.apply_requested=False;self.icons={}
-        layout=QVBoxLayout(self);layout.setContentsMargins(22,20,22,18);layout.setSpacing(13)
-        layout.addWidget(note('THE COLLECTION','workspaceEyebrow'));layout.addWidget(note('PRO Crosshairs','workspaceTitle'))
-        layout.addWidget(note('50 crosshairs. Player setups and original Studio picks. Choose your starting point.'))
-        row=QHBoxLayout();self.search=QLineEdit();self.search.setClearButtonEnabled(True);self.search.setPlaceholderText('Search a player or crosshair...');row.addWidget(self.search,1)
-        self.filter=QComboBox()
+        layout=QVBoxLayout(self);layout.setContentsMargins(24,20,24,18);layout.setSpacing(12)
+        heading=QVBoxLayout();heading.setSpacing(0);heading.addWidget(Kicker('THE COLLECTION'));heading.addWidget(note('PRO Crosshairs','pageTitle'));layout.addLayout(heading)
+        layout.addWidget(note('50 crosshairs. Player setups and original Studio picks. Choose your starting point.'));layout.addWidget(Rule())
+        row=QHBoxLayout();row.setSpacing(8);self.search=QLineEdit();self.search.setClearButtonEnabled(True);self.search.addAction(icon('search',T.TEXT_MUTED),QLineEdit.LeadingPosition);self.search.setPlaceholderText('Search a player or crosshair...');row.addWidget(self.search,1)
+        self.filter=Combo()
         for title,key in [('All designs','all'),('Player setups','players'),('Studio picks','builtin'),('Saved','saved')]:self.filter.addItem(title,key)
-        row.addWidget(self.filter);self.shape_filter=QComboBox()
+        self.filter.setMinimumWidth(150);row.addWidget(self.filter);self.shape_filter=Combo()
         for title in ['Any shape','Cross','Dot','Ring','Hybrid']:self.shape_filter.addItem(title)
-        row.addWidget(self.shape_filter);layout.addLayout(row)
-        body=QHBoxLayout();body.setSpacing(14);self.tiles=QListWidget();self.tiles.setViewMode(QListView.IconMode);self.tiles.setResizeMode(QListView.Adjust);self.tiles.setMovement(QListView.Static);self.tiles.setSelectionMode(QAbstractItemView.SingleSelection);self.tiles.setWordWrap(True);self.tiles.setSpacing(4);self.tiles.setIconSize(QSize(180,88));self.tiles.setGridSize(QSize(198,174));self.tiles.setLayoutDirection(Qt.LeftToRight)
-        self.tiles.setStyleSheet('QListWidget {background:#131b1e;border:1px solid #303f43;border-radius:13px;padding:7px;}')
+        self.shape_filter.setMinimumWidth(130);row.addWidget(self.shape_filter);layout.addLayout(row)
+        body=QHBoxLayout();body.setSpacing(14);self.tiles=QListWidget();self.tiles.setObjectName('tiles');self.tiles.setViewMode(QListView.IconMode);self.tiles.setResizeMode(QListView.Adjust);self.tiles.setMovement(QListView.Static);self.tiles.setSelectionMode(QAbstractItemView.SingleSelection);self.tiles.setWordWrap(True);self.tiles.setSpacing(4);self.tiles.setIconSize(QSize(180,88));self.tiles.setGridSize(QSize(198,174));self.tiles.setLayoutDirection(Qt.LeftToRight);self.tiles.setMouseTracking(True)
         self.tiles.setItemDelegate(GalleryTileDelegate(self.tiles));body.addWidget(self.tiles,1)
-        frame,details=panel('SELECTED CROSSHAIR');self.detail_heading=details.itemAt(0).widget();frame.setFixedWidth(250);frame.setMinimumHeight(310);body.addWidget(frame)
-        self.name=note('','cardtitle');details.addWidget(self.name)
+        self.no_match=empty_state(self.tiles,'empty-search','No matching crosshairs','Try a different name or filter.')
+        frame,details=panel('Selected crosshair');self.detail_heading=details.itemAt(0).widget();frame.setFixedWidth(250);frame.setMinimumHeight(310);body.addWidget(frame)
+        self.name=note('','value');details.addWidget(self.name)
         self.preview=CrosshairPreview();self.preview.set_zoom(2);self.preview.setFixedHeight(170);details.addWidget(self.preview)
-        self.preview_caption=note('2× preview · simulated spread: 8');details.addWidget(self.preview_caption)
+        self.preview_caption=note('2× preview · simulated spread: 8','sectionLabel');details.addWidget(self.preview_caption)
         self.motion=note('','previewMode');details.addWidget(self.motion,0,Qt.AlignLeft)
         self.detail=note('');details.addWidget(self.detail);self.source=QLabel();self.source.setWordWrap(True);self.source.setOpenExternalLinks(True);details.addWidget(self.source);details.addStretch()
-        layout.addLayout(body,1);self.empty=note('');layout.addWidget(self.empty)
-        buttons=QHBoxLayout();cancel=QPushButton('Cancel');cancel.clicked.connect(self.reject);buttons.addWidget(cancel);buttons.addStretch()
-        self.edit_button=QPushButton('Use && Edit');self.edit_button.setObjectName('primary');self.edit_button.clicked.connect(lambda:self.finish(False));buttons.addWidget(self.edit_button)
-        self.apply_button=QPushButton('Apply to Game');self.apply_button.clicked.connect(lambda:self.finish(True));buttons.addWidget(self.apply_button);layout.addLayout(buttons)
+        layout.addLayout(body,1);self.empty=note('','sectionLabel');layout.addWidget(self.empty)
+        buttons=QHBoxLayout();buttons.setSpacing(8);cancel=QPushButton('Cancel');cancel.setObjectName('quiet');cancel.clicked.connect(self.reject);buttons.addWidget(cancel);buttons.addStretch()
+        self.apply_button=QPushButton('Apply to Game');self.apply_button.clicked.connect(lambda:self.finish(True));buttons.addWidget(self.apply_button)
+        self.edit_button=QPushButton('Use && Edit');self.edit_button.setObjectName('primary');self.edit_button.clicked.connect(lambda:self.finish(False));buttons.addWidget(self.edit_button);layout.addLayout(buttons)
         self.search.textChanged.connect(self.populate);self.filter.currentIndexChanged.connect(self.populate);self.shape_filter.currentIndexChanged.connect(self.populate);self.tiles.currentItemChanged.connect(self.select);self.tiles.itemDoubleClicked.connect(lambda _:self.finish(False));self.populate()
     def thumbnail(self,entry):
         if entry.key not in self.icons:
@@ -167,6 +163,7 @@ class CrosshairGallery(QDialog):
             if entry.key==selected:selected_row=count
             count+=1
         self.empty.setText(f'{count} crosshairs · Select a card to preview. Double-click to edit.' if count else 'No matching crosshairs. Try a different name or filter.')
+        self.no_match.setVisible(not count)
         if count:self.tiles.setCurrentRow(selected_row)
         else:self.select(None)
     def select(self,item,*_):
@@ -174,7 +171,7 @@ class CrosshairGallery(QDialog):
         if not self.chosen:self.name.setText('No selection');self.detail.clear();self.source.clear();self.motion.clear();self.preview.setVisible(False);return
         entry=self.chosen;self.preview.setVisible(True);self.preview.set_design(entry.design);self.fit_preview();self.name.setText(entry.name)
         self.detail.setText('Only width, length and gap were published. Other values are defaults.' if entry.key in ('dew','crayon') else 'Player-attributed settings published in Deadlock Labs.' if entry.group=='players' else entry.detail);self.detail.setToolTip(entry.detail)
-        self.source.setText(f'<a style="color:#dfbd88" href="{html.escape(entry.source,quote=True)}">View source ↗</a><br>{entry.published}' if entry.source else '')
+        self.source.setText(f'<a style="color:#e7c08a" href="{html.escape(entry.source,quote=True)}">View source ↗</a><br>{entry.published}' if entry.source else '')
         self.motion.setText(shape(entry.design)+' / '+('Static' if entry.design.static else 'Dynamic'))
     def finish(self,apply_requested):
         if self.chosen:self.apply_requested=apply_requested;self.accept()
@@ -184,40 +181,46 @@ class CrosshairPage(QWidget):
         super().__init__(parent);self.setLayoutDirection(Qt.LeftToRight);self.setStyleSheet(CROSSHAIR_STYLE)
         self.context=context;self.loading=False;self.loaded=False;self.model=PRESETS['صليب صغير'];self.current_model=None;self.controls={};self.loaded_context=None
         self.library=Path(library) if library else Path(QStandardPaths.writableLocation(QStandardPaths.AppDataLocation))/'crosshairs/profiles.json'
-        self.profiles={};self.load_profiles();root=QVBoxLayout(self);root.setContentsMargins(0,0,0,0);root.setSpacing(14)
-        header=QHBoxLayout();copy=QVBoxLayout();copy.setSpacing(3);copy.addWidget(note('MAKE IT YOURS / 06','workspaceEyebrow'));copy.addWidget(note('Crosshair Designer','workspaceTitle'));header.addLayout(copy,1)
-        self.design_name=note('Custom','previewMode');header.addWidget(self.design_name,0,Qt.AlignBottom);root.addLayout(header)
-        row=QHBoxLayout();row.setSpacing(9);self.presets=QComboBox();self.presets.setPlaceholderText('Choose a preset');self.presets.setMinimumWidth(150);row.addWidget(self.presets,1);self.rebuild_presets();self.presets.currentIndexChanged.connect(self.choose_preset)
-        self.gallery_button=QPushButton('PRO Crosshairs');self.gallery_button.setObjectName('primary');self.gallery_button.clicked.connect(self.open_gallery);row.addWidget(self.gallery_button)
-        save=QPushButton('Save');save.clicked.connect(self.save_profile);row.addWidget(save);share=QPushButton('Share');menu=QMenu(share)
+        self.profiles={};self.load_profiles();root=QVBoxLayout(self);root.setContentsMargins(0,0,0,0);root.setSpacing(12)
+
+        # One toolbar: what is loaded, where to get another, and how to keep it.
+        row=QHBoxLayout();row.setSpacing(8);self.design_kicker=Kicker('DESIGN');row.addWidget(self.design_kicker);self.presets=Combo();self.presets.setPlaceholderText('Choose a preset');self.presets.setMinimumWidth(150);row.addWidget(self.presets,1);self.rebuild_presets();self.presets.currentIndexChanged.connect(self.choose_preset)
+        self.design_name=note('Custom','previewMode');self.design_name.setWordWrap(False);row.addWidget(self.design_name,0,Qt.AlignVCenter)
+        self.gallery_button=QPushButton('PRO Crosshairs');self.gallery_button.setObjectName('primary');self.gallery_button.setIcon(icon('gallery',T.ON_BRASS));self.gallery_button.setIconSize(QSize(16,16));self.gallery_button.clicked.connect(self.open_gallery);self.gallery_button.setMinimumWidth(self.gallery_button.sizeHint().width()+14);row.addWidget(self.gallery_button)
+        save=QPushButton('Save');save.setIcon(icon('save',T.TEXT));save.setIconSize(QSize(16,16));save.clicked.connect(self.save_profile);row.addWidget(save);share=QPushButton('Share');share.setProperty('menu',True);menu=QMenu(share)
         for title,fn in [('Copy Toolbox code',self.copy_code),('Paste Toolbox code',self.paste_code),('Export JSON',self.export_file),('Import JSON',self.import_file),('Delete saved design',self.delete_profile)]:menu.addAction(title,fn)
         share.setMenu(menu);row.addWidget(share);root.addLayout(row)
-        self.splitter=QSplitter(Qt.Horizontal);self.splitter.setLayoutDirection(Qt.LeftToRight);self.splitter.setChildrenCollapsible(False);self.splitter.setHandleWidth(12);root.addWidget(self.splitter,1)
-        preview_frame,preview_layout=panel('LIVE PREVIEW');self.preview=CrosshairPreview();preview_layout.addWidget(self.preview,1)
-        row=QHBoxLayout();self.background=QComboBox();self.background.addItems(['Dark studio','Light studio','Custom image...']);self.background.currentIndexChanged.connect(self.change_background);row.addWidget(self.background,1)
-        self.zoom=QComboBox()
+        self.splitter=QSplitter(Qt.Horizontal);self.splitter.setLayoutDirection(Qt.LeftToRight);self.splitter.setChildrenCollapsible(False);self.splitter.setHandleWidth(14);root.addWidget(self.splitter,1)
+
+        # Live preview and everything that only affects the preview.
+        preview_frame,preview_layout=panel('Live preview');self.preview=CrosshairPreview();preview_layout.addWidget(self.preview,1)
+        row=QHBoxLayout();row.setSpacing(8);self.background=Combo();self.background.addItems(['Dark studio','Light studio','Custom image...']);self.background.currentIndexChanged.connect(self.change_background);row.addWidget(self.background,1)
+        self.zoom=Combo()
         for value in [1,2,4,8]:self.zoom.addItem(f'\u200e{value}×',value)
         self.zoom.setToolTip('1x is the reference size for the selected game height. Higher zoom is for editing only.');self.zoom.currentIndexChanged.connect(self.change_preview_scale);row.addWidget(self.zoom);preview_layout.addLayout(row)
         self.preview_info=note('','previewMode');preview_layout.addWidget(self.preview_info)
-        self.fix_static=QPushButton('Make Static');self.fix_static.setObjectName('quiet');self.fix_static.clicked.connect(self.make_static);self.fix_static.setToolTip('Use static lines, disable movement collapse and themed hero reticles. Review before applying.');preview_layout.addWidget(self.fix_static)
-        self.calibration_button=QPushButton('Preview Settings');self.calibration_button.setObjectName('quiet');preview_layout.addWidget(self.calibration_button)
-        self.calibration=QWidget(self);calibration_layout=QVBoxLayout(self.calibration);calibration_layout.setContentsMargins(0,0,0,0);calibration_layout.setSpacing(8)
-        row=QHBoxLayout();row.addWidget(note('Game height'));self.resolution=QComboBox()
+        row=QHBoxLayout();row.setSpacing(8)
+        self.fix_static=QPushButton('Make Static');self.fix_static.setObjectName('quiet');self.fix_static.clicked.connect(self.make_static);self.fix_static.setToolTip('Use static lines, disable movement collapse and themed hero reticles. Review before applying.');row.addWidget(self.fix_static,1)
+        self.calibration_button=QPushButton('Preview Settings');self.calibration_button.setObjectName('quiet');row.addWidget(self.calibration_button,1);preview_layout.addLayout(row)
+        self.calibration=QWidget(self);calibration_layout=QVBoxLayout(self.calibration);calibration_layout.setContentsMargins(0,0,0,0);calibration_layout.setSpacing(10)
+        row=QHBoxLayout();row.addWidget(note('Game height'));self.resolution=Combo()
         for height in [720,900,1080,1440,2160]:self.resolution.addItem(str(height),height)
         self.resolution.setCurrentIndex(2);self.resolution.setToolTip('Preview scaling only. Your game resolution is never changed.');self.resolution.currentIndexChanged.connect(self.change_preview_scale);row.addWidget(self.resolution);calibration_layout.addLayout(row)
         self.spread_row=QWidget();spread_layout=QHBoxLayout(self.spread_row);spread_layout.setContentsMargins(0,0,0,0);spread_layout.addWidget(note('Spread'));self.spread_slider=QSlider(Qt.Horizontal);self.spread_slider.setRange(0,640);self.spread_slider.setValue(80);spread_layout.addWidget(self.spread_slider,1)
-        self.spread_value=QDoubleSpinBox();self.spread_value.setButtonSymbols(QAbstractSpinBox.NoButtons);self.spread_value.setRange(0,64);self.spread_value.setDecimals(1);self.spread_value.setValue(8);self.spread_value.setFixedWidth(56);spread_layout.addWidget(self.spread_value)
+        self.spread_value=QDoubleSpinBox();self.spread_value.setButtonSymbols(QAbstractSpinBox.NoButtons);self.spread_value.setRange(0,64);self.spread_value.setDecimals(1);self.spread_value.setValue(8);self.spread_value.setFixedWidth(60);spread_layout.addWidget(self.spread_value)
         self.spread_slider.valueChanged.connect(lambda v:self.spread_value.setValue(v/10));self.spread_value.valueChanged.connect(lambda v:self.spread_slider.setValue(round(v*10)));self.spread_value.valueChanged.connect(self.change_preview_spread);calibration_layout.addWidget(self.spread_row)
-        self.preview_note=note('Preview only. Weapon spread and movement can change the result in game.');calibration_layout.addWidget(self.preview_note);self.calibration.hide();self.calibration_button.clicked.connect(self.toggle_calibration)
+        self.preview_note=note('Preview only. Weapon spread and movement can change the result in game.','sectionLabel');calibration_layout.addWidget(self.preview_note);self.calibration.hide();self.calibration_button.clicked.connect(self.toggle_calibration)
         self.preview.setToolTip('Native base gap + your gap offset + simulated weapon spread. Preview does not read live weapon state.');preview_frame.setMinimumWidth(210);self.splitter.addWidget(preview_frame)
-        self.tabs=QTabWidget();self.tabs.setDocumentMode(True);self.tabs.tabBar().setExpanding(True);self.tabs.setMinimumWidth(290);self.splitter.addWidget(self.tabs)
+
+        # The design itself, in three tabs.
+        self.tabs=QTabWidget();self.tabs.setDocumentMode(True);self.tabs.tabBar().setExpanding(True);self.tabs.tabBar().setDrawBase(False);self.tabs.setMinimumWidth(290);self.splitter.addWidget(self.tabs)
         columns=[]
         for name in ['Shape','Outline','Behavior']:
-            scroll=QScrollArea();scroll.setWidgetResizable(True);container=QWidget();column=QVBoxLayout(container);column.setContentsMargins(0,0,5,0);column.setSpacing(12);scroll.setWidget(container);self.tabs.addTab(scroll,name);columns.append(column)
+            scroll=QScrollArea();scroll.setWidgetResizable(True);container=QWidget();column=QVBoxLayout(container);column.setContentsMargins(0,0,10,0);column.setSpacing(12);scroll.setWidget(container);self.tabs.addTab(scroll,name);columns.append(column)
         f,c=panel('Color');columns[0].addWidget(f);row=QHBoxLayout();row.addWidget(note('Fill color'));row.addStretch();self.color_button=QPushButton();self.color_button.clicked.connect(lambda:self.choose_color('color'));row.addWidget(self.color_button);c.addLayout(row)
         palette=QHBoxLayout();palette.setSpacing(8)
         for color in PALETTE:
-            button=QPushButton();button.setFixedSize(25,25);button.setToolTip(color.upper());button.setStyleSheet(f'background:{color};border:2px solid #3b484a;border-radius:12px;padding:0;');button.clicked.connect(lambda _,v=color:self.pick_palette(v));palette.addWidget(button)
+            button=QPushButton();button.setObjectName('swatch');button.setFixedSize(26,26);button.setCursor(Qt.PointingHandCursor);button.setToolTip(color.upper());button.setStyleSheet(f'QPushButton#swatch {{background:{color};}}');button.clicked.connect(lambda _,v=color:self.pick_palette(v));palette.addWidget(button)
         palette.addStretch();c.addLayout(palette)
         for title,keys in [('Lines',('width','length','gap','opacity')),('Center dot',('dot','dot_opacity'))]:
             f,c=panel(title);columns[0].addWidget(f)
@@ -229,27 +232,29 @@ class CrosshairPage(QWidget):
         f,c=panel('Motion & hero reticles');columns[2].addWidget(f)
         self.static=QCheckBox('Static lines');self.collapse=QCheckBox('Collapse gap while resting');self.themed=QCheckBox('Use themed hero reticles');self.all_heroes=QCheckBox('Apply to all heroes')
         for box in [self.static,self.collapse,self.themed]:box.toggled.connect(self.edited);c.addWidget(box)
-        c.addWidget(note('Static lines keep the gap fixed. Dynamic lines respond to your weapon. Themed reticles may replace your custom design.'))
-        f,c=panel('Application scope');columns[2].addWidget(f);c.addWidget(self.all_heroes);c.addWidget(note('Update existing hero-specific crosshairs too. Sensitivity, bindings and other settings stay untouched.'))
+        c.addWidget(note('Static lines keep the gap fixed. Dynamic lines respond to your weapon. Themed reticles may replace your custom design.','sectionLabel'))
+        f,c=panel('Application scope');columns[2].addWidget(f);c.addWidget(self.all_heroes);c.addWidget(note('Update existing hero-specific crosshairs too. Sensitivity, bindings and other settings stay untouched.','sectionLabel'))
         for column in columns:column.addStretch()
-        self.splitter.setSizes([420,520]);self.actions_panel=QFrame();self.actions_panel.setObjectName('crosshairActions');self.actions_panel.setLayoutDirection(Qt.LeftToRight);self.actions_panel.setStyleSheet(CROSSHAIR_STYLE)
-        actions=QVBoxLayout(self.actions_panel);actions.setContentsMargins(16,11,16,11);actions.setSpacing(8);self.status=note('Preview ready. Review and apply when you are finished.');actions.addWidget(self.status)
-        row=QHBoxLayout();self.reload_button=QPushButton('Read from Game');self.reload_button.clicked.connect(self.reload_current);row.addWidget(self.reload_button);self.restore_button=QPushButton('Restore Last');self.restore_button.clicked.connect(lambda:self.review(True));row.addWidget(self.restore_button);row.addStretch()
+
+        # Read, restore, apply.
+        self.splitter.setSizes([420,520]);self.actions_panel=ActionBar('crosshairActions');self.actions_panel.setLayoutDirection(Qt.LeftToRight);self.actions_panel.setStyleSheet(CROSSHAIR_STYLE)
+        actions=self.actions_panel.body;actions.setSpacing(8);self.status=note('Preview ready. Review and apply when you are finished.');actions.addWidget(self.status)
+        row=QHBoxLayout();row.setSpacing(8);self.reload_button=QPushButton('Read from Game');self.reload_button.setIcon(icon('refresh',T.TEXT));self.reload_button.setIconSize(QSize(16,16));self.reload_button.clicked.connect(self.reload_current);row.addWidget(self.reload_button);self.restore_button=QPushButton('Restore Last');self.restore_button.setIcon(icon('undo',T.TEXT));self.restore_button.setIconSize(QSize(16,16));self.restore_button.clicked.connect(lambda:self.review(True));row.addWidget(self.restore_button);row.addStretch()
         self.apply_button=QPushButton('Review && Apply');self.apply_button.setObjectName('primary');self.apply_button.clicked.connect(lambda:self.review(False));row.addWidget(self.apply_button);actions.addLayout(row);root.addWidget(self.actions_panel);self.set_model(self.model)
     def showEvent(self,event):
         super().showEvent(event)
         if not self.loaded or self.loaded_context!=self.context():self.reload_current()
     def resizeEvent(self,event):
-        desired=Qt.Vertical if self.width()<600 else Qt.Horizontal
+        desired=Qt.Vertical if self.width()<600 else Qt.Horizontal;self.design_kicker.setVisible(self.width()>=760)
         if self.splitter.orientation()!=desired:self.splitter.setOrientation(desired);self.splitter.setSizes([230,max(160,self.height()-230)] if desired==Qt.Vertical else [420,520])
         super().resizeEvent(event)
     def toggle_calibration(self,*_):
         dialog=QDialog(self);dialog.setWindowTitle('Preview Settings');dialog.setLayoutDirection(Qt.LeftToRight);dialog.setStyleSheet(CROSSHAIR_STYLE);dialog.resize(380,260)
-        layout=QVBoxLayout(dialog);layout.setContentsMargins(20,20,20,20);layout.addWidget(note('Preview Settings','cardtitle'));layout.addWidget(self.calibration);self.calibration.show()
-        close=QPushButton('Done');close.clicked.connect(dialog.accept);layout.addWidget(close,0,Qt.AlignRight);dialog.exec();self.calibration.hide();self.calibration.setParent(self);dialog.deleteLater()
+        layout=QVBoxLayout(dialog);layout.setContentsMargins(24,20,24,20);layout.setSpacing(12);layout.addWidget(note('Preview Settings','pageTitle'));layout.addWidget(Rule());layout.addWidget(self.calibration);self.calibration.show();layout.addStretch()
+        close=QPushButton('Done');close.setObjectName('primary');close.clicked.connect(dialog.accept);layout.addWidget(close,0,Qt.AlignRight);dialog.exec();self.calibration.hide();self.calibration.setParent(self);dialog.deleteLater()
     def add_control(self,layout,key):
         _,lo,hi=NUMBERS[key];percent=key.endswith('opacity');pixel=key in PIXELS;factor=100 if percent else 1 if pixel else 10
-        block=QVBoxLayout();block.setSpacing(0);row=QHBoxLayout();title=note(LABELS[key]+(' %' if percent else ''));row.addWidget(title,1)
+        block=QVBoxLayout();block.setSpacing(2);row=QHBoxLayout();title=note(LABELS[key]+(' %' if percent else ''));row.addWidget(title,1)
         spin=QDoubleSpinBox();spin.setButtonSymbols(QAbstractSpinBox.NoButtons);spin.setRange(lo*100 if percent else lo,hi*100 if percent else hi);spin.setDecimals(0 if percent or pixel else 1);spin.setSingleStep(1 if percent or pixel else .1);spin.setFixedWidth(62);row.addWidget(spin);block.addLayout(row)
         slider=QSlider(Qt.Horizontal);slider.setRange(round(lo*factor),round(hi*factor));block.addWidget(slider)
         if key=='gap':
@@ -285,7 +290,7 @@ class CrosshairPage(QWidget):
         if apply_requested:self.review()
     def update_colors(self):
         for key,button in [('color',self.color_button),('outline',self.outline_button)]:
-            color=getattr(self.model,key);pix=QPixmap(18,18);pix.fill(Qt.transparent);p=QPainter(pix);p.setRenderHint(QPainter.Antialiasing);p.setPen(QPen(QColor('#6f7a75'),1));p.setBrush(QColor(color));p.drawRoundedRect(QRectF(.5,.5,17,17),5,5);p.end();button.setIcon(QIcon(pix));button.setText('\u200e'+color.upper())
+            color=getattr(self.model,key);pix=QPixmap(18,18);pix.fill(Qt.transparent);p=QPainter(pix);p.setRenderHint(QPainter.Antialiasing);p.setPen(QPen(QColor(T.LINE_STRONG),1));p.setBrush(QColor(color));p.drawRect(QRectF(.5,.5,17,17));p.end();button.setIcon(QIcon(pix));button.setText('\u200e'+color.upper())
     def pick_palette(self,color):self.set_model(replace(self.model,color=color),True);self.status.setText('Color updated in preview. Review & Apply to save.')
     def choose_color(self,key):
         color=QColorDialog.getColor(QColor(getattr(self.model,key)),self,'Choose '+('fill' if key=='color' else 'outline')+' color')
@@ -371,10 +376,10 @@ class CrosshairPage(QWidget):
         try:
             ensure_closed();store=self.store();plan=store.restore_plan() if restoring else store.plan(self.model,self.all_heroes.isChecked())
             if not plan.changes:self.status.setText(store.apply(plan));self.restore_button.setEnabled(store.can_restore());return
-            dialog=QDialog(self);dialog.setWindowTitle('Restore Crosshair' if restoring else 'Apply Crosshair');dialog.setLayoutDirection(Qt.LeftToRight);dialog.setStyleSheet(CROSSHAIR_STYLE);dialog.resize(840,620);layout=QVBoxLayout(dialog)
+            dialog=QDialog(self);dialog.setWindowTitle('Restore Crosshair' if restoring else 'Apply Crosshair');dialog.setLayoutDirection(Qt.LeftToRight);dialog.setStyleSheet(CROSSHAIR_STYLE);dialog.resize(840,620);layout=QVBoxLayout(dialog);layout.setContentsMargins(24,22,24,20);layout.setSpacing(14)
             layout.addWidget(note(f'{len(plan.changes)} files will change, with a backup. Close Deadlock before applying.','cardtitle'))
             output=QPlainTextEdit();output.setReadOnly(True);output.setPlainText('\n\n'.join(str(c.path)+'\n'+''.join(difflib.unified_diff(c.before.decode('utf-8').splitlines(True),c.after.decode('utf-8').splitlines(True),fromfile='current',tofile='restored' if restoring else 'crosshair')) for c in plan.changes));layout.addWidget(output,1)
-            buttons=QDialogButtonBox();buttons.addButton('Restore && Back Up' if restoring else 'Apply && Back Up',QDialogButtonBox.AcceptRole);buttons.addButton('Cancel',QDialogButtonBox.RejectRole);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);layout.addWidget(buttons)
+            buttons=QDialogButtonBox();buttons.addButton('Restore && Back Up' if restoring else 'Apply && Back Up',QDialogButtonBox.AcceptRole).setObjectName('primary');buttons.addButton('Cancel',QDialogButtonBox.RejectRole);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);layout.addWidget(buttons)
             if dialog.exec()!=QDialog.Accepted:return
             if self.context()!=self.loaded_context:raise ValueError('The game folder or account changed. Read the game settings and try again.')
             message=store.apply(plan);self.reload_current();self.status.setText(message)

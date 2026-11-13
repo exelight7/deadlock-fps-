@@ -2,21 +2,32 @@
 from datetime import datetime
 import sys
 from pathlib import Path
-from PySide6.QtCore import Qt, QStandardPaths, QUrl, Signal, QThreadPool, QProcess
+from PySide6.QtCore import Qt, QStandardPaths, QUrl, Signal, QThreadPool, QProcess, QSize
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import QWidget,QFrame,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QScrollArea,QPlainTextEdit,QCheckBox,QProgressBar
 from . import __version__
-from .design import nav_icon,UtilityHeader
+from .design import nav_icon,UtilityHeader,Panel,ActionBar,Plate,Text,icon,repolish
+from . import theme as T
 from .updates import UpdateStore,Version,RELEASES_URL,platform_key
 from .update_client import UpdateClient
 
 
 def text(value,style='subtitle'):
-    label=QLabel(value);label.setTextFormat(Qt.PlainText);label.setWordWrap(True);label.setObjectName(style);return label
+    label=Text(value,style);label.setTextFormat(Qt.PlainText);return label
 
 
-def panel():
-    frame=QFrame();frame.setObjectName('card');layout=QVBoxLayout(frame);layout.setContentsMargins(20,16,20,16);layout.setSpacing(10);return frame,layout
+def panel(title=None,description=None,icon_name=None):
+    frame=Panel(title,description,icon_name=icon_name);return frame,frame.body
+
+
+class StateTitle(Text):
+    """Headline of a status panel. Its colour follows the outcome the text reports."""
+    TONES=(('danger',('تعذر',)),('success',('✓','أنت على آخر إصدار')),('ready',('تحديث جديد',)))
+    def __init__(self,value):
+        super().__init__('','stateTitle');self.setTextFormat(Qt.PlainText);self.setText(value)
+    def setText(self,value):
+        super().setText(value);tone=next((name for name,words in self.TONES if any(word in value for word in words)),'')
+        if self.property('tone')!=tone:self.setProperty('tone',tone);repolish(self)
 
 
 def checked_time(value):
@@ -32,32 +43,40 @@ class UpdatePage(QWidget):
         self.download_folder=Path(download_folder or (Path(QStandardPaths.writableLocation(QStandardPaths.DownloadLocation) or str(Path.home()/'Downloads'))/'Deadlock Toolbox'))
         self.client=UpdateClient(self.store,self,manager)
         root=QVBoxLayout(self);root.setContentsMargins(0,0,0,0);root.setSpacing(12)
-        scroll=QScrollArea();scroll.setWidgetResizable(True);body=QWidget();v=QVBoxLayout(body);v.setContentsMargins(0,0,10,0);v.setSpacing(12);scroll.setWidget(body);root.addWidget(scroll,1)
+        scroll=QScrollArea();scroll.setWidgetResizable(True);body=QWidget();outer=QHBoxLayout(body);outer.setContentsMargins(0,0,12,0);column=QWidget();column.setMaximumWidth(1080);v=QVBoxLayout(column);v.setContentsMargins(0,0,0,0);v.setSpacing(16);outer.addStretch(1);outer.addWidget(column,1000);outer.addStretch(1);scroll.setWidget(body);root.addWidget(scroll,1)
         v.addWidget(UtilityHeader(6,'التحديث والتثبيت','افحص، نزّل، ثم ثبّت بضغطة. بدون نقل ملفات يدويًا.','UPDATE / INSTALL'))
+
+        # Where things stand, and the one button that refreshes it.
         frame,c=panel();v.addWidget(frame)
-        self.channel=text('نسخة تجريبية محلية' if self.current.pre else 'إصدارات مستقرة','badge');c.addWidget(self.channel,0,Qt.AlignRight)
-        row=QHBoxLayout();self.check_button=QPushButton('التحقق من التحديثات');self.check_button.setObjectName('positive');self.check_button.clicked.connect(self.check);row.addWidget(self.check_button)
-        self.release_button=QPushButton('صفحة الإصدارات ↗');self.release_button.clicked.connect(self.open_release);row.addWidget(self.release_button);row.addStretch();c.addLayout(row)
-        row=QHBoxLayout();v.addLayout(row)
-        frame,c=panel();c.addWidget(text('إصدارك الحالي','sectionLabel'));self.current_label=text(current,'cardtitle');self.current_label.setLayoutDirection(Qt.LeftToRight);c.addWidget(self.current_label);c.addWidget(text('Windows / Linux • x64' if platform_key() else 'هذا النظام لا يملك حزمة تنزيل متوافقة.','sectionLabel'));row.addWidget(frame,1)
-        frame,c=panel();c.addWidget(text('آخر إصدار عام','sectionLabel'));self.latest=text('—','cardtitle');self.latest.setLayoutDirection(Qt.LeftToRight);c.addWidget(self.latest);self.published=text('المصدر: GitHub · exelight7/deadlock-fps-','sectionLabel');c.addWidget(self.published);row.addWidget(frame,1)
-        frame,c=panel();v.addWidget(frame);self.state=text('ابدأ بفحص الإصدارات.','cardtitle');c.addWidget(self.state);self.detail=text('الفحص والتنزيل يعملان في الخلفية.');c.addWidget(self.detail)
-        self.checked=text('لم يتم الفحص بعد.','sectionLabel');c.addWidget(self.checked)
-        self.progress=QProgressBar();self.progress.setRange(0,100);self.progress.setLayoutDirection(Qt.LeftToRight);self.progress.setTextVisible(False)
-        self.progress.setStyleSheet('QProgressBar {border:0;border-radius:4px;background:#1a2a35;min-height:8px;max-height:8px;} QProgressBar::chunk {background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #c79d5f,stop:1 #f7deb2);border-radius:4px;}');c.addWidget(self.progress);self.progress.hide()
+        row=QHBoxLayout();row.setSpacing(12);copy=QVBoxLayout();copy.setSpacing(4)
+        self.state=StateTitle('ابدأ بفحص الإصدارات.');copy.addWidget(self.state);self.detail=text('الفحص والتنزيل يعملان في الخلفية.');copy.addWidget(self.detail)
+        self.checked=text('لم يتم الفحص بعد.','sectionLabel');copy.addWidget(self.checked);row.addLayout(copy,1)
+        self.channel=text('نسخة تجريبية محلية' if self.current.pre else 'إصدارات مستقرة','badge');self.channel.setWordWrap(False);row.addWidget(self.channel,0,Qt.AlignTop);c.addLayout(row)
+        self.progress=QProgressBar();self.progress.setRange(0,100);self.progress.setLayoutDirection(Qt.LeftToRight);self.progress.setTextVisible(False);c.addWidget(self.progress);self.progress.hide()
         self.progress_text=text('','sectionLabel');self.progress_text.setLayoutDirection(Qt.LeftToRight);c.addWidget(self.progress_text);self.progress_text.hide()
-        frame,c=panel();v.addWidget(frame);c.addWidget(text('ما الجديد؟','cardtitle'));self.notes=QPlainTextEdit();self.notes.setReadOnly(True);self.notes.setMinimumHeight(145);self.notes.setMaximumHeight(220);self.notes.setLayoutDirection(Qt.LeftToRight);self.notes.setPlainText('ستظهر ملاحظات الإصدار هنا بعد الفحص.');c.addWidget(self.notes)
-        frame,c=panel();v.addWidget(frame);c.addWidget(text('تركيب النسخة الجديدة','cardtitle'))
+        row=QHBoxLayout();row.setSpacing(8);self.check_button=QPushButton('التحقق من التحديثات');self.check_button.setObjectName('positive');self.check_button.setIcon(icon('refresh',T.VERDIGRIS));self.check_button.setIconSize(QSize(16,16));self.check_button.clicked.connect(self.check);row.addWidget(self.check_button)
+        self.release_button=QPushButton('صفحة الإصدارات');self.release_button.setObjectName('quiet');self.release_button.setIcon(icon('external',T.TEXT_SOFT));self.release_button.setIconSize(QSize(16,16));self.release_button.clicked.connect(self.open_release);row.addWidget(self.release_button);row.addStretch();c.addLayout(row)
+
+        # The two versions side by side.
+        row=QHBoxLayout();row.setSpacing(16);v.addLayout(row)
+        frame,c=panel();c.setSpacing(4);c.addWidget(text('إصدارك الحالي','sectionLabel'));self.current_label=text(current,'value');c.addWidget(self.current_label);c.addWidget(text('Windows / Linux • x64' if platform_key() else 'هذا النظام لا يملك حزمة تنزيل متوافقة.','sectionLabel'));row.addWidget(frame,1)
+        frame,c=panel();c.setSpacing(4);c.addWidget(text('آخر إصدار عام','sectionLabel'));self.latest=text('—','value');c.addWidget(self.latest);self.published=text('المصدر: GitHub · exelight7/deadlock-fps-','sectionLabel');c.addWidget(self.published);row.addWidget(frame,1)
+
+        frame,c=panel('ما الجديد؟',icon_name='file');v.addWidget(frame);self.notes=QPlainTextEdit();self.notes.setObjectName('notes');self.notes.setReadOnly(True);self.notes.setMinimumHeight(145);self.notes.setMaximumHeight(220);self.notes.setLayoutDirection(Qt.LeftToRight);self.notes.setPlainText('ستظهر ملاحظات الإصدار هنا بعد الفحص.');c.addWidget(self.notes)
+        frame,c=panel('تركيب النسخة الجديدة',icon_name='updates');v.addWidget(frame)
         c.addWidget(text('1. اضغط التحقق من التحديثات ثم تنزيل التحديث.\n2. بعد التحقق، اضغط تثبيت النسخة المنزّلة.\n3. افتح النسخة الجديدة من الزر أو قائمة التطبيقات.'))
         c.addWidget(text('التثبيت لحسابك فقط، دون صلاحية مدير. تُحفظ النسخة السابقة، وإعدادات اللعبة والنسخ الاحتياطية تبقى في مكانها.','sectionLabel'))
-        self.install_current_button=QPushButton('تثبيت هذه النسخة في قائمة التطبيقات');self.install_current_button.clicked.connect(self.install_current);self.install_current_button.setVisible(bool(getattr(sys,'frozen',False)));c.addWidget(self.install_current_button)
         self.auto_check=QCheckBox('فحص عند تشغيل البرنامج • بحد أقصى مرة يوميًا');self.auto_check.setChecked(self.store.auto_check);self.auto_check.toggled.connect(self.save_preference);c.addWidget(self.auto_check)
+        row=QHBoxLayout();self.install_current_button=QPushButton('تثبيت هذه النسخة في قائمة التطبيقات');self.install_current_button.setObjectName('quiet');self.install_current_button.clicked.connect(self.install_current);self.install_current_button.setVisible(bool(getattr(sys,'frozen',False)));row.addWidget(self.install_current_button);row.addStretch();c.addLayout(row)
         v.addStretch()
-        footer,c=panel();root.addWidget(footer);row=QHBoxLayout();self.download_button=QPushButton('تنزيل حزمة نظامك');self.download_button.setObjectName('primary');self.download_button.clicked.connect(self.download);row.addWidget(self.download_button,1)
-        self.cancel_button=QPushButton('إلغاء');self.cancel_button.clicked.connect(self.client.cancel);row.addWidget(self.cancel_button)
-        self.folder_button=QPushButton('فتح مجلد التنزيل ↗');self.folder_button.clicked.connect(self.open_folder);row.addWidget(self.folder_button);c.addLayout(row)
-        row=QHBoxLayout();self.install_button=QPushButton('تثبيت النسخة المنزّلة');self.install_button.setObjectName('positive');self.install_button.clicked.connect(self.install_download);row.addWidget(self.install_button,1)
-        self.launch_button=QPushButton('فتح النسخة الجديدة');self.launch_button.clicked.connect(self.launch_installed);row.addWidget(self.launch_button);c.addLayout(row)
+
+        # Download, then install: the order of the buttons is the order of the work.
+        footer=ActionBar();root.addWidget(footer);row=QHBoxLayout();row.setSpacing(8);footer.body.addLayout(row)
+        self.download_button=QPushButton('تنزيل حزمة نظامك');self.download_button.setObjectName('primary');self.download_button.clicked.connect(self.download);row.addWidget(self.download_button)
+        self.install_button=QPushButton('تثبيت النسخة المنزّلة');self.install_button.setObjectName('positive');self.install_button.setIcon(icon('check',T.VERDIGRIS));self.install_button.setIconSize(QSize(16,16));self.install_button.clicked.connect(self.install_download);row.addWidget(self.install_button)
+        self.launch_button=QPushButton('فتح النسخة الجديدة');self.launch_button.clicked.connect(self.launch_installed);row.addWidget(self.launch_button)
+        self.cancel_button=QPushButton('إلغاء');self.cancel_button.clicked.connect(self.client.cancel);row.addWidget(self.cancel_button);row.addStretch()
+        self.folder_button=QPushButton('فتح مجلد التنزيل');self.folder_button.setObjectName('quiet');self.folder_button.setIcon(icon('folder',T.TEXT_SOFT));self.folder_button.setIconSize(QSize(16,16));self.folder_button.clicked.connect(self.open_folder);row.addWidget(self.folder_button)
         self.client.busyChanged.connect(self.refresh_buttons);self.client.phaseChanged.connect(self.phase_changed)
         self.client.found.connect(self.show_release);self.client.failed.connect(self.failed);self.client.cancelled.connect(self.cancelled);self.client.progress.connect(self.show_progress);self.client.downloaded.connect(self.downloaded)
         if self.store.release:self.show_release(self.store.release,True)

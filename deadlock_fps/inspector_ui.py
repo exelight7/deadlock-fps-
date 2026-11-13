@@ -2,24 +2,28 @@
 from datetime import datetime
 from pathlib import Path
 import json,threading
-from PySide6.QtCore import QThreadPool
+from PySide6.QtCore import Qt,QThreadPool,QSize
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QWidget,QVBoxLayout,QHBoxLayout,QPushButton,QPlainTextEdit,QFileDialog,QTableWidget,QTableWidgetItem,QHeaderView,QAbstractItemView
 from .update_ui import text
 from .server_ui import Job
 from .mod_inspector import inspect_mods
 from .core import atomic
-from .design import UtilityHeader
+from .design import UtilityHeader,icon,empty_state
+from . import theme as T
 
 
 class InspectorPage(QWidget):
     def __init__(self,window):
         super().__init__(window);self.window=window;self.busy=False;self.result=None;self.cancel_event=None;self._job=None;root=QVBoxLayout(self);root.setContentsMargins(0,0,0,0);root.setSpacing(12)
         root.addWidget(UtilityHeader(7,'Mod Inspector','اعرف ما ينقص مكتبتك، وما يمنع التركيب، قبل أن تغيّر أي ملف.','CHECK / VERIFY / INSTALL'))
-        row=QHBoxLayout();self.scan_button=QPushButton('فحص المودات');self.scan_button.setObjectName('primary');self.scan_button.clicked.connect(self.scan);row.addWidget(self.scan_button);self.cancel_button=QPushButton('إلغاء الفحص');self.cancel_button.clicked.connect(self.cancel);row.addWidget(self.cancel_button);self.cancel_button.hide()
-        library=QPushButton('فتح مكتبة المودات');library.clicked.connect(lambda:window.navigate(2));row.addWidget(library);export=QPushButton('تصدير التقرير');export.clicked.connect(self.export);row.addWidget(export);root.addLayout(row)
-        self.table=QTableWidget(0,4);self.table.setHorizontalHeaderLabels(['المود','مختار','المكتبة','المركب في اللعبة']);self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch);self.table.verticalHeader().hide();self.table.setEditTriggers(QAbstractItemView.NoEditTriggers);self.table.setMinimumHeight(150);self.table.setSelectionBehavior(QAbstractItemView.SelectRows);self.table.setAlternatingRowColors(True);self.table.setShowGrid(False);self.table.verticalHeader().setDefaultSectionSize(44);root.addWidget(self.table,1)
-        self.details=QPlainTextEdit();self.details.setReadOnly(True);self.details.setMinimumHeight(100);self.details.setMaximumHeight(200);root.addWidget(self.details);self.status=text('جاهز للفحص.');root.addWidget(self.status);root.addWidget(text('يفحص الملفات المدعومة وبنيتها والتداخل بينها. توافق المود مع آخر تحديث للعبة يحتاج تجربة داخل التدريب.','sectionLabel'))
+        row=QHBoxLayout();row.setSpacing(8);self.scan_button=QPushButton('فحص المودات');self.scan_button.setObjectName('primary');self.scan_button.clicked.connect(self.scan);row.addWidget(self.scan_button);self.cancel_button=QPushButton('إلغاء الفحص');self.cancel_button.clicked.connect(self.cancel);row.addWidget(self.cancel_button);self.cancel_button.hide()
+        self.status=text('جاهز للفحص.');row.addWidget(self.status,1)
+        library=QPushButton('فتح مكتبة المودات');library.setObjectName('quiet');library.setIcon(icon('mods',T.TEXT_SOFT));library.setIconSize(QSize(16,16));library.clicked.connect(lambda:window.navigate(2));row.addWidget(library);export=QPushButton('تصدير التقرير');export.setObjectName('quiet');export.setIcon(icon('share',T.TEXT_SOFT));export.setIconSize(QSize(16,16));export.clicked.connect(self.export);row.addWidget(export);root.addLayout(row)
+        self.table=QTableWidget(0,4);self.table.setHorizontalHeaderLabels(['المود','مختار','المكتبة','المركب في اللعبة']);self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch);self.table.horizontalHeader().setHighlightSections(False);self.table.horizontalHeader().setDefaultAlignment(Qt.AlignLeading|Qt.AlignVCenter);self.table.verticalHeader().hide();self.table.setEditTriggers(QAbstractItemView.NoEditTriggers);self.table.setMinimumHeight(150);self.table.setSelectionBehavior(QAbstractItemView.SelectRows);self.table.setAlternatingRowColors(True);self.table.setShowGrid(False);self.table.verticalHeader().setDefaultSectionSize(44);root.addWidget(self.table,1)
+        self.empty=empty_state(self.table,'empty-inspection','لا توجد نتيجة فحص بعد','اضغط «فحص المودات» لقراءة المكتبة والملفات المركبة.');self.empty.show()
+        root.addWidget(text('الملاحظات','sectionLabel'))
+        self.details=QPlainTextEdit();self.details.setObjectName('notes');self.details.setReadOnly(True);self.details.setPlaceholderText('تظهر هنا الأخطاء والتنبيهات بعد الفحص.');self.details.setMinimumHeight(100);self.details.setMaximumHeight(200);root.addWidget(self.details);root.addWidget(text('يفحص الملفات المدعومة وبنيتها والتداخل بينها. توافق المود مع آخر تحديث للعبة يحتاج تجربة داخل التدريب.','sectionLabel'))
     def showEvent(self,event):
         super().showEvent(event)
         if self.result is None and not self.busy:self.scan()
@@ -32,18 +36,18 @@ class InspectorPage(QWidget):
         if self.cancel_event:self.cancel_event.set();self.status.setText('أُلغي الفحص. تبقى نتيجة الفحص السابق إن وجدت.')
     def invalidate(self):
         if self.busy:self.cancel()
-        self.result=None;self.table.setRowCount(0);self.details.clear();self.status.setText('تغيّر الاختيار أو الملفات؛ أعد الفحص لتحديث النتيجة.')
+        self.result=None;self.table.setRowCount(0);self.empty.show();self.details.clear();self.status.setText('تغيّر الاختيار أو الملفات؛ أعد الفحص لتحديث النتيجة.')
     def render(self,result):
         if result is None or self.cancel_event and self.cancel_event.is_set():return
-        self.result=result;self.table.setRowCount(len(result.rows))
+        self.result=result;self.table.setRowCount(len(result.rows));self.empty.setVisible(not result.rows)
         for row,value in enumerate(result.rows):
             for col,key in enumerate(('name','selected','library','installed')):
                 item=QTableWidgetItem(('نعم' if value[key] else 'لا') if key=='selected' else value[key])
-                if key in ('library','installed'):item.setForeground(QColor('#9dd7b2' if value[key].startswith('سليم') else '#efad91' if value[key]=='تالف أو معدل' else '#9aa7ad'))
+                if key in ('library','installed'):item.setForeground(QColor(T.VERDIGRIS if value[key].startswith('سليم') else T.CRIMSON_TEXT if value[key]=='تالف أو معدل' else T.TEXT_MUTED))
                 self.table.setItem(row,col,item)
         findings=['['+('خطأ يمنع التطبيق' if f.severity=='error' else 'تنبيه')+'] '+f.title+'\n'+f.detail for f in result.findings]
         self.details.setPlainText('\n\n'.join(findings) or 'لم يُكتشف تلف أو تعارض في الاختيار الحالي. راجع حالة كل مود في الجدول؛ الملفات غير المختارة قد تكون غير موجودة.');self.status.setText(datetime.now().strftime('%H:%M:%S')+f' • {len(result.errors)} أخطاء تمنع التطبيق • {len(result.findings)-len(result.errors)} تنبيهات')
-    def failed(self,message):self.result=None;self.table.setRowCount(0);self.details.clear();self.status.setText('تعذر الفحص: '+message)
+    def failed(self,message):self.result=None;self.table.setRowCount(0);self.empty.show();self.details.clear();self.status.setText('تعذر الفحص: '+message)
     def finished(self):self.busy=False;self._job=None;self.scan_button.setEnabled(True);self.cancel_button.hide()
     def export(self):
         if not self.result:self.status.setText('نفّذ فحصًا أولًا.');return

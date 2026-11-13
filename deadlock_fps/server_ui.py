@@ -9,6 +9,8 @@ from .region_info import region_info,flag_icon
 from PySide6.QtGui import QColor
 from .firewall import apply_elevated
 from .core import ensure_closed
+from .design import ActionBar,icon,empty_state
+from . import theme as T
 
 class JobSignals(QObject):
     result=Signal(object)
@@ -27,38 +29,47 @@ class ServerPage(QWidget):
         super().__init__(parent);self.busy=False;self.regions=[];self.measurements={};self._job=None;self.buttons=[];self.last_measure=0;self.pending=set();self.measure_total=0;self.selection_locked=False
         folder=Path(QStandardPaths.writableLocation(QStandardPaths.AppDataLocation))/'servers'
         self.store=store or ServerStore(folder)
-        layout=QVBoxLayout(self);layout.setContentsMargins(0,0,10,0);layout.setSpacing(12)
-        text=QLabel('اضغط أي مكان في سطر المنطقة لتحديدها. التحديد لا يغيّر الحظر حتى تختار إجراءً بالأسفل.');text.setWordWrap(True);text.setObjectName('subtitle');layout.addWidget(text)
-        row=QHBoxLayout();self.search=QLineEdit();self.search.setPlaceholderText('ابحث بالعربي أو الإنجليزي: دبي، الإمارات، Frankfurt…');self.search.textChanged.connect(self.filter_rows);row.addWidget(self.search,1)
-        self.add_button(row,'تحديث القائمة',self.refresh)
-        self.ping_button=self.add_button(row,'قياس البنق',self.measure);self.ping_button.setToolTip('يقيس المناطق المحددة، أو كل المناطق الظاهرة إذا لم تحدد شيئًا.');layout.addLayout(row)
-        row=QHBoxLayout()
+        layout=QVBoxLayout(self);layout.setContentsMargins(0,0,12,0);layout.setSpacing(10)
+
+        # Find and measure.
+        row=QHBoxLayout();row.setSpacing(8);self.search=QLineEdit();self.search.setClearButtonEnabled(True);self.search.addAction(icon('search',T.TEXT_MUTED),QLineEdit.LeadingPosition);self.search.setPlaceholderText('ابحث بالعربي أو الإنجليزي: دبي، الإمارات، Frankfurt…');self.search.textChanged.connect(self.filter_rows);row.addWidget(self.search,1)
+        self.view_filter=QComboBox();self.view_filter.addItems(['كل المناطق','الحظر المحفوظ','المحددة فقط']);self.view_filter.setMinimumWidth(128);row.addWidget(self.view_filter)
+        self.ping_button=self.add_button(row,'قياس البنق',self.measure,'ping');self.ping_button.setToolTip('يقيس المناطق المحددة، أو كل المناطق الظاهرة إذا لم تحدد شيئًا.')
+        self.add_button(row,'تحديث القائمة',self.refresh,'refresh')
+        help_button=self.add_button(row,'',self.explain,'help');help_button.setToolTip('شرح');help_button.setAccessibleName('شرح');help_button.setFixedWidth(38);layout.addLayout(row)
+
+        # Choose rows.
+        row=QHBoxLayout();row.setSpacing(8);self.selection_note=QLabel();self.selection_note.setWordWrap(True);self.selection_note.setObjectName('selectionNotice');row.addWidget(self.selection_note,1)
         self.select_visible_button=self.add_button(row,'تحديد الظاهر',self.select_visible)
         clear_selection_button=self.add_button(row,'مسح التحديد',self.clear_selection)
-        self.view_filter=QComboBox();self.view_filter.addItems(['كل المناطق','الحظر المحفوظ','المحددة فقط']);row.addWidget(self.view_filter,1);layout.addLayout(row)
-        row=QHBoxLayout();self.selection_note=QLabel();self.selection_note.setWordWrap(True);self.selection_note.setObjectName('selectionNotice');row.addWidget(self.selection_note,1)
-        sort_button=self.add_button(row,'الأقل بنقًا',self.sort_ping)
-        saved=self.add_button(row,'اختياراتي ▾',lambda:None);self.saved_menu=QMenu(saved);saved.setMenu(self.saved_menu)
-        help_button=self.add_button(row,'شرح',self.explain);layout.addLayout(row)
+        sort_button=self.add_button(row,'الأقل بنقًا',self.sort_ping,'sort')
+        saved=self.add_button(row,'اختياراتي',lambda:None);saved.setProperty('menu',True);self.saved_menu=QMenu(saved);saved.setMenu(self.saved_menu);layout.addLayout(row)
+        for button in (self.select_visible_button,clear_selection_button,sort_button,saved,help_button):button.setObjectName('quiet')
         self.selection_buttons=[self.select_visible_button,clear_selection_button,sort_button,saved,help_button]
+        text=QLabel('اضغط أي مكان في سطر المنطقة لتحديدها. التحديد لا يغيّر الحظر حتى تختار إجراءً بالأسفل.');text.setWordWrap(True);text.setObjectName('sectionLabel');layout.addWidget(text)
         self.presets=QComboBox(self);self.presets.hide()
+
         self.table=QTableWidget(0,7);self.table.setHorizontalHeaderLabels(['تحديد','المنطقة / الدولة','العدد','البنق (ms)','فقد الردود','حالة القياس','الحظر المحفوظ'])
         self.table.setItemDelegate(ServerRowDelegate(self.table));self.table.setItemDelegateForColumn(1,RegionDelegate(self.table));self.table.setIconSize(QSize(32,24));self.table.setItemDelegateForColumn(0,SelectionDelegate(self.table));self.table.itemChanged.connect(self.selection_changed)
         self.table.cellClicked.connect(self.toggle_row);self.table.installEventFilter(self);self.table.viewport().installEventFilter(self)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers);self.table.setSelectionBehavior(QAbstractItemView.SelectRows);self.table.setSelectionMode(QAbstractItemView.NoSelection)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents);self.table.horizontalHeader().setSectionResizeMode(1,QHeaderView.Stretch)
-        self.table.horizontalHeader().setMinimumSectionSize(40)
+        self.table.horizontalHeader().setMinimumSectionSize(40);self.table.horizontalHeader().setHighlightSections(False)
         for col,width in [(0,65),(2,50),(3,85),(4,85),(5,135),(6,115)]:
             self.table.horizontalHeader().setSectionResizeMode(col,QHeaderView.Fixed);self.table.setColumnWidth(col,width)
-        self.table.verticalHeader().setVisible(False);self.table.verticalHeader().setDefaultSectionSize(62);self.table.setMinimumHeight(260);self.table.setAlternatingRowColors(True)
-        self.table.setShowGrid(False);layout.addWidget(self.table,1)
+        self.table.verticalHeader().setVisible(False);self.table.verticalHeader().setDefaultSectionSize(56);self.table.setMinimumHeight(250);self.table.setAlternatingRowColors(True)
+        self.table.setShowGrid(False);self.table.viewport().setCursor(Qt.PointingHandCursor);layout.addWidget(self.table,1)
+        self.empty=empty_state(self.table,'empty-regions','لا توجد مناطق مطابقة','غيّر البحث أو اختر «كل المناطق» من القائمة.')
         self.view_filter.currentIndexChanged.connect(self.filter_rows)
-        self.actions_panel=QFrame();self.actions_panel.setObjectName('actionbar');actions=QVBoxLayout(self.actions_panel);actions.setContentsMargins(14,10,14,10);actions.setSpacing(8)
+
+        # Act on the selection. Destructive on the leading side, releases on the trailing side.
+        self.actions_panel=ActionBar();actions=self.actions_panel.body
         self.status=QLabel('جاهز • اختر المناطق، ثم اختر إجراءً.');self.status.setWordWrap(True);self.status.setObjectName('subtitle');actions.addWidget(self.status)
-        row=QHBoxLayout();self.block_button=self.add_button(row,'حظر المحدد',self.block_selected)
-        self.unblock_button=self.add_button(row,'فك حظر المحدد',lambda:self.apply_action('unblock'));self.unblock_button.setObjectName('positive')
-        self.only_button=self.add_button(row,'اسمح بالمحدد فقط',lambda:self.apply_action('only'));self.only_button.setToolTip('يسمح بالمحدد ويحظر بقية المناطق. راجع التأكيد قبل التطبيق.')
-        self.clear_block_button=self.add_button(row,'فك كل الحظر',lambda:self.apply_action('clear'));self.clear_block_button.setObjectName('positive');self.clear_block_button.setToolTip('يزيل حظر Toolbox كله، حتى إذا لم تحدد مناطق.')
+        row=QHBoxLayout();row.setSpacing(8);self.block_button=self.add_button(row,'حظر المحدد',self.block_selected,'block',T.CRIMSON_TEXT);self.block_button.setObjectName('danger')
+        self.only_button=self.add_button(row,'اسمح بالمحدد فقط',lambda:self.apply_action('only'),'filter');self.only_button.setToolTip('يسمح بالمحدد ويحظر بقية المناطق. راجع التأكيد قبل التطبيق.')
+        row.addStretch()
+        self.unblock_button=self.add_button(row,'فك حظر المحدد',lambda:self.apply_action('unblock'),'unlock',T.VERDIGRIS);self.unblock_button.setObjectName('positive')
+        self.clear_block_button=self.add_button(row,'فك كل الحظر',lambda:self.apply_action('clear'),'unlock',T.VERDIGRIS);self.clear_block_button.setObjectName('positive');self.clear_block_button.setToolTip('يزيل حظر Toolbox كله، حتى إذا لم تحدد مناطق.')
         actions.addLayout(row);layout.addWidget(self.actions_panel)
         self.status.setToolTip('حالة الحظر تمثل الاختيار المحفوظ، وليست فحصًا حيًا لجدار الحماية. Toolbox لا يحذف قواعد البرامج الأخرى.')
         self.reload_presets()
@@ -71,8 +82,10 @@ class ServerPage(QWidget):
             'العلامة ✓ تحدد المنطقة للعملية فقط. لإجراء تغيير، اختر الحظر أو السماح بالأزرار أسفل القائمة وراجع التأكيد.\n\n'
             'آخر اختيار محفوظ لا يمثل فحصًا لجدار الحماية. على Linux أعد تطبيق الحظر بعد إعادة التشغيل. الحظر قد يؤثر على ألعاب Steam الأخرى.\n\n'
             'إذا استعملت ServerPickerX سابقًا، فك قواعده من البرنامج الأصلي؛ Toolbox يعدل قواعده الخاصة فقط.')
-    def add_button(self,row,text,fn):
-        button=QPushButton(text);button.clicked.connect(fn);row.addWidget(button);self.buttons.append(button);return button
+    def add_button(self,row,text,fn,glyph=None,tint=T.TEXT):
+        button=QPushButton(text);button.clicked.connect(fn);row.addWidget(button);self.buttons.append(button)
+        if glyph:button.setIcon(icon(glyph,tint));button.setIconSize(QSize(16,16))
+        return button
     def selected_codes(self):
         return {self.table.item(row,0).data(Qt.UserRole) for row in range(self.table.rowCount()) if self.table.item(row,0).checkState()==Qt.Checked}
     def showEvent(self,event):
@@ -94,6 +107,7 @@ class ServerPage(QWidget):
         self.selection_note.setText((f'✓ تم تحديد {count} مناطق' if count else 'لم تحدد أي منطقة')+f' • الظاهر: {visible}'+(f' • {hidden} محدد خارج البحث' if hidden else ''))
         self.selection_note.setProperty('hasSelection',bool(count));self.selection_note.style().unpolish(self.selection_note);self.selection_note.style().polish(self.selection_note)
         self.table.viewport().update()
+        if hasattr(self,'empty'):self.empty.setVisible(not visible)
         if hasattr(self,'block_button'):
             for button in (self.block_button,self.unblock_button,self.only_button):button.setEnabled(bool(count) and not self.busy)
     def toggle_row(self,row,col):
@@ -129,7 +143,7 @@ class ServerPage(QWidget):
                     info=region_info(region);item.setText(info.text(region));item.setIcon(flag_icon(info.country));item.setTextAlignment(Qt.AlignRight|Qt.AlignVCenter)
                     item.setData(Qt.UserRole,info.search(region));item.setToolTip(region.name+' ['+region.code+']\n'+info.country_name+'\n'+'\n'.join(f'{r.ip}:{r.first}–{r.last}' for r in region.relays))
                 elif col==6:
-                    item.setForeground(QColor('#e8b49b' if region.code in blocked else '#9dd7b2'));item.setTextAlignment(Qt.AlignCenter);item.setToolTip('الاختيار المحفوظ؛ لا يمثل فحصًا حيًا لجدار الحماية.')
+                    item.setForeground(QColor(T.CRIMSON_TEXT if region.code in blocked else T.TEXT_MUTED));item.setTextAlignment(Qt.AlignCenter);item.setToolTip('الاختيار المحفوظ؛ لا يمثل فحصًا حيًا لجدار الحماية.')
                 else:item.setTextAlignment(Qt.AlignCenter)
                 self.table.setItem(row,col,item)
             self.render_measurement(row,region.code)
@@ -138,15 +152,15 @@ class ServerPage(QWidget):
         self.filter_rows()
     def render_measurement(self,row,code):
         result=self.measurements.get(code)
-        if code in self.pending:ping,loss,state,detail,color='جارٍ القياس…','—','يقيس الآن','انتظر وصول الردود.','#d6b17c';numeric=None
-        elif result is None:ping,loss,state,detail,color='لم يُقَس','—','بانتظار القياس','لم يبدأ القياس لهذه المنطقة بعد.','#94a2b2';numeric=None
+        if code in self.pending:ping,loss,state,detail,color='جارٍ القياس…','—','يقيس الآن','انتظر وصول الردود.',T.BRASS;numeric=None
+        elif result is None:ping,loss,state,detail,color='لم يُقَس','—','بانتظار القياس','لم يبدأ القياس لهذه المنطقة بعد.',T.TEXT_MUTED;numeric=None
         elif result.status=='ok':
             ping=f'{result.latency:.1f}';loss=f'{result.loss}%';state='وصل رد';detail=result.detail+'\nفقد الردود: '+str(result.loss)+'%\nالعنوان: '+result.address;numeric=result.latency
-            color='#9dd7b2' if result.latency<=60 else ('#f4cb79' if result.latency<=120 else '#f39b92')
+            color=T.VERDIGRIS if result.latency<=60 else (T.BRASS_BRIGHT if result.latency<=120 else T.CRIMSON_TEXT)
         else:
             ping='لا رد' if result.status=='no_reply' else ('انتهت المهلة' if result.status=='timeout' else 'تعذر القياس')
             loss='لا رد' if result.status=='no_reply' else 'غير متاح';state='ردود محجوبة أو غير متاحة' if result.status=='no_reply' else 'راجع التوضيح'
-            detail=result.detail+('\nالعنوان: '+result.address if result.address else '');color='#b4bdc7';numeric=None
+            detail=result.detail+('\nالعنوان: '+result.address if result.address else '');color=T.TEXT_SOFT;numeric=None
         for col,text in [(3,ping),(4,loss),(5,state)]:
             item=PingItem(text) if col==3 else QTableWidgetItem(text)
             if col==3:item.setData(Qt.UserRole,numeric);item.setForeground(QColor(color))

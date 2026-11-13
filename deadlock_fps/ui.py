@@ -12,25 +12,19 @@ from .update_ui import UpdatePage
 from .inspector_ui import InspectorPage
 from .mod_inspector import require_mods
 from .mod_ui import ModPage
-from .design import STYLE, ArtworkHero, BrandMark, nav_icon, brand_logo
+from .design import (STYLE, ArtworkHero, BrandMark, nav_icon, brand_logo, icon, label, card, Rail, Rule, Kicker, HintLine, ActionBar, Combo,
+                     load_fonts, dark_palette)
+from . import theme as T
 from .motion import PageTransition, NavButton, NavIndicator, StatusChip, LevelMeter, Intro, enliven
 from . import __version__
 
 
-def label(text,style=None):
-    l=QLabel(text);l.setWordWrap(True)
-    if style:l.setObjectName(style)
-    return l
-
-def card(title,description=None):
-    f=QFrame();f.setObjectName('card');v=QVBoxLayout(f);v.setContentsMargins(20,16,20,16);v.setSpacing(10)
-    v.addWidget(label(title,'cardtitle'))
-    if description:v.addWidget(label(description,'subtitle'))
-    return f,v
-
 class Window(QMainWindow):
     def __init__(self):
-        super().__init__();self.setWindowIcon(QIcon(str(ASSETS/'app.png')));self.setWindowTitle('Deadlock Toolbox');self.resize(1200,820);self.setMinimumSize(940,680)
+        super().__init__();load_fonts();self.setWindowTitle('Deadlock Toolbox');self.resize(1200,820);self.setMinimumSize(940,680)
+        window_icon=QIcon(str(ASSETS/'app.png'))
+        for size in (16,24,32,48,64,128,256):window_icon.addFile(str(ASSETS/f'brand/icon-{size}.png'),QSize(size,size))
+        self.setWindowIcon(window_icon)
         self.preferences_file=Path(QStandardPaths.writableLocation(QStandardPaths.AppDataLocation))/'workspace.json'
         self.preferred_account=None;self.saved_game=''
         try:
@@ -42,30 +36,39 @@ class Window(QMainWindow):
         self.controls={};self.mod_checks={};self.mod_labels={}
         legacy=Path(QStandardPaths.writableLocation(QStandardPaths.GenericDataLocation))/'exelight7/DeadlockFPSStudio/mods'
         self.library=ModLibrary(legacy if legacy.exists() else Path(QStandardPaths.writableLocation(QStandardPaths.AppDataLocation))/'mods')
-        root=QWidget();self.setCentralWidget(root);layout=QHBoxLayout(root);layout.setContentsMargins(0,0,0,0)
-        sidebar=QFrame();sidebar.setObjectName('sidebar');sidebar.setFixedWidth(218);side=QVBoxLayout(sidebar);side.setContentsMargins(16,18,16,16);side.setSpacing(6)
-        brandrow=QHBoxLayout();brandrow.setSpacing(10);brandrow.addWidget(BrandMark())
+        root=QWidget();self.setCentralWidget(root);layout=QHBoxLayout(root);layout.setContentsMargins(0,0,0,0);layout.setSpacing(0)
+
+        # Directory rail: emblem, destinations, footer.
+        sidebar=Rail();side=QVBoxLayout(sidebar);side.setContentsMargins(16,20,16,16);side.setSpacing(6)
+        brandrow=QHBoxLayout();brandrow.setSpacing(12);brandrow.addWidget(BrandMark())
         brandcopy=QVBoxLayout();brandcopy.setSpacing(0)
-        brand=label('Toolbox','brand');brand.setLayoutDirection(Qt.LeftToRight);brand.setAlignment(Qt.AlignRight);brandcopy.addWidget(brand)
-        eyebrow=label('DEADLOCK','eyebrow');eyebrow.setLayoutDirection(Qt.LeftToRight);eyebrow.setAlignment(Qt.AlignRight);brandcopy.addWidget(eyebrow)
+        brand=label('Toolbox','brand',False);brandcopy.addWidget(brand)
+        eyebrow=Kicker('COMMUNITY TOOL');eyebrow.setAlignment(Qt.AlignLeading|Qt.AlignVCenter);brandcopy.addWidget(eyebrow)
         brandrow.addLayout(brandcopy,1);side.addLayout(brandrow)
-        side.addSpacing(14);side.addWidget(label('مساحة التحكم','sectionLabel'))
-        nav_body=QWidget();nav_body.setObjectName('navContent');nav_body.setStyleSheet('QWidget#navContent {background:#0d151c;}');nav_layout=QVBoxLayout(nav_body);nav_layout.setContentsMargins(0,0,0,0);nav_layout.setSpacing(6)
+        side.addSpacing(12);side.addWidget(label('مساحة التحكم','sectionLabel'));side.addWidget(Rule())
+        nav_body=QWidget();nav_body.setObjectName('navContent');nav_layout=QVBoxLayout(nav_body);nav_layout.setContentsMargins(0,2,0,0);nav_layout.setSpacing(4)
         self.nav_scroll=QScrollArea();self.nav_scroll.setWidgetResizable(True);self.nav_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff);self.nav_scroll.setWidget(nav_body);side.addWidget(self.nav_scroll,1)
         self.nav_indicator=NavIndicator(nav_body);self.intro_played=False
         self.stack=QStackedWidget();self.nav=[];self.guard_signature=None;self.guard_retries=0;self.guard_attempts={}
         for index,text in enumerate(['ابدأ هنا','الرسوم والأداء','المودات','النسخ والاسترجاع','السيرفرات','الكروس هير','التحديث والتثبيت','فحص المودات']):
             b=NavButton(text,nav_icon(index));b.clicked.connect(lambda _,i=index:self.navigate(i));nav_layout.addWidget(b);self.nav.append(b)
-        nav_layout.addStretch();side.addWidget(label('أدواتك. إعداداتك. اختيارك.','subtitle'));side.addSpacing(6);version=label(__version__,'badge');version.setLayoutDirection(Qt.LeftToRight);side.addWidget(version,0,Qt.AlignRight);side.addWidget(label('مفتوح المصدر • Windows + Linux','sectionLabel'))
-        git=QPushButton('GitHub ↗');git.clicked.connect(lambda:QDesktopServices.openUrl(QUrl('https://github.com/exelight7/deadlock-fps-')));side.addWidget(git)
+        nav_layout.addStretch()
+        side.addWidget(Rule());side.addWidget(label('أدواتك. إعداداتك. اختيارك.','subtitle'))
+        meta=QHBoxLayout();meta.setSpacing(8);version=label(__version__,'badge',False);version.setLayoutDirection(Qt.LeftToRight);meta.addWidget(version);meta.addWidget(label('Windows + Linux','sectionLabel',False));meta.addStretch();side.addLayout(meta)
+        side.addWidget(label('مفتوح المصدر • مشروع مستقل، غير تابع لـ Valve.','sectionLabel'))
+        git=QPushButton('GitHub');git.setObjectName('quiet');git.setIcon(icon('external',T.TEXT_SOFT));git.setIconSize(QSize(16,16));git.setToolTip('github.com/exelight7/deadlock-fps-');git.clicked.connect(lambda:QDesktopServices.openUrl(QUrl('https://github.com/exelight7/deadlock-fps-')));side.addSpacing(4);side.addWidget(git)
         layout.addWidget(sidebar)
-        content=QWidget();v=QVBoxLayout(content);v.setContentsMargins(24,18,24,18);v.setSpacing(12)
-        top=QHBoxLayout();self.heading=label('مساحة العمل / لوحة التحكم','crumb');top.addWidget(self.heading,1)
-        self.game_chip=StatusChip('ربط اللعبة');self.game_chip.clicked.connect(self.focus_game);top.addWidget(self.game_chip)
-        self.private_badge=label('مفتوح المصدر','badge');top.addWidget(self.private_badge);v.addLayout(top)
-        self.hero=ArtworkHero();v.addWidget(self.hero);self.page_hint=label('','pageHint');v.addWidget(self.page_hint);v.addWidget(self.stack,1)
+
+        # Page column: header, optional banner, guidance, the page itself, then the pinned action bar.
+        content=QWidget();v=QVBoxLayout(content);v.setContentsMargins(T.GUTTER,16,T.GUTTER,16);v.setSpacing(12)
+        top=QHBoxLayout();top.setSpacing(10);titles=QVBoxLayout();titles.setSpacing(0)
+        self.heading=label('مساحة العمل / لوحة التحكم','crumb',False);titles.addWidget(self.heading)
+        self.page_title=label('','pageTitle',False);titles.addWidget(self.page_title);top.addLayout(titles,1)
+        self.game_chip=StatusChip('ربط اللعبة');self.game_chip.setToolTip('Deadlock');self.game_chip.clicked.connect(self.focus_game);top.addWidget(self.game_chip,0,Qt.AlignVCenter)
+        self.private_badge=label('مفتوح المصدر','badge',False);top.addWidget(self.private_badge,0,Qt.AlignVCenter);v.addLayout(top)
+        self.hero=ArtworkHero();v.addWidget(self.hero);self.page_hint=HintLine();v.addWidget(self.page_hint);v.addWidget(self.stack,1)
         self.status=label('جاهز • اختر إعدادًا، ثم راجع التغييرات.','subtitle');v.addWidget(self.status)
-        actionbar=QFrame();self.actionbar=actionbar;actionbar.setObjectName('actionbar');footer=QHBoxLayout(actionbar);footer.setContentsMargins(16,10,16,10);self.summary=label('دقة اللعبة محفوظة • خامات بسيطة','subtitle');footer.addWidget(self.summary,1)
+        actionbar=ActionBar();self.actionbar=actionbar;footer=QHBoxLayout();footer.setSpacing(16);actionbar.body.addLayout(footer);self.summary=label('دقة اللعبة محفوظة • خامات بسيطة','subtitle');footer.addWidget(self.summary,1)
         apply=QPushButton('معاينة وتطبيق الإعدادات ←');apply.setObjectName('primary');apply.clicked.connect(self.primary_action);self.apply_button=apply;footer.addWidget(apply);v.addWidget(actionbar)
         layout.addWidget(content,1)
         self.transition=PageTransition(content,lambda:top.geometry().bottom()+1,lambda:self.stack.geometry().bottom()+1)
@@ -106,7 +109,9 @@ class Window(QMainWindow):
             self.inspector.cancel();self.mods_page.cancel()
             super().closeEvent(event)
     def page(self):
-        page=QWidget();v=QVBoxLayout(page);v.setContentsMargins(0,0,10,0);v.setSpacing(16)
+        # Form pages keep one readable column, centred once the window is wider than it.
+        page=QWidget();outer=QHBoxLayout(page);outer.setContentsMargins(0,0,12,0);outer.setSpacing(0)
+        column=QWidget();column.setMaximumWidth(1080);v=QVBoxLayout(column);v.setContentsMargins(0,0,0,0);v.setSpacing(16);outer.addStretch(1);outer.addWidget(column,1000);outer.addStretch(1)
         scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(page);self.stack.addWidget(scroll)
         return v
     def primary_action(self):
@@ -132,6 +137,7 @@ class Window(QMainWindow):
         ][i])
         self.hero.setVisible(i in (2,3,4) and self.height()>=800)
         self.hero.set_page(i,animate=not moving)
+        self.page_title.setText('Crosshair Designer' if i==5 else self.nav[i].text().removesuffix(' •'))
         self.status.setVisible(i in (0,1,3))
         self.actionbar.setVisible(i in (0,1));self.servers.actions_panel.setVisible(i==4);self.crosshair.actions_panel.setVisible(i==5)
         self.heading.setText(('Workspace / ' if i==5 else 'مساحة العمل / ')+self.nav[i].text().removesuffix(' •'));self.private_badge.setText('Open source' if i==5 else 'مفتوح المصدر')
@@ -143,53 +149,61 @@ class Window(QMainWindow):
         if i==4:self.summary.setText('اختيار مناطق اتصال Steam • يحتاج صلاحية المدير عند التطبيق')
         else:self.changed()
     def dashboard(self):
-        v=self.page();shortcuts=QHBoxLayout()
+        v=self.page();shortcuts=QHBoxLayout();shortcuts.setSpacing(12)
         for title,index in [('المودات',2),('فحص المودات',7),('السيرفرات',4)]:
-            button=QPushButton(title);button.setIcon(nav_icon(index));button.setIconSize(QSize(24,24));button.setObjectName('shortcut');button.clicked.connect(lambda _,i=index:self.navigate(i));shortcuts.addWidget(button,1)
-        v.addLayout(shortcuts);f,c=card('1 · اربط اللعبة مرة واحدة','نكتشف Steam تلقائيًا ونحفظ اختيارك. اختر مجلد Deadlock أو مجلد game بداخله.');v.addWidget(f)
+            button=QPushButton(title);button.setIcon(nav_icon(index));button.setIconSize(QSize(22,22));button.setObjectName('shortcut');button.setCursor(Qt.PointingHandCursor);button.clicked.connect(lambda _,i=index:self.navigate(i));shortcuts.addWidget(button,1)
+        v.addLayout(shortcuts)
+
+        f,c=card('اربط اللعبة مرة واحدة','نكتشف Steam تلقائيًا ونحفظ اختيارك. اختر مجلد Deadlock أو مجلد game بداخله.',step='1');v.addWidget(f)
         self.connection_note=label('اختر مجلد اللعبة للبدء. تقدر تستخدم التحديث والمكتبة بدون ربط.','stepPill');c.addWidget(self.connection_note)
-        row=QHBoxLayout();self.path=QLineEdit();self.path.setLayoutDirection(Qt.LeftToRight);self.path.setPlaceholderText('…/steamapps/common/Deadlock');row.addWidget(self.path,1)
-        b=QPushButton('اختيار المجلد');b.clicked.connect(self.browse_game);row.addWidget(b)
-        b=QPushButton('بحث تلقائي');b.clicked.connect(self.detect_game);row.addWidget(b);c.addLayout(row)
+        row=QHBoxLayout();row.setSpacing(8);self.path=QLineEdit();self.path.setLayoutDirection(Qt.LeftToRight);self.path.setPlaceholderText('…/steamapps/common/Deadlock');row.addWidget(self.path,1)
+        b=QPushButton('اختيار المجلد');b.setIcon(icon('folder',T.TEXT));b.clicked.connect(self.browse_game);row.addWidget(b)
+        b=QPushButton('بحث تلقائي');b.setIcon(icon('search',T.TEXT));b.clicked.connect(self.detect_game);row.addWidget(b);c.addLayout(row)
         self.path.editingFinished.connect(self.refresh_accounts)
-        self.accounts=QComboBox();self.accounts.setLayoutDirection(Qt.LeftToRight);self.accounts.currentIndexChanged.connect(self.remember_account);self.account_label=label('حساب Steam · اختر الحساب الذي تلعب عليه','subtitle');c.addWidget(self.account_label);c.addWidget(self.accounts);self.account_label.hide();self.accounts.hide()
-        f,c=card('2 · اختر الأداء المناسب','ابدأ بمتوازن. ارفع التخفيف إذا احتجت أداء أعلى؛ دقة اللعبة محفوظة.');v.addWidget(f)
-        row=QHBoxLayout();self.preset_buttons={}
+        self.accounts=Combo();self.accounts.setLayoutDirection(Qt.LeftToRight);self.accounts.currentIndexChanged.connect(self.remember_account);self.account_label=label('حساب Steam · اختر الحساب الذي تلعب عليه','sectionLabel');c.addWidget(self.account_label);c.addWidget(self.accounts);self.account_label.hide();self.accounts.hide()
+
+        f,c=card('اختر الأداء المناسب','ابدأ بمتوازن. ارفع التخفيف إذا احتجت أداء أعلى؛ دقة اللعبة محفوظة.',step='2');v.addWidget(f)
+        row=QHBoxLayout();row.setSpacing(8);self.preset_buttons={}
         for title,key in [('متوازن','balanced'),('أداء أعلى','performance'),('تخفيف شديد','ultra')]:
-            b=QPushButton(title);b.clicked.connect(lambda _,k=key:self.load_preset(k));row.addWidget(b);self.preset_buttons[key]=b
+            b=QPushButton(title);b.clicked.connect(lambda _,k=key:self.load_preset(k));row.addWidget(b,1);self.preset_buttons[key]=b
         c.addLayout(row)
         self.presets={}
         self.level=QSlider(Qt.Horizontal);self.level.setLayoutDirection(Qt.LeftToRight);self.level.setRange(0,MAX_LEVEL);self.level.setTickInterval(25);self.level.setTickPosition(QSlider.TicksBelow);self.level.valueChanged.connect(self.level_changed)
-        ends=QWidget();ends.setStyleSheet('background:transparent;');ends.setLayoutDirection(Qt.LeftToRight);row=QHBoxLayout(ends);row.setContentsMargins(0,0,0,0);row.addWidget(label('0 • جودة أعلى / جهاز قوي'));row.addStretch();row.addWidget(label(f'{MAX_LEVEL} • أقصى تخفيف تجريبي'));c.addWidget(ends);c.addWidget(self.level)
-        self.level_title=label('','cardtitle');self.level_description=label('','subtitle');c.addWidget(self.level_title)
+        self.level_title=label('','value');self.level_description=label('','subtitle');c.addWidget(self.level_title)
         self.level_meter=LevelMeter(MAX_LEVEL,[preset.level for preset in PRESETS.values()]);self.level.valueChanged.connect(self.level_meter.set_value);self.level.valueChanged.connect(self.mark_preset);c.addWidget(self.level_meter);c.addWidget(self.level_description)
-        self.level_effects=label('','subtitle');c.addWidget(self.level_effects)
-        customize=QPushButton('تخصيص المستوى يدويًا');customize.setCheckable(True);c.addWidget(customize)
+        ends=QWidget();ends.setLayoutDirection(Qt.LeftToRight);row=QHBoxLayout(ends);row.setContentsMargins(0,0,0,0);row.addWidget(label('0 • جودة أعلى / جهاز قوي','sectionLabel',False));row.addStretch();row.addWidget(label(f'{MAX_LEVEL} • أقصى تخفيف تجريبي','sectionLabel',False))
+        self.level_effects=label('','sectionLabel')
+        tune=QHBoxLayout();customize=QPushButton('تخصيص المستوى يدويًا');customize.setObjectName('quiet');customize.setIcon(icon('graphics',T.TEXT_SOFT));customize.setCheckable(True);tune.addWidget(customize);tune.addStretch();c.addLayout(tune)
+        c.addWidget(self.level);c.addWidget(ends);c.addWidget(self.level_effects)
         for widget in (ends,self.level,self.level_effects):widget.hide();customize.toggled.connect(widget.setVisible)
-        f,c=card('3 · راجع وطبّق','أغلق اللعبة ثم اضغط معاينة وتطبيق أسفل الشاشة. نحفظ الأصل تلقائيًا؛ تقدر تتراجع من النسخ والاسترجاع. جرّب الوضوح في التدريب.');v.addWidget(f)
-        c.addWidget(label(f'النظام: {platform.system()}  •  المعالج: {platform.machine()}','subtitle'));v.addStretch()
+
+        f,c=card('راجع وطبّق','أغلق اللعبة ثم اضغط معاينة وتطبيق أسفل الشاشة. نحفظ الأصل تلقائيًا؛ تقدر تتراجع من النسخ والاسترجاع. جرّب الوضوح في التدريب.',step='3');v.addWidget(f)
+        c.addWidget(label(f'النظام: {platform.system()}  •  المعالج: {platform.machine()}','sectionLabel'));v.addStretch()
     def slider(self,layout,key,title,lo,hi,unit=''):
-        row=QHBoxLayout();row.addWidget(label(title),1);out=label('');row.addWidget(out);layout.addLayout(row)
+        row=QHBoxLayout();row.addWidget(label(title),1);out=label('','value',False);out.setLayoutDirection(Qt.LeftToRight);row.addWidget(out);layout.addLayout(row)
         s=QSlider(Qt.Horizontal);s.setRange(lo,hi);s.valueChanged.connect(lambda value:out.setText(str(value)+unit));s.valueChanged.connect(self.changed);layout.addWidget(s);self.controls[key]=s
     def check(self,layout,key,title):
         b=QCheckBox(title);b.stateChanged.connect(self.changed);layout.addWidget(b);self.controls[key]=b
     def graphics(self):
         v=self.page()
-        f,c=card('تخفيف الرسوم','تحكم مباشر في كل الرسوم. الدقة وFSR/DLSS تبقى كما هي.');v.addWidget(f)
-        self.graphics_level_title=label('','cardtitle');c.addWidget(self.graphics_level_title);self.graphics_level=QSlider(Qt.Horizontal);self.graphics_level.setLayoutDirection(Qt.LeftToRight);self.graphics_level.setRange(0,MAX_LEVEL);self.graphics_level.valueChanged.connect(self.level.setValue);self.level.valueChanged.connect(self.graphics_level.setValue);c.addWidget(self.graphics_level)
+        f,c=card('تخفيف الرسوم','تحكم مباشر في كل الرسوم. الدقة وFSR/DLSS تبقى كما هي.',icon_name='gauge');v.addWidget(f)
+        self.graphics_level_title=label('','value');c.addWidget(self.graphics_level_title);self.graphics_level=QSlider(Qt.Horizontal);self.graphics_level.setLayoutDirection(Qt.LeftToRight);self.graphics_level.setRange(0,MAX_LEVEL);self.graphics_level.valueChanged.connect(self.level.setValue);self.level.valueChanged.connect(self.graphics_level.setValue);c.addWidget(self.graphics_level)
         self.graphics_level_description=label('','subtitle');c.addWidget(self.graphics_level_description);c.addWidget(label('0 للجودة الأعلى • 80 تخفيف عنيف • 200 أقصى تخفيف تجريبي','sectionLabel'))
-        f,c=card('عرض الرؤية • View width','نسبة الأبعاد مستقلة عن التخفيف. الأساسي 1.78 (16:9)، وارفعها حتى 3.50 لعرض أعرض. لا تتغير دقة الشاشة أو دقة العرض الداخلية.');v.addWidget(f)
-        row=QHBoxLayout();row.addWidget(label('Aspect ratio'),1);self.aspect_value=label('1.78','cardtitle');self.aspect_value.setLayoutDirection(Qt.LeftToRight);row.addWidget(self.aspect_value);c.addLayout(row)
+
+        f,c=card('عرض الرؤية • View width','نسبة الأبعاد مستقلة عن التخفيف. الأساسي 1.78 (16:9)، وارفعها حتى 3.50 لعرض أعرض. لا تتغير دقة الشاشة أو دقة العرض الداخلية.',icon_name='aspect');v.addWidget(f)
+        row=QHBoxLayout();row.addWidget(label('Aspect ratio'),1);self.aspect_value=label('1.78','value',False);self.aspect_value.setLayoutDirection(Qt.LeftToRight);row.addWidget(self.aspect_value);c.addLayout(row)
         self.aspect=QSlider(Qt.Horizontal);self.aspect.setLayoutDirection(Qt.LeftToRight);self.aspect.setRange(178,350);self.aspect.setSingleStep(1);self.aspect.setPageStep(10);self.aspect.setValue(178);self.aspect.valueChanged.connect(self.aspect_changed);c.addWidget(self.aspect)
-        ends=QWidget();ends.setStyleSheet('background:transparent;');ends.setLayoutDirection(Qt.LeftToRight);row=QHBoxLayout(ends);row.setContentsMargins(0,0,0,0);row.addWidget(label('1.78 • Default 16:9'));row.addStretch();row.addWidget(label('3.50 • Ultra wide'));c.addWidget(ends)
-        button=QPushButton('الرجوع للأساسي 1.78');button.clicked.connect(lambda:self.aspect.setValue(178));c.addWidget(button)
-        c.addWidget(label('حرّك السحاب ثم اضغط معاينة وتطبيق. يتطلب إعادة تشغيل اللعبة؛ قد تختلف النتيجة حسب دعم إصدار اللعبة.','subtitle'))
-        f,c=card('حد الإطارات','مستقل عن مستوى التخفيف ونسبة الأبعاد.');v.addWidget(f)
+        ends=QWidget();ends.setLayoutDirection(Qt.LeftToRight);row=QHBoxLayout(ends);row.setContentsMargins(0,0,0,0);row.addWidget(label('1.78 • Default 16:9','sectionLabel',False));row.addStretch();row.addWidget(label('3.50 • Ultra wide','sectionLabel',False));c.addWidget(ends)
+        row=QHBoxLayout();button=QPushButton('الرجوع للأساسي 1.78');button.setObjectName('quiet');button.setIcon(icon('undo',T.TEXT_SOFT));button.clicked.connect(lambda:self.aspect.setValue(178));row.addWidget(button);row.addStretch();c.addLayout(row)
+        c.addWidget(label('حرّك السحاب ثم اضغط معاينة وتطبيق. يتطلب إعادة تشغيل اللعبة؛ قد تختلف النتيجة حسب دعم إصدار اللعبة.','sectionLabel'))
+
+        f,c=card('حد الإطارات','مستقل عن مستوى التخفيف ونسبة الأبعاد.',icon_name='clock');v.addWidget(f)
         self.slider(c,'fps','حد الإطارات • 0 بدون حد (مستقل عن مستوى التخفيف)',0,500,' FPS')
-        f,c=card('إصلاح رجوع الإعدادات','يفحص البرنامج قيم التعديلات بدل الاعتماد على شكل الملف. إذا رجعت القيم، يدمج التخفيف مع الملفات الحالية ويحفظ نسخة قبل الإصلاح.');v.addWidget(f)
+
+        f,c=card('إصلاح رجوع الإعدادات','يفحص البرنامج قيم التعديلات بدل الاعتماد على شكل الملف. إذا رجعت القيم، يدمج التخفيف مع الملفات الحالية ويحفظ نسخة قبل الإصلاح.',icon_name='shield');v.addWidget(f)
         self.guard=QCheckBox('إعادة تطبيق المستوى المحفوظ تلقائيًا بعد إغلاق اللعبة • أبقِ البرنامج مفتوحًا');self.guard.setChecked(True);c.addWidget(self.guard)
-        self.guard_status=label('الحماية جاهزة • لا يكتب البرنامج ملفات أثناء تشغيل اللعبة.','subtitle');c.addWidget(self.guard_status)
-        button=QPushButton('فحص وإصلاح رجوع الإعدادات الآن');button.clicked.connect(self.repair_settings);c.addWidget(button);v.addStretch()
+        self.guard_status=label('الحماية جاهزة • لا يكتب البرنامج ملفات أثناء تشغيل اللعبة.','stepPill');c.addWidget(self.guard_status)
+        row=QHBoxLayout();button=QPushButton('فحص وإصلاح رجوع الإعدادات الآن');button.setIcon(icon('refresh',T.TEXT));button.clicked.connect(self.repair_settings);row.addWidget(button);row.addStretch();c.addLayout(row);v.addStretch()
     def mark_preset(self,value):
         for key,button in self.preset_buttons.items():
             active=PRESETS[key].level==value
@@ -239,15 +253,16 @@ class Window(QMainWindow):
     def import_mod_files(self):self.mods_page.browse_files()
     def install_mods(self):self.mods_page.install()
     def backups(self):
-        v=self.page();f,c=card('ارجع للأصل بثقة','تُحفظ الملفات قبل أول تعديل. الاسترجاع يحتفظ بنسخة من وضعك الحالي أيضًا.');v.addWidget(f)
-        b=QPushButton('فتح مجلد النسخ الاحتياطية ↗');b.clicked.connect(self.open_backups);c.addWidget(b)
+        v=self.page();f,c=card('ارجع للأصل بثقة','تُحفظ الملفات قبل أول تعديل. الاسترجاع يحتفظ بنسخة من وضعك الحالي أيضًا.',icon_name='backups');v.addWidget(f)
         self.preserve=QCheckBox('حفظ التغييرات الخارجية الحالية ثم استرجاع الأصل (بعد تحديث اللعبة مثلًا)');c.addWidget(self.preserve)
-        b=QPushButton('استرجاع الإعدادات الأصلية');b.setObjectName('danger');b.clicked.connect(self.restore);c.addWidget(b)
-        f,c=card('احتفظ بنسخة من إعداداتك','تصدير واستيراد خيارات الرسوم بصيغة JSON، دون ملفات اللعبة أو بيانات الحساب.');v.addWidget(f)
-        row=QHBoxLayout()
-        for title,fn in [('تصدير الإعدادات',self.export_settings),('استيراد الإعدادات',self.import_settings)]:
-            b=QPushButton(title);b.clicked.connect(fn);row.addWidget(b)
-        c.addLayout(row);v.addStretch()
+        row=QHBoxLayout();row.setSpacing(8)
+        b=QPushButton('استرجاع الإعدادات الأصلية');b.setObjectName('danger');b.setIcon(icon('undo',T.CRIMSON_TEXT));b.clicked.connect(self.restore);row.addWidget(b)
+        b=QPushButton('فتح مجلد النسخ الاحتياطية');b.setIcon(icon('external',T.TEXT));b.clicked.connect(self.open_backups);row.addWidget(b);row.addStretch();c.addLayout(row)
+        f,c=card('احتفظ بنسخة من إعداداتك','تصدير واستيراد خيارات الرسوم بصيغة JSON، دون ملفات اللعبة أو بيانات الحساب.',icon_name='save');v.addWidget(f)
+        row=QHBoxLayout();row.setSpacing(8)
+        for title,fn,glyph in [('تصدير الإعدادات',self.export_settings,'share'),('استيراد الإعدادات',self.import_settings,'updates')]:
+            b=QPushButton(title);b.setIcon(icon(glyph,T.TEXT));b.clicked.connect(fn);row.addWidget(b)
+        row.addStretch();c.addLayout(row);v.addStretch()
     def changed(self,*_):
         if hasattr(self,'level') and 'fps' in self.controls:
             self.summary.setText(f'الدقة محفوظة • تخفيف {self.level.value()}/{MAX_LEVEL} • عرض الرؤية {self.aspect.value()/100:.2f}')
@@ -314,7 +329,7 @@ class Window(QMainWindow):
             studio=self.studio();s=self.settings();plan=studio.plan(s,self.library.cache)
             require_mods(self.library,studio.root,s.mods)
             if not plan:self.status.setText('الإعدادات مطبقة بالفعل.');return
-            dialog=QDialog(self);dialog.setWindowTitle('مراجعة التغييرات');dialog.resize(880,650);v=QVBoxLayout(dialog)
+            dialog=QDialog(self);dialog.setWindowTitle('مراجعة التغييرات');dialog.resize(880,650);v=QVBoxLayout(dialog);v.setContentsMargins(24,22,24,20);v.setSpacing(14)
             v.addWidget(label(f'سيتم تعديل {len(plan)} ملفات مع حفظ الأصل. أغلق اللعبة قبل المتابعة.','cardtitle'))
             out=QPlainTextEdit();out.setReadOnly(True);out.setLayoutDirection(Qt.LeftToRight);out.setFont(QFont('monospace',10));parts=[]
             for p,b in plan.items():
@@ -325,8 +340,8 @@ class Window(QMainWindow):
                 else:parts.append('Remove managed file' if b is None else f'Install VPK: {len(b):,} bytes')
             name,description=level_info(s.level)
             v.addWidget(label(f'الأداء: {name} · المستوى {s.level}/{MAX_LEVEL}\nحد الإطارات: '+(str(s.fps)+' FPS' if s.fps else 'بدون حد')+'\nدقة اللعبة محفوظة. تستطيع التراجع من النسخ والاسترجاع.','subtitle'))
-            out.setPlainText('\n\n'.join(parts));out.hide();more=QPushButton('إظهار تفاصيل الملفات');more.setCheckable(True);more.toggled.connect(out.setVisible);v.addWidget(more);v.addWidget(out,1)
-            buttons=QDialogButtonBox();ok=buttons.addButton('تطبيق وحفظ نسخة احتياطية',QDialogButtonBox.AcceptRole);buttons.addButton('إلغاء',QDialogButtonBox.RejectRole);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);v.addWidget(buttons)
+            out.setPlainText('\n\n'.join(parts));out.hide();more=QPushButton('إظهار تفاصيل الملفات');more.setObjectName('quiet');more.setIcon(icon('file',T.TEXT_SOFT));more.setCheckable(True);more.toggled.connect(out.setVisible);v.addWidget(more,0,Qt.AlignLeading);v.addWidget(out,1);v.addStretch(0)
+            buttons=QDialogButtonBox();ok=buttons.addButton('تطبيق وحفظ نسخة احتياطية',QDialogButtonBox.AcceptRole);ok.setObjectName('primary');buttons.addButton('إلغاء',QDialogButtonBox.RejectRole);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);v.addWidget(buttons)
             if dialog.exec()==QDialog.Accepted:
                 # Regenerate after preview to detect file changes before committing.
                 fresh=studio.plan(s,self.library.cache)
@@ -356,7 +371,7 @@ class Window(QMainWindow):
         except Exception as e:self.error(e)
 
 def main():
-    app=QApplication(sys.argv);app.setApplicationName('DeadlockToolbox');app.setApplicationDisplayName('Deadlock Toolbox');app.setOrganizationName('exelight7');app.setLayoutDirection(Qt.RightToLeft);app.setStyle('Fusion');QFontDatabase.addApplicationFont(str(ASSETS/'fonts/NotoSansArabic.ttf'));app.setStyleSheet(STYLE)
+    app=QApplication(sys.argv);app.setApplicationName('DeadlockToolbox');app.setApplicationDisplayName('Deadlock Toolbox');app.setOrganizationName('exelight7');app.setLayoutDirection(Qt.RightToLeft);app.setStyle('Fusion');load_fonts();app.setPalette(dark_palette());app.setStyleSheet(STYLE)
     window=Window()
     if '--crosshair' in sys.argv:window.navigate(5)
     if '--updates' in sys.argv:window.navigate(6)

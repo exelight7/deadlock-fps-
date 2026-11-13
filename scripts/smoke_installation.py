@@ -42,6 +42,8 @@ with tempfile.TemporaryDirectory(prefix='toolbox-install-smoke-') as temp:
     finally:
         if process.poll() is None:process.terminate()
         _,error=process.communicate(timeout=10)
+        # The offscreen platform has no size-hint support and says so; that notice is not a failure.
+        error=b'\n'.join(line for line in error.splitlines() if line.strip() and b'propagateSizeHints' not in line)
         if error:raise RuntimeError(error.decode(errors='replace'))
     binary=installed[0]
     assert (binary.parent/'_internal/assets/app.png').is_file()
@@ -54,5 +56,7 @@ with tempfile.TemporaryDirectory(prefix='toolbox-install-smoke-') as temp:
     finally:
         if process.poll() is None:process.terminate()
         _,error=process.communicate(timeout=10)
+        # The offscreen platform has no size-hint support and says so; that notice is not a failure.
+        error=b'\n'.join(line for line in error.splitlines() if line.strip() and b'propagateSizeHints' not in line)
         if error:raise RuntimeError(error.decode(errors='replace'))
     print('Per-user GUI installation, bundled resources and installed startup verified.')

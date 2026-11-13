@@ -47,7 +47,7 @@ jobs:
   release:
     # Only this explicitly authorized release commit publishes. Ordinary pushes
     # and manual runs build/test without creating or changing releases.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'Release Deadlock Toolbox v2.6.0')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, 'Release Deadlock Toolbox v3.0.0')
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -73,18 +73,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          if gh release view v2.6.0 --json isDraft > existing-release.json 2>/dev/null; then
+          if gh release view v3.0.0 --json isDraft > existing-release.json 2>/dev/null; then
             python -c "import json; assert json.load(open('existing-release.json'))['isDraft'], 'Refusing to replace an already published release'"
-            gh release edit v2.6.0 --title 'Deadlock Toolbox 2.6.0' --target "$GITHUB_SHA" --notes-file docs/RELEASE_v2.6.0.md
-            gh release upload v2.6.0 artifacts/*.zip artifacts/SHA256SUMS.txt --clobber
+            gh release edit v3.0.0 --title 'Deadlock Toolbox 3.0.0' --target "$GITHUB_SHA" --notes-file docs/RELEASE_v3.0.0.md
+            gh release upload v3.0.0 artifacts/*.zip artifacts/SHA256SUMS.txt --clobber
           else
-            gh release create v2.6.0 artifacts/*.zip artifacts/SHA256SUMS.txt --draft --title 'Deadlock Toolbox 2.6.0' --target "$GITHUB_SHA" --notes-file docs/RELEASE_v2.6.0.md
+            gh release create v3.0.0 artifacts/*.zip artifacts/SHA256SUMS.txt --draft --title 'Deadlock Toolbox 3.0.0' --target "$GITHUB_SHA" --notes-file docs/RELEASE_v3.0.0.md
           fi
-          gh release view v2.6.0 --json assets > release-assets.json
+          gh release view v3.0.0 --json assets > release-assets.json
           python - <<'PY'
           import json
           assets=json.load(open('release-assets.json'))['assets']
           assert {a['name'] for a in assets}=={'DeadlockToolbox-linux-x64.zip','DeadlockToolbox-windows-x64.zip','SHA256SUMS.txt'}
           assert all(a['size']>0 for a in assets)
           PY
-          gh release edit v2.6.0 --draft=false --latest
+          gh release edit v3.0.0 --draft=false --latest

@@ -24,9 +24,9 @@ from PySide6.QtCore import Qt, QThreadPool  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 SHOWN_PATH = r'C:\Program Files (x86)\Steam\steamapps\common\Deadlock'
-NAMES = ['overview', 'graphics', 'mods', 'backups', 'servers', 'crosshair', 'update-center', 'mod-inspector']
+NAMES = ['overview', 'graphics', 'mods', 'backups', 'servers', 'crosshair', 'update-center', 'mod-inspector', 'settings']
 DOCS = {'overview': 'screenshot.png', 'graphics': 'graphics.png', 'mods': 'mods.png', 'backups': 'backups.png', 'servers': 'servers.png',
-        'crosshair': 'crosshair.png', 'update-center': 'update-center.png', 'mod-inspector': 'mod-inspector.png'}
+        'crosshair': 'crosshair.png', 'update-center': 'update-center.png', 'mod-inspector': 'mod-inspector.png', 'settings': 'settings.png'}
 
 
 def option(name, default):
@@ -47,7 +47,7 @@ def main():
     positional = [a for i, a in enumerate(sys.argv[1:], 1) if not a.startswith('--') and sys.argv[i - 1] not in ('--size', '--only')]
     target = ROOT / 'docs' if docs else Path(positional[0] if positional else ROOT / 'build/screenshots')
     width, height = (int(v) for v in option('--size', '1200x820').split('x'))
-    only = [int(v) for v in option('--only', ','.join(map(str, range(8)))).split(',')]
+    only = [int(v) for v in option('--only', ','.join(map(str, range(9)))).split(',')]
     target.mkdir(parents=True, exist_ok=True)
     app = QApplication.instance() or QApplication([])
     app.setLayoutDirection(Qt.LeftToRight if '--ltr' in sys.argv else Qt.RightToLeft)   # --ltr checks that layouts mirror

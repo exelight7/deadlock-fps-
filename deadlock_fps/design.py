@@ -20,8 +20,9 @@ PAGES = [
     ('CROSSHAIR / 06', 'Crosshair Designer', 'Preview, customize and apply your crosshair to Deadlock.', 'emblem'),
     ('UPDATES / 07', 'Update Center', 'تابع آخر إصدارات Deadlock Toolbox.', 'emblem'),
     ('INSPECTOR / 08', 'Mod Inspector', 'افحص ملفات المودات قبل التركيب.', 'mods'),
+    ('SETTINGS / 09', 'الإعدادات', 'اللغة، الحماية والتحديث.', 'emblem'),
 ]
-NAV_ICONS = ('overview', 'graphics', 'mods', 'backups', 'servers', 'crosshair', 'updates', 'inspector')
+NAV_ICONS = ('overview', 'graphics', 'mods', 'backups', 'servers', 'crosshair', 'updates', 'inspector', 'settings')
 
 
 # --- Fonts, palette, vector assets -----------------------------------------------------------------
@@ -236,7 +237,7 @@ QPushButton#danger:pressed {background:@CRIMSON_LINE;color:@TEXT;}
 QPushButton#danger:disabled {color:@TEXT_OFF;background:@SUNKEN;border-color:@LINE;}
 QPushButton#quiet {background:transparent;border:1px solid @LINE;color:@TEXT_SOFT;padding:7px 12px;}
 QPushButton#quiet:hover {background:@SURFACE;border-color:@BRASS_DEEP;color:@BRASS_BRIGHT;}
-QPushButton#quiet:checked {background:@BRASS_WASH;border-color:@BRASS_DEEP;color:@BRASS_BRIGHT;}
+QPushButton#quiet:checked {background:@BRASS_WASH;border-color:@BRASS_DEEP;border-bottom:2px solid @BRASS_BRIGHT;color:@BRASS_BRIGHT;}
 QPushButton#quiet:disabled {color:@TEXT_OFF;border-color:@LINE;background:transparent;}
 QPushButton#chip {background:@SUNKEN;border:1px solid @LINE;border-radius:2px;padding:4px 12px;color:@TEXT_SOFT;font-size:12px;min-height:18px;}
 QPushButton#chip:hover {border-color:@BRASS_DEEP;color:@BRASS_BRIGHT;background:@SURFACE;}

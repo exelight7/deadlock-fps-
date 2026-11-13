@@ -27,29 +27,68 @@ def game_root(path):
     if not (p/'game/citadel/gameinfo.gi').is_file(): raise ValueError('اختر مجلد Deadlock الذي يحتوي game/citadel/gameinfo.gi')
     return p
 
+GAME_PROCESSES={'deadlock','deadlock.exe','citadel','citadel.exe','project8','project8.exe'}
+
 def steam_roots():
-    home=Path.home(); roots=[home/'.local/share/Steam',home/'.steam/steam',home/'.var/app/com.valvesoftware.Steam/.local/share/Steam']
+    home=Path.home(); roots=[home/'.local/share/Steam',home/'.steam/steam',home/'.steam/root',home/'.steam/debian-installation',
+        home/'.var/app/com.valvesoftware.Steam/.local/share/Steam',home/'.var/app/com.valvesoftware.Steam/data/Steam',home/'snap/steam/common/.local/share/Steam']
     if os.name=='nt':
         import winreg
-        for hive,key in [(winreg.HKEY_CURRENT_USER,r'Software\Valve\Steam'),(winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\WOW6432Node\Valve\Steam')]:
+        for hive,key in [(winreg.HKEY_CURRENT_USER,r'Software\Valve\Steam'),(winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\WOW6432Node\Valve\Steam'),(winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Valve\Steam')]:
             try:
                 with winreg.OpenKey(hive,key) as k:
                     for value in ['SteamPath','InstallPath']:
                         try: roots.append(Path(winreg.QueryValueEx(k,value)[0]))
                         except OSError: pass
             except OSError: pass
-        roots += [Path(os.environ.get('PROGRAMFILES(X86)','C:/Program Files (x86)'))/'Steam',Path('C:/Steam')]
-    return list(dict.fromkeys(p.resolve() for p in roots if p.exists()))
+        roots += [Path(os.environ.get('PROGRAMFILES(X86)','C:/Program Files (x86)'))/'Steam',Path(os.environ.get('PROGRAMFILES','C:/Program Files'))/'Steam',Path('C:/Steam')]
+    found=[]
+    for p in roots:
+        try:
+            if p.exists():found.append(p.resolve())
+        except OSError:pass
+    return list(dict.fromkeys(found))
 
-def detect_games():
+def drive_libraries():
+    """Usual Steam library folders on every mounted drive, for libraries Steam's own list no longer mentions."""
+    result=[]
+    try:mounts=[Path(d.mountpoint) for d in psutil.disk_partitions(all=False)]
+    except Exception:mounts=[]
+    for mount in mounts:
+        for name in ('SteamLibrary','Steam','Games/Steam','Games/SteamLibrary','Program Files (x86)/Steam'):
+            result.append(mount/name)
+    return result
+
+def steam_libraries():
     libraries=[]
     for root in steam_roots():
         libraries.append(root)
         f=root/'steamapps/libraryfolders.vdf'
-        if f.exists():
-            for p in re.findall(r'"path"\s*"([^"]+)"',f.read_text(errors='replace')):
-                libraries.append(Path(p.replace('\\\\','\\')))
-    return list(dict.fromkeys(p/'steamapps/common/Deadlock' for p in libraries if (p/'steamapps/common/Deadlock/game/citadel/gameinfo.gi').exists()))
+        try:
+            if f.exists():
+                for p in re.findall(r'"path"\s*"([^"]+)"',f.read_text(errors='replace')):
+                    libraries.append(Path(p.replace('\\\\','\\')))
+        except OSError:pass
+    return list(dict.fromkeys(libraries))
+
+def running_game_root():
+    """The folder of a Deadlock process that is running right now, wherever it was installed."""
+    try:
+        for p in psutil.process_iter(['name','exe']):
+            if (p.info['name'] or '').lower() in GAME_PROCESSES and p.info.get('exe'):
+                for parent in Path(p.info['exe']).parents:
+                    if (parent/'game/citadel/gameinfo.gi').is_file():return parent
+    except Exception:pass
+    return None
+
+def detect_games():
+    def installed(library):
+        try:return (library/'steamapps/common/Deadlock/game/citadel/gameinfo.gi').exists()
+        except OSError:return False
+    games=[p/'steamapps/common/Deadlock' for p in steam_libraries()+drive_libraries() if installed(p)]
+    running=running_game_root()
+    if running:games.insert(0,running)
+    return list(dict.fromkeys(games))
 
 def video_files(root):
     roots=steam_roots()
@@ -65,7 +104,7 @@ def video_files(root):
 
 def ensure_closed():
     for p in psutil.process_iter(['name']):
-        if (p.info['name'] or '').lower() in {'deadlock','deadlock.exe','citadel','citadel.exe','project8','project8.exe'}:
+        if (p.info['name'] or '').lower() in GAME_PROCESSES:
             raise ValueError('أغلق Deadlock قبل التطبيق أو الاسترجاع.')
 
 def vpk_entries(path):

@@ -139,4 +139,4 @@ class Selection(unittest.TestCase):
             self.assertTrue(b.isVisible());self.assertTrue(w.rect().contains(b.mapTo(w,b.rect().center())))
         self.assertTrue(w.servers.table.isColumnHidden(2));self.assertGreater(w.servers.table.columnWidth(1),200)
         w.resize(1280,900);self.app.processEvents();self.assertFalse(w.servers.table.isColumnHidden(2))
-        self.assertFalse(w.actionbar.isVisible());w.navigate(0);self.assertTrue(w.actionbar.isVisible());self.assertFalse(w.servers.actions_panel.isVisible());w.close()
+        self.assertFalse(w.actionbar.isVisible());w.navigate(1);self.assertTrue(w.actionbar.isVisible());self.assertFalse(w.servers.actions_panel.isVisible());w.close()

@@ -1,33 +1,34 @@
 """Local display metadata; routing always uses Valve's original region codes."""
+from .i18n import tr
 from dataclasses import dataclass
 from functools import lru_cache
 from PySide6.QtGui import QIcon
 from .core import ASSETS
 
 COUNTRIES = {
-    'ae':'الإمارات', 'ar':'الأرجنتين', 'at':'النمسا', 'au':'أستراليا',
-    'br':'البرازيل', 'cl':'تشيلي', 'de':'ألمانيا', 'es':'إسبانيا',
-    'fi':'فنلندا', 'fr':'فرنسا', 'gb':'المملكة المتحدة', 'gu':'غوام',
-    'hk':'هونغ كونغ', 'in':'الهند', 'jp':'اليابان', 'kr':'كوريا الجنوبية',
-    'nl':'هولندا', 'pe':'بيرو', 'pl':'بولندا', 'se':'السويد',
-    'sg':'سنغافورة', 'us':'الولايات المتحدة', 'za':'جنوب أفريقيا',
+    'ae':tr('الإمارات'), 'ar':tr('الأرجنتين'), 'at':tr('النمسا'), 'au':tr('أستراليا'),
+    'br':tr('البرازيل'), 'cl':tr('تشيلي'), 'de':tr('ألمانيا'), 'es':tr('إسبانيا'),
+    'fi':tr('فنلندا'), 'fr':tr('فرنسا'), 'gb':tr('المملكة المتحدة'), 'gu':tr('غوام'),
+    'hk':tr('هونغ كونغ'), 'in':tr('الهند'), 'jp':tr('اليابان'), 'kr':tr('كوريا الجنوبية'),
+    'nl':tr('هولندا'), 'pe':tr('بيرو'), 'pl':tr('بولندا'), 'se':tr('السويد'),
+    'sg':tr('سنغافورة'), 'us':tr('الولايات المتحدة'), 'za':tr('جنوب أفريقيا'),
 }
 REGIONS = {
-    'ams':('nl','أمستردام'), 'atl':('us','أتلانتا'), 'eze':('ar','بوينس آيرس'),
-    'maa2':('in','تشيناي'), 'maa':('in','تشيناي'), 'ord':('us','شيكاغو'),
-    'dfw':('us','دالاس'), 'dfra':('de','فرانكفورت • Datapacket'),
-    'dfjr':('ae','الفجيرة • Datapacket'), 'dvie':('at','فيينا • Datapacket'),
-    'dxb':('ae','دبي'), 'fra':('de','فرانكفورت'), 'gum':('gu','غوام'),
-    'hkg':('hk','هونغ كونغ'), 'jnb':('za','جوهانسبرغ'), 'lim':('pe','ليما'),
-    'lhr':('gb','لندن'), 'dlhr':('gb','لندن • Datapacket'), 'lax':('us','لوس أنجلوس'),
-    'mad':('es','مدريد'), 'bom2':('in','مومباي'), 'bom':('in','مومباي'),
-    'par':('fr','باريس'), 'scl':('cl','سانتياغو'), 'gru':('br','ساو باولو'),
-    'sea':('us','سياتل'), 'seo':('kr','سيول'), 'sgp':('sg','سنغافورة'),
-    'iad':('us','ستيرلينغ'), 'sto2':('se','ستوكهولم • بروما'),
-    'sto':('se','ستوكهولم • كيستا'), 'dsto':('se','ستوكهولم • Datapacket'),
-    'syd':('au','سيدني'), 'tyo':('jp','طوكيو'), 'vie':('at','فيينا'),
-    'waw':('pl','وارسو'), 'hel':('fi','هلسنكي'), 'fsn':('de','فالكنشتاين'),
-    'eat':('us','ويناتشي'), 'mwh':('us','ويناتشي'),
+    'ams':('nl',tr('أمستردام')), 'atl':('us',tr('أتلانتا')), 'eze':('ar',tr('بوينس آيرس')),
+    'maa2':('in',tr('تشيناي')), 'maa':('in',tr('تشيناي')), 'ord':('us',tr('شيكاغو')),
+    'dfw':('us',tr('دالاس')), 'dfra':('de',tr('فرانكفورت • Datapacket')),
+    'dfjr':('ae',tr('الفجيرة • Datapacket')), 'dvie':('at',tr('فيينا • Datapacket')),
+    'dxb':('ae',tr('دبي')), 'fra':('de',tr('فرانكفورت')), 'gum':('gu',tr('غوام')),
+    'hkg':('hk',tr('هونغ كونغ')), 'jnb':('za',tr('جوهانسبرغ')), 'lim':('pe',tr('ليما')),
+    'lhr':('gb',tr('لندن')), 'dlhr':('gb',tr('لندن • Datapacket')), 'lax':('us',tr('لوس أنجلوس')),
+    'mad':('es',tr('مدريد')), 'bom2':('in',tr('مومباي')), 'bom':('in',tr('مومباي')),
+    'par':('fr',tr('باريس')), 'scl':('cl',tr('سانتياغو')), 'gru':('br',tr('ساو باولو')),
+    'sea':('us',tr('سياتل')), 'seo':('kr',tr('سيول')), 'sgp':('sg',tr('سنغافورة')),
+    'iad':('us',tr('ستيرلينغ')), 'sto2':('se',tr('ستوكهولم • بروما')),
+    'sto':('se',tr('ستوكهولم • كيستا')), 'dsto':('se',tr('ستوكهولم • Datapacket')),
+    'syd':('au',tr('سيدني')), 'tyo':('jp',tr('طوكيو')), 'vie':('at',tr('فيينا')),
+    'waw':('pl',tr('وارسو')), 'hel':('fi',tr('هلسنكي')), 'fsn':('de',tr('فالكنشتاين')),
+    'eat':('us',tr('ويناتشي')), 'mwh':('us',tr('ويناتشي')),
 }
 # New Valve codes can still use an established country in their description.
 COUNTRY_NAMES = {'United Arab Emirates':'ae','UAE':'ae','Netherlands':'nl',

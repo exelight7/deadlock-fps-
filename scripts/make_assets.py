@@ -552,7 +552,7 @@ def readme_banner(target):
     p.setPen(Qt.NoPen)
     p.setBrush(QColor(T.BRASS))
     p.drawPolygon([__import__('PySide6.QtCore', fromlist=['QPointF']).QPointF(x, y) for x, y in ((1540, 160), (1546, 166), (1540, 172), (1534, 166))])
-    text(178, 44, 'خلّ Deadlock أخف، واضبطها على ذوقك.', T.BODY, 26, T.TEXT_SOFT, 500)
+    text(178, 44, 'Make Deadlock lighter, and make it yours.', T.BODY, 26, T.TEXT_SOFT, 500)
     text(222, 26, 'Independent project. Not affiliated with Valve.', T.BODY, 13, T.TEXT_MUTED)
     p.end()
     target.parent.mkdir(parents=True, exist_ok=True)

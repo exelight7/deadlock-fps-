@@ -6,5 +6,7 @@ if __name__ == '__main__':
         except Exception as error:
             print(str(error),file=sys.stderr);sys.exit(1)
     else:
+        from deadlock_fps import i18n
+        i18n.load()  # before the interface is imported: many strings are built at import time
         from deadlock_fps.ui import main
         main()

@@ -3,6 +3,7 @@
 Nothing here knows about game files or networking. Pages build their layouts
 from these parts and keep their own behaviour.
 """
+from .i18n import tr
 from PySide6.QtCore import Qt, QByteArray, QEvent, QObject, QPointF, QRectF, QSize, QVariantAnimation
 from PySide6.QtGui import QColor, QFont, QFontDatabase, QIcon, QPainter, QPainterPath, QPalette, QPen, QPixmap, QPolygonF
 from PySide6.QtSvg import QSvgRenderer
@@ -12,15 +13,15 @@ from .core import ASSETS
 
 # Page banner copy: kicker, title, description, banner motif.
 PAGES = [
-    ('OVERVIEW / 01', 'لعبتك، على طريقتك.', 'أداء أخف. تجربة أقرب لك. كل أدوات Deadlock في مكان واحد.', 'emblem'),
-    ('GRAPHICS / 02', 'تفاصيل أقل. تحكّم أكثر.', 'وازن الأداء والوضوح، وخصّص عرض الرؤية وحد الإطارات.', 'emblem'),
-    ('MOD LIBRARY / 03', 'موداتك. بدون تعقيد.', 'أضف الحزمة، اختر ما تحب، وركّب بأمان.', 'mods'),
-    ('RECOVERY / 04', 'جرّب وأنت مطمئن.', 'نسخك الأصلية محفوظة. استرجعها أو شارك إعداداتك بسهولة.', 'backups'),
-    ('CONNECTION / 05', 'اتصال أوضح. اختيار أسهل.', 'قِس زمن الاستجابة واختر مناطق اتصال Steam المناسبة لك.', 'servers'),
+    ('OVERVIEW / 01', tr('لعبتك، على طريقتك.'), tr('أداء أخف. تجربة أقرب لك. كل أدوات Deadlock في مكان واحد.'), 'emblem'),
+    ('GRAPHICS / 02', tr('تفاصيل أقل. تحكّم أكثر.'), tr('وازن الأداء والوضوح، وخصّص عرض الرؤية وحد الإطارات.'), 'emblem'),
+    ('MOD LIBRARY / 03', tr('موداتك. بدون تعقيد.'), tr('أضف الحزمة، اختر ما تحب، وركّب بأمان.'), 'mods'),
+    ('RECOVERY / 04', tr('جرّب وأنت مطمئن.'), tr('نسخك الأصلية محفوظة. استرجعها أو شارك إعداداتك بسهولة.'), 'backups'),
+    ('CONNECTION / 05', tr('اتصال أوضح. اختيار أسهل.'), tr('قِس زمن الاستجابة واختر مناطق اتصال Steam المناسبة لك.'), 'servers'),
     ('CROSSHAIR / 06', 'Crosshair Designer', 'Preview, customize and apply your crosshair to Deadlock.', 'emblem'),
-    ('UPDATES / 07', 'Update Center', 'تابع آخر إصدارات Deadlock Toolbox.', 'emblem'),
-    ('INSPECTOR / 08', 'Mod Inspector', 'افحص ملفات المودات قبل التركيب.', 'mods'),
-    ('SETTINGS / 09', 'الإعدادات', 'اللغة، الحماية والتحديث.', 'emblem'),
+    ('UPDATES / 07', 'Update Center', tr('تابع آخر إصدارات Deadlock Toolbox.'), 'emblem'),
+    ('INSPECTOR / 08', 'Mod Inspector', tr('افحص ملفات المودات قبل التركيب.'), 'mods'),
+    ('SETTINGS / 09', tr('الإعدادات'), tr('اللغة، الحماية والتحديث.'), 'emblem'),
 ]
 NAV_ICONS = ('overview', 'graphics', 'mods', 'backups', 'servers', 'crosshair', 'updates', 'inspector', 'settings')
 

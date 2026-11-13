@@ -27,4 +27,13 @@ python scripts/make_screenshots.py --docs
 
 The design rules are in [DESIGN.md](DESIGN.md).
 
+Interface text goes through `tr()` (`deadlock_fps/i18n.py`). English lives in `deadlock_fps/lang_en.py` and Arabic for the crosshair workspace in `deadlock_fps/lang_ar.py`. After adding text:
+
+```sh
+python scripts/i18n_tool.py wrap    # wrap new strings in tr()
+python scripts/i18n_tool.py check   # fail if a translation is missing
+```
+
+Tests read the code's own text (language `source`), so they do not depend on the catalogues.
+
 Portable packages are written to `dist/`. CI tests and builds on both platforms. Application data is stored outside the portable folder. See [third-party notices](../THIRD_PARTY.md) for content and dependency licenses.

@@ -1,4 +1,5 @@
 """Event-driven native Qt crosshair designer; no render loop, web view or game overlay."""
+from .i18n import tr
 from pathlib import Path
 from dataclasses import replace
 import json,difflib,html
@@ -11,24 +12,28 @@ from .crosshair_catalog import entries,shape
 from .crosshair_style import STYLE as CROSSHAIR_STYLE
 from . import kv
 from . import theme as T
-from .design import Panel,ActionBar,Kicker,Rule,Combo,icon,chamfer,paint_panel,empty_state
+from . import i18n
+from .design import Panel,ActionBar,Kicker,Rule,Combo,Text,icon,chamfer,paint_panel,empty_state
 
-LABELS={'width':'Width','length':'Length','gap':'Gap offset','opacity':'Opacity',
- 'border':'Thickness','border_gap':'Spacing','border_opacity':'Opacity',
- 'dot':'Size','dot_opacity':'Opacity','dot_border':'Thickness',
- 'dot_border_gap':'Spacing','dot_border_opacity':'Opacity'}
+# The workspace is written in English and left-to-right; it mirrors only when the interface language is Arabic.
+SIDE=Qt.RightToLeft if i18n.LANGUAGE=='ar' else Qt.LeftToRight
+
+LABELS={'width':tr('Width'),'length':tr('Length'),'gap':tr('Gap offset'),'opacity':tr('Opacity'),
+ 'border':tr('Thickness'),'border_gap':tr('Spacing'),'border_opacity':tr('Opacity'),
+ 'dot':tr('Size'),'dot_opacity':tr('Opacity'),'dot_border':tr('Thickness'),
+ 'dot_border_gap':tr('Spacing'),'dot_border_opacity':tr('Opacity')}
 PALETTE=('#ffffff','#aaff78','#73e8ff','#ffe083','#ffa0c9','#bb9bff','#ff926c','#ff6565')
 
 def friendly_error(error):
     text=str(error)
     if any('\u0600'<=c<='\u06ff' for c in text):
-        if 'أغلق' in text:return 'Close Deadlock before applying or restoring your crosshair.'
-        if 'KV3' in text:return 'The hero settings file is not supported or is damaged. Re-save your crosshair inside Deadlock, close the game, and try again.'
-        return 'Check the Deadlock folder and Steam account in Overview, then read the game settings again.'
+        if tr('أغلق') in text:return tr('Close Deadlock before applying or restoring your crosshair.')
+        if 'KV3' in text:return tr('The hero settings file is not supported or is damaged. Re-save your crosshair inside Deadlock, close the game, and try again.')
+        return tr('Check the Deadlock folder and Steam account in Overview, then read the game settings again.')
     return text
 
 def note(text,name='subtitle'):
-    label=QLabel(text);label.setWordWrap(True);label.setObjectName(name);return label
+    return Text(text,name)
 
 def panel(title):
     frame=Panel(margins=(16,12,16,14),spacing=8);layout=frame.body
@@ -113,30 +118,30 @@ class GalleryTileDelegate(QStyledItemDelegate):
 class CrosshairGallery(QDialog):
     """Offline gallery, built on demand with cached native previews."""
     def __init__(self,profiles=None,parent=None):
-        super().__init__(parent);self.setWindowTitle('PRO Crosshairs');self.setLayoutDirection(Qt.LeftToRight);self.setStyleSheet(CROSSHAIR_STYLE);self.resize(1000,820);self.setMinimumSize(780,650)
+        super().__init__(parent);self.setWindowTitle(tr('PRO Crosshairs'));self.setLayoutDirection(SIDE);self.setStyleSheet(CROSSHAIR_STYLE);self.resize(1000,820);self.setMinimumSize(780,650)
         self.catalog=entries(profiles);self.chosen=None;self.apply_requested=False;self.icons={}
         layout=QVBoxLayout(self);layout.setContentsMargins(24,20,24,18);layout.setSpacing(12)
-        heading=QVBoxLayout();heading.setSpacing(0);heading.addWidget(Kicker('THE COLLECTION'));heading.addWidget(note('PRO Crosshairs','pageTitle'));layout.addLayout(heading)
-        layout.addWidget(note('50 crosshairs. Player setups and original Studio picks. Choose your starting point.'));layout.addWidget(Rule())
-        row=QHBoxLayout();row.setSpacing(8);self.search=QLineEdit();self.search.setClearButtonEnabled(True);self.search.addAction(icon('search',T.TEXT_MUTED),QLineEdit.LeadingPosition);self.search.setPlaceholderText('Search a player or crosshair...');row.addWidget(self.search,1)
+        heading=QVBoxLayout();heading.setSpacing(0);heading.addWidget(Kicker(tr('THE COLLECTION')));heading.addWidget(note(tr('PRO Crosshairs'),'pageTitle'));layout.addLayout(heading)
+        layout.addWidget(note(tr('50 crosshairs. Player setups and original Studio picks. Choose your starting point.')));layout.addWidget(Rule())
+        row=QHBoxLayout();row.setSpacing(8);self.search=QLineEdit();self.search.setClearButtonEnabled(True);self.search.addAction(icon('search',T.TEXT_MUTED),QLineEdit.LeadingPosition);self.search.setPlaceholderText(tr('Search a player or crosshair...'));row.addWidget(self.search,1)
         self.filter=Combo()
-        for title,key in [('All designs','all'),('Player setups','players'),('Studio picks','builtin'),('Saved','saved')]:self.filter.addItem(title,key)
+        for title,key in [(tr('All designs'),'all'),(tr('Player setups'),'players'),(tr('Studio picks'),'builtin'),(tr('Saved'),'saved')]:self.filter.addItem(title,key)
         self.filter.setMinimumWidth(150);row.addWidget(self.filter);self.shape_filter=Combo()
-        for title in ['Any shape','Cross','Dot','Ring','Hybrid']:self.shape_filter.addItem(title)
+        for title,shown in [('Any shape',tr('Any shape')),('Cross',tr('Cross')),('Dot',tr('Dot')),('Ring',tr('Ring')),('Hybrid',tr('Hybrid'))]:self.shape_filter.addItem(shown,title)
         self.shape_filter.setMinimumWidth(130);row.addWidget(self.shape_filter);layout.addLayout(row)
-        body=QHBoxLayout();body.setSpacing(14);self.tiles=QListWidget();self.tiles.setObjectName('tiles');self.tiles.setViewMode(QListView.IconMode);self.tiles.setResizeMode(QListView.Adjust);self.tiles.setMovement(QListView.Static);self.tiles.setSelectionMode(QAbstractItemView.SingleSelection);self.tiles.setWordWrap(True);self.tiles.setSpacing(4);self.tiles.setIconSize(QSize(180,88));self.tiles.setGridSize(QSize(198,174));self.tiles.setLayoutDirection(Qt.LeftToRight);self.tiles.setMouseTracking(True)
+        body=QHBoxLayout();body.setSpacing(14);self.tiles=QListWidget();self.tiles.setObjectName('tiles');self.tiles.setViewMode(QListView.IconMode);self.tiles.setResizeMode(QListView.Adjust);self.tiles.setMovement(QListView.Static);self.tiles.setSelectionMode(QAbstractItemView.SingleSelection);self.tiles.setWordWrap(True);self.tiles.setSpacing(4);self.tiles.setIconSize(QSize(180,88));self.tiles.setGridSize(QSize(198,174));self.tiles.setLayoutDirection(SIDE);self.tiles.setMouseTracking(True)
         self.tiles.setItemDelegate(GalleryTileDelegate(self.tiles));body.addWidget(self.tiles,1)
-        self.no_match=empty_state(self.tiles,'empty-search','No matching crosshairs','Try a different name or filter.')
-        frame,details=panel('Selected crosshair');self.detail_heading=details.itemAt(0).widget();frame.setFixedWidth(250);frame.setMinimumHeight(310);body.addWidget(frame)
+        self.no_match=empty_state(self.tiles,'empty-search',tr('No matching crosshairs'),tr('Try a different name or filter.'))
+        frame,details=panel(tr('Selected crosshair'));self.detail_heading=details.itemAt(0).widget();frame.setFixedWidth(250);frame.setMinimumHeight(310);body.addWidget(frame)
         self.name=note('','value');details.addWidget(self.name)
         self.preview=CrosshairPreview();self.preview.set_zoom(2);self.preview.setFixedHeight(170);details.addWidget(self.preview)
-        self.preview_caption=note('2× preview · simulated spread: 8','sectionLabel');details.addWidget(self.preview_caption)
+        self.preview_caption=note(tr('2× preview · simulated spread: 8'),'sectionLabel');details.addWidget(self.preview_caption)
         self.motion=note('','previewMode');details.addWidget(self.motion,0,Qt.AlignLeft)
         self.detail=note('');details.addWidget(self.detail);self.source=QLabel();self.source.setWordWrap(True);self.source.setOpenExternalLinks(True);details.addWidget(self.source);details.addStretch()
         layout.addLayout(body,1);self.empty=note('','sectionLabel');layout.addWidget(self.empty)
-        buttons=QHBoxLayout();buttons.setSpacing(8);cancel=QPushButton('Cancel');cancel.setObjectName('quiet');cancel.clicked.connect(self.reject);buttons.addWidget(cancel);buttons.addStretch()
-        self.apply_button=QPushButton('Apply to Game');self.apply_button.clicked.connect(lambda:self.finish(True));buttons.addWidget(self.apply_button)
-        self.edit_button=QPushButton('Use && Edit');self.edit_button.setObjectName('primary');self.edit_button.clicked.connect(lambda:self.finish(False));buttons.addWidget(self.edit_button);layout.addLayout(buttons)
+        buttons=QHBoxLayout();buttons.setSpacing(8);cancel=QPushButton(tr('Cancel'));cancel.setObjectName('quiet');cancel.clicked.connect(self.reject);buttons.addWidget(cancel);buttons.addStretch()
+        self.apply_button=QPushButton(tr('Apply to Game'));self.apply_button.clicked.connect(lambda:self.finish(True));buttons.addWidget(self.apply_button)
+        self.edit_button=QPushButton(tr('Use && Edit'));self.edit_button.setObjectName('primary');self.edit_button.clicked.connect(lambda:self.finish(False));buttons.addWidget(self.edit_button);layout.addLayout(buttons)
         self.search.textChanged.connect(self.populate);self.filter.currentIndexChanged.connect(self.populate);self.shape_filter.currentIndexChanged.connect(self.populate);self.tiles.currentItemChanged.connect(self.select);self.tiles.itemDoubleClicked.connect(lambda _:self.finish(False));self.populate()
     def thumbnail(self,entry):
         if entry.key not in self.icons:
@@ -153,94 +158,94 @@ class CrosshairGallery(QDialog):
         bounds=QRectF()
         for outline,fill,_ in self.preview.shapes:bounds=bounds.united(outline.boundingRect()).united(fill.boundingRect())
         extent=max(abs(bounds.left()),abs(bounds.right()),abs(bounds.top()),abs(bounds.bottom()),1);zoom=min(2,(self.preview.height()-16)/(2*extent))
-        self.preview.set_zoom(zoom);self.preview_caption.setText(f'{zoom:g}× preview · simulated spread: 8')
+        self.preview.set_zoom(zoom);self.preview_caption.setText(tr('{0:g}× preview · simulated spread: 8').format(zoom))
     def populate(self,*_):
-        selected=self.chosen.key if self.chosen else None;self.tiles.clear();query=self.search.text().strip().casefold();group=self.filter.currentData();category=self.shape_filter.currentText();count=0;selected_row=0
+        selected=self.chosen.key if self.chosen else None;self.tiles.clear();query=self.search.text().strip().casefold();group=self.filter.currentData();category=self.shape_filter.currentData();count=0;selected_row=0
         for entry in self.catalog:
             if group not in ('all',entry.group) or category not in ('Any shape',shape(entry.design)) or query not in entry.name.casefold():continue
-            tag=('PLAYER · '+entry.published) if entry.group=='players' else ('SAVED' if entry.group=='saved' else 'STUDIO · '+shape(entry.design).upper())
+            tag=(tr('PLAYER · ')+entry.published) if entry.group=='players' else (tr('SAVED') if entry.group=='saved' else tr('STUDIO · ')+tr(shape(entry.design)).upper())
             item=QListWidgetItem(self.thumbnail(entry),entry.name+'\n'+tag);item.setTextAlignment(Qt.AlignCenter);item.setData(Qt.UserRole,entry.key);item.setToolTip(entry.detail);self.tiles.addItem(item)
             if entry.key==selected:selected_row=count
             count+=1
-        self.empty.setText(f'{count} crosshairs · Select a card to preview. Double-click to edit.' if count else 'No matching crosshairs. Try a different name or filter.')
+        self.empty.setText(tr('{0} crosshairs · Select a card to preview. Double-click to edit.').format(count) if count else tr('No matching crosshairs. Try a different name or filter.'))
         self.no_match.setVisible(not count)
         if count:self.tiles.setCurrentRow(selected_row)
         else:self.select(None)
     def select(self,item,*_):
         self.chosen=next((e for e in self.catalog if item and e.key==item.data(Qt.UserRole)),None);self.edit_button.setEnabled(self.chosen is not None);self.apply_button.setEnabled(self.chosen is not None)
-        if not self.chosen:self.name.setText('No selection');self.detail.clear();self.source.clear();self.motion.clear();self.preview.setVisible(False);return
+        if not self.chosen:self.name.setText(tr('No selection'));self.detail.clear();self.source.clear();self.motion.clear();self.preview.setVisible(False);return
         entry=self.chosen;self.preview.setVisible(True);self.preview.set_design(entry.design);self.fit_preview();self.name.setText(entry.name)
-        self.detail.setText('Only width, length and gap were published. Other values are defaults.' if entry.key in ('dew','crayon') else 'Player-attributed settings published in Deadlock Labs.' if entry.group=='players' else entry.detail);self.detail.setToolTip(entry.detail)
-        self.source.setText(f'<a style="color:#e7c08a" href="{html.escape(entry.source,quote=True)}">View source ↗</a><br>{entry.published}' if entry.source else '')
-        self.motion.setText(shape(entry.design)+' / '+('Static' if entry.design.static else 'Dynamic'))
+        self.detail.setText(tr('Only width, length and gap were published. Other values are defaults.') if entry.key in ('dew','crayon') else tr('Player-attributed settings published in Deadlock Labs.') if entry.group=='players' else entry.detail);self.detail.setToolTip(entry.detail)
+        self.source.setText(tr('<a style="color:#e7c08a" href="{0}">View source ↗</a><br>{1}').format(html.escape(entry.source,quote=True),entry.published) if entry.source else '')
+        self.motion.setText(tr(shape(entry.design))+' / '+(tr('Static') if entry.design.static else tr('Dynamic')))
     def finish(self,apply_requested):
         if self.chosen:self.apply_requested=apply_requested;self.accept()
 
 class CrosshairPage(QWidget):
     def __init__(self,context,parent=None,library=None):
-        super().__init__(parent);self.setLayoutDirection(Qt.LeftToRight);self.setStyleSheet(CROSSHAIR_STYLE)
+        super().__init__(parent);self.setLayoutDirection(SIDE);self.setStyleSheet(CROSSHAIR_STYLE)
         self.context=context;self.loading=False;self.loaded=False;self.model=PRESETS['صليب صغير'];self.current_model=None;self.controls={};self.loaded_context=None
         self.library=Path(library) if library else Path(QStandardPaths.writableLocation(QStandardPaths.AppDataLocation))/'crosshairs/profiles.json'
         self.profiles={};self.load_profiles();root=QVBoxLayout(self);root.setContentsMargins(0,0,0,0);root.setSpacing(12)
 
         # One toolbar: what is loaded, where to get another, and how to keep it.
-        row=QHBoxLayout();row.setSpacing(8);self.design_kicker=Kicker('DESIGN');row.addWidget(self.design_kicker);self.presets=Combo();self.presets.setPlaceholderText('Choose a preset');self.presets.setMinimumWidth(150);row.addWidget(self.presets,1);self.rebuild_presets();self.presets.currentIndexChanged.connect(self.choose_preset)
-        self.design_name=note('Custom','previewMode');self.design_name.setWordWrap(False);row.addWidget(self.design_name,0,Qt.AlignVCenter)
-        self.gallery_button=QPushButton('PRO Crosshairs');self.gallery_button.setObjectName('primary');self.gallery_button.setIcon(icon('gallery',T.ON_BRASS));self.gallery_button.setIconSize(QSize(16,16));self.gallery_button.clicked.connect(self.open_gallery);self.gallery_button.setMinimumWidth(self.gallery_button.sizeHint().width()+14);row.addWidget(self.gallery_button)
-        save=QPushButton('Save');save.setIcon(icon('save',T.TEXT));save.setIconSize(QSize(16,16));save.clicked.connect(self.save_profile);row.addWidget(save);share=QPushButton('Share');share.setProperty('menu',True);menu=QMenu(share)
+        row=QHBoxLayout();row.setSpacing(8);self.design_kicker=Kicker(tr('DESIGN'));row.addWidget(self.design_kicker);self.presets=Combo();self.presets.setPlaceholderText(tr('Choose a preset'));self.presets.setMinimumWidth(150);row.addWidget(self.presets,1);self.rebuild_presets();self.presets.currentIndexChanged.connect(self.choose_preset)
+        self.design_name=note(tr('Custom'),'previewMode');self.design_name.setWordWrap(False);row.addWidget(self.design_name,0,Qt.AlignVCenter)
+        self.gallery_button=QPushButton(tr('PRO Crosshairs'));self.gallery_button.setObjectName('primary');self.gallery_button.setIcon(icon('gallery',T.ON_BRASS));self.gallery_button.setIconSize(QSize(16,16));self.gallery_button.clicked.connect(self.open_gallery);self.gallery_button.setMinimumWidth(self.gallery_button.sizeHint().width()+14);row.addWidget(self.gallery_button)
+        save=QPushButton(tr('Save'));save.setIcon(icon('save',T.TEXT));save.setIconSize(QSize(16,16));save.clicked.connect(self.save_profile);row.addWidget(save);share=QPushButton(tr('Share'));share.setProperty('menu',True);menu=QMenu(share)
         for title,fn in [('Copy Toolbox code',self.copy_code),('Paste Toolbox code',self.paste_code),('Export JSON',self.export_file),('Import JSON',self.import_file),('Delete saved design',self.delete_profile)]:menu.addAction(title,fn)
         share.setMenu(menu);row.addWidget(share);root.addLayout(row)
         self.splitter=QSplitter(Qt.Horizontal);self.splitter.setLayoutDirection(Qt.LeftToRight);self.splitter.setChildrenCollapsible(False);self.splitter.setHandleWidth(14);root.addWidget(self.splitter,1)
 
         # Live preview and everything that only affects the preview.
-        preview_frame,preview_layout=panel('Live preview');self.preview=CrosshairPreview();preview_layout.addWidget(self.preview,1)
-        row=QHBoxLayout();row.setSpacing(8);self.background=Combo();self.background.addItems(['Dark studio','Light studio','Custom image...']);self.background.currentIndexChanged.connect(self.change_background);row.addWidget(self.background,1)
+        preview_frame,preview_layout=panel(tr('Live preview'));self.preview=CrosshairPreview();preview_layout.addWidget(self.preview,1)
+        row=QHBoxLayout();row.setSpacing(8);self.background=Combo();self.background.addItems([tr('Dark studio'),tr('Light studio'),tr('Custom image...')]);self.background.currentIndexChanged.connect(self.change_background);row.addWidget(self.background,1)
         self.zoom=Combo()
         for value in [1,2,4,8]:self.zoom.addItem(f'\u200e{value}×',value)
-        self.zoom.setToolTip('1x is the reference size for the selected game height. Higher zoom is for editing only.');self.zoom.currentIndexChanged.connect(self.change_preview_scale);row.addWidget(self.zoom);preview_layout.addLayout(row)
+        self.zoom.setToolTip(tr('1x is the reference size for the selected game height. Higher zoom is for editing only.'));self.zoom.currentIndexChanged.connect(self.change_preview_scale);row.addWidget(self.zoom);preview_layout.addLayout(row)
         self.preview_info=note('','previewMode');preview_layout.addWidget(self.preview_info)
         row=QHBoxLayout();row.setSpacing(8)
-        self.fix_static=QPushButton('Make Static');self.fix_static.setObjectName('quiet');self.fix_static.clicked.connect(self.make_static);self.fix_static.setToolTip('Use static lines, disable movement collapse and themed hero reticles. Review before applying.');row.addWidget(self.fix_static,1)
-        self.calibration_button=QPushButton('Preview Settings');self.calibration_button.setObjectName('quiet');row.addWidget(self.calibration_button,1);preview_layout.addLayout(row)
+        self.fix_static=QPushButton(tr('Make Static'));self.fix_static.setObjectName('quiet');self.fix_static.clicked.connect(self.make_static);self.fix_static.setToolTip(tr('Use static lines, disable movement collapse and themed hero reticles. Review before applying.'));row.addWidget(self.fix_static,1)
+        self.calibration_button=QPushButton(tr('Preview Settings'));self.calibration_button.setObjectName('quiet');row.addWidget(self.calibration_button,1);preview_layout.addLayout(row)
         self.calibration=QWidget(self);calibration_layout=QVBoxLayout(self.calibration);calibration_layout.setContentsMargins(0,0,0,0);calibration_layout.setSpacing(10)
-        row=QHBoxLayout();row.addWidget(note('Game height'));self.resolution=Combo()
+        row=QHBoxLayout();row.addWidget(note(tr('Game height')));self.resolution=Combo()
         for height in [720,900,1080,1440,2160]:self.resolution.addItem(str(height),height)
-        self.resolution.setCurrentIndex(2);self.resolution.setToolTip('Preview scaling only. Your game resolution is never changed.');self.resolution.currentIndexChanged.connect(self.change_preview_scale);row.addWidget(self.resolution);calibration_layout.addLayout(row)
-        self.spread_row=QWidget();spread_layout=QHBoxLayout(self.spread_row);spread_layout.setContentsMargins(0,0,0,0);spread_layout.addWidget(note('Spread'));self.spread_slider=QSlider(Qt.Horizontal);self.spread_slider.setRange(0,640);self.spread_slider.setValue(80);spread_layout.addWidget(self.spread_slider,1)
+        self.resolution.setCurrentIndex(2);self.resolution.setToolTip(tr('Preview scaling only. Your game resolution is never changed.'));self.resolution.currentIndexChanged.connect(self.change_preview_scale);row.addWidget(self.resolution);calibration_layout.addLayout(row)
+        self.spread_row=QWidget();spread_layout=QHBoxLayout(self.spread_row);spread_layout.setContentsMargins(0,0,0,0);spread_layout.addWidget(note(tr('Spread')));self.spread_slider=QSlider(Qt.Horizontal);self.spread_slider.setRange(0,640);self.spread_slider.setValue(80);spread_layout.addWidget(self.spread_slider,1)
         self.spread_value=QDoubleSpinBox();self.spread_value.setButtonSymbols(QAbstractSpinBox.NoButtons);self.spread_value.setRange(0,64);self.spread_value.setDecimals(1);self.spread_value.setValue(8);self.spread_value.setFixedWidth(60);spread_layout.addWidget(self.spread_value)
         self.spread_slider.valueChanged.connect(lambda v:self.spread_value.setValue(v/10));self.spread_value.valueChanged.connect(lambda v:self.spread_slider.setValue(round(v*10)));self.spread_value.valueChanged.connect(self.change_preview_spread);calibration_layout.addWidget(self.spread_row)
-        self.preview_note=note('Preview only. Weapon spread and movement can change the result in game.','sectionLabel');calibration_layout.addWidget(self.preview_note);self.calibration.hide();self.calibration_button.clicked.connect(self.toggle_calibration)
-        self.preview.setToolTip('Native base gap + your gap offset + simulated weapon spread. Preview does not read live weapon state.');preview_frame.setMinimumWidth(210);self.splitter.addWidget(preview_frame)
+        self.preview_note=note(tr('Preview only. Weapon spread and movement can change the result in game.'),'sectionLabel');calibration_layout.addWidget(self.preview_note);self.calibration.hide();self.calibration_button.clicked.connect(self.toggle_calibration)
+        self.preview.setToolTip(tr('Native base gap + your gap offset + simulated weapon spread. Preview does not read live weapon state.'));preview_frame.setMinimumWidth(210);self.splitter.addWidget(preview_frame)
 
         # The design itself, in three tabs.
         self.tabs=QTabWidget();self.tabs.setDocumentMode(True);self.tabs.tabBar().setExpanding(True);self.tabs.tabBar().setDrawBase(False);self.tabs.setMinimumWidth(290);self.splitter.addWidget(self.tabs)
         columns=[]
-        for name in ['Shape','Outline','Behavior']:
+        for name in [tr('Shape'),tr('Outline'),tr('Behavior')]:
             scroll=QScrollArea();scroll.setWidgetResizable(True);container=QWidget();column=QVBoxLayout(container);column.setContentsMargins(0,0,10,0);column.setSpacing(12);scroll.setWidget(container);self.tabs.addTab(scroll,name);columns.append(column)
-        f,c=panel('Color');columns[0].addWidget(f);row=QHBoxLayout();row.addWidget(note('Fill color'));row.addStretch();self.color_button=QPushButton();self.color_button.clicked.connect(lambda:self.choose_color('color'));row.addWidget(self.color_button);c.addLayout(row)
+        f,c=panel(tr('Color'));columns[0].addWidget(f);row=QHBoxLayout();row.addWidget(note(tr('Fill color')));row.addStretch();self.color_button=QPushButton();self.color_button.clicked.connect(lambda:self.choose_color('color'));row.addWidget(self.color_button);c.addLayout(row)
         palette=QHBoxLayout();palette.setSpacing(8)
         for color in PALETTE:
             button=QPushButton();button.setObjectName('swatch');button.setFixedSize(26,26);button.setCursor(Qt.PointingHandCursor);button.setToolTip(color.upper());button.setStyleSheet(f'QPushButton#swatch {{background:{color};}}');button.clicked.connect(lambda _,v=color:self.pick_palette(v));palette.addWidget(button)
         palette.addStretch();c.addLayout(palette)
-        for title,keys in [('Lines',('width','length','gap','opacity')),('Center dot',('dot','dot_opacity'))]:
+        for title,keys in [(tr('Lines'),('width','length','gap','opacity')),(tr('Center dot'),('dot','dot_opacity'))]:
             f,c=panel(title);columns[0].addWidget(f)
             for key in keys:self.add_control(c,key)
-        f,c=panel('Outline color');columns[1].addWidget(f);self.outline_button=QPushButton();self.outline_button.clicked.connect(lambda:self.choose_color('outline'));c.addWidget(self.outline_button,0,Qt.AlignLeft)
-        for title,keys in [('Line outline',('border','border_gap','border_opacity')),('Dot outline',('dot_border','dot_border_gap','dot_border_opacity'))]:
+        f,c=panel(tr('Outline color'));columns[1].addWidget(f);self.outline_button=QPushButton();self.outline_button.clicked.connect(lambda:self.choose_color('outline'));c.addWidget(self.outline_button,0,Qt.AlignLeft)
+        for title,keys in [(tr('Line outline'),('border','border_gap','border_opacity')),(tr('Dot outline'),('dot_border','dot_border_gap','dot_border_opacity'))]:
             f,c=panel(title);columns[1].addWidget(f)
             for key in keys:self.add_control(c,key)
-        f,c=panel('Motion & hero reticles');columns[2].addWidget(f)
-        self.static=QCheckBox('Static lines');self.collapse=QCheckBox('Collapse gap while resting');self.themed=QCheckBox('Use themed hero reticles');self.all_heroes=QCheckBox('Apply to all heroes')
+        f,c=panel(tr('Motion & hero reticles'));columns[2].addWidget(f)
+        self.static=QCheckBox(tr('Static lines'));self.collapse=QCheckBox(tr('Collapse gap while resting'));self.themed=QCheckBox(tr('Use themed hero reticles'));self.all_heroes=QCheckBox(tr('Apply to all heroes'))
         for box in [self.static,self.collapse,self.themed]:box.toggled.connect(self.edited);c.addWidget(box)
-        c.addWidget(note('Static lines keep the gap fixed. Dynamic lines respond to your weapon. Themed reticles may replace your custom design.','sectionLabel'))
-        f,c=panel('Application scope');columns[2].addWidget(f);c.addWidget(self.all_heroes);c.addWidget(note('Update existing hero-specific crosshairs too. Sensitivity, bindings and other settings stay untouched.','sectionLabel'))
+        c.addWidget(note(tr('Static lines keep the gap fixed. Dynamic lines respond to your weapon. Themed reticles may replace your custom design.'),'sectionLabel'))
+        f,c=panel(tr('Application scope'));columns[2].addWidget(f);c.addWidget(self.all_heroes);c.addWidget(note(tr('Update existing hero-specific crosshairs too. Sensitivity, bindings and other settings stay untouched.'),'sectionLabel'))
         for column in columns:column.addStretch()
 
         # Read, restore, apply.
-        self.splitter.setSizes([420,520]);self.actions_panel=ActionBar('crosshairActions');self.actions_panel.setLayoutDirection(Qt.LeftToRight);self.actions_panel.setStyleSheet(CROSSHAIR_STYLE)
-        actions=self.actions_panel.body;actions.setSpacing(8);self.status=note('Preview ready. Review and apply when you are finished.');actions.addWidget(self.status)
-        row=QHBoxLayout();row.setSpacing(8);self.reload_button=QPushButton('Read from Game');self.reload_button.setIcon(icon('refresh',T.TEXT));self.reload_button.setIconSize(QSize(16,16));self.reload_button.clicked.connect(self.reload_current);row.addWidget(self.reload_button);self.restore_button=QPushButton('Restore Last');self.restore_button.setIcon(icon('undo',T.TEXT));self.restore_button.setIconSize(QSize(16,16));self.restore_button.clicked.connect(lambda:self.review(True));row.addWidget(self.restore_button);row.addStretch()
-        self.apply_button=QPushButton('Review && Apply');self.apply_button.setObjectName('primary');self.apply_button.clicked.connect(lambda:self.review(False));row.addWidget(self.apply_button);actions.addLayout(row);root.addWidget(self.actions_panel);self.set_model(self.model)
+        self.splitter.setSizes([420,520]);self.actions_panel=ActionBar('crosshairActions');self.actions_panel.setLayoutDirection(SIDE);self.actions_panel.setStyleSheet(CROSSHAIR_STYLE)
+        actions=self.actions_panel.body;actions.setSpacing(8);self.status=note(tr('Preview ready. Review and apply when you are finished.'));actions.addWidget(self.status)
+        row=QHBoxLayout();row.setSpacing(8);self.reload_button=QPushButton(tr('Read from Game'));self.reload_button.setIcon(icon('refresh',T.TEXT));self.reload_button.setIconSize(QSize(16,16));self.reload_button.clicked.connect(self.reload_current);row.addWidget(self.reload_button);self.restore_button=QPushButton(tr('Restore Last'));self.restore_button.setIcon(icon('undo',T.TEXT));self.restore_button.setIconSize(QSize(16,16));self.restore_button.clicked.connect(lambda:self.review(True));row.addWidget(self.restore_button);row.addStretch()
+        self.apply_button=QPushButton(tr('Review && Apply'));self.apply_button.setObjectName('primary');self.apply_button.clicked.connect(lambda:self.review(False));row.addWidget(self.apply_button);actions.addLayout(row);root.addWidget(self.actions_panel);self.set_model(self.model)
     def showEvent(self,event):
         super().showEvent(event)
         if not self.loaded or self.loaded_context!=self.context():self.reload_current()
@@ -249,9 +254,9 @@ class CrosshairPage(QWidget):
         if self.splitter.orientation()!=desired:self.splitter.setOrientation(desired);self.splitter.setSizes([230,max(160,self.height()-230)] if desired==Qt.Vertical else [420,520])
         super().resizeEvent(event)
     def toggle_calibration(self,*_):
-        dialog=QDialog(self);dialog.setWindowTitle('Preview Settings');dialog.setLayoutDirection(Qt.LeftToRight);dialog.setStyleSheet(CROSSHAIR_STYLE);dialog.resize(380,260)
-        layout=QVBoxLayout(dialog);layout.setContentsMargins(24,20,24,20);layout.setSpacing(12);layout.addWidget(note('Preview Settings','pageTitle'));layout.addWidget(Rule());layout.addWidget(self.calibration);self.calibration.show();layout.addStretch()
-        close=QPushButton('Done');close.setObjectName('primary');close.clicked.connect(dialog.accept);layout.addWidget(close,0,Qt.AlignRight);dialog.exec();self.calibration.hide();self.calibration.setParent(self);dialog.deleteLater()
+        dialog=QDialog(self);dialog.setWindowTitle(tr('Preview Settings'));dialog.setLayoutDirection(SIDE);dialog.setStyleSheet(CROSSHAIR_STYLE);dialog.resize(380,260)
+        layout=QVBoxLayout(dialog);layout.setContentsMargins(24,20,24,20);layout.setSpacing(12);layout.addWidget(note(tr('Preview Settings'),'pageTitle'));layout.addWidget(Rule());layout.addWidget(self.calibration);self.calibration.show();layout.addStretch()
+        close=QPushButton(tr('Done'));close.setObjectName('primary');close.clicked.connect(dialog.accept);layout.addWidget(close,0,Qt.AlignRight);dialog.exec();self.calibration.hide();self.calibration.setParent(self);dialog.deleteLater()
     def add_control(self,layout,key):
         _,lo,hi=NUMBERS[key];percent=key.endswith('opacity');pixel=key in PIXELS;factor=100 if percent else 1 if pixel else 10
         block=QVBoxLayout();block.setSpacing(2);row=QHBoxLayout();title=note(LABELS[key]+(' %' if percent else ''));row.addWidget(title,1)
@@ -264,12 +269,12 @@ class CrosshairPage(QWidget):
         self.loading=True;model=model.normalized();self.model=model
         for key,(slider,spin) in self.controls.items():spin.setValue(getattr(model,key)*(100 if key.endswith('opacity') else 1))
         for key in ('static','collapse','themed'):getattr(self,key).setChecked(getattr(model,key))
-        if custom:self.presets.setCurrentIndex(-1);self.design_name.setText('Custom')
+        if custom:self.presets.setCurrentIndex(-1);self.design_name.setText(tr('Custom'))
         self.loading=False;self.update_colors();self.preview.set_design(self.model);self.update_preview_info()
     def edited(self,*_):
         if self.loading:return
         data={k:s.value()/(100 if k.endswith('opacity') else 1) for k,(_,s) in self.controls.items()};data.update({k:getattr(self,k).isChecked() for k in ('static','collapse','themed')})
-        self.model=replace(self.model,**data).validate();self.presets.blockSignals(True);self.presets.setCurrentIndex(-1);self.presets.blockSignals(False);self.design_name.setText('Custom');self.preview.set_design(self.model);self.update_preview_info();self.status.setText('Preview updated. Review & Apply to save it in Deadlock.')
+        self.model=replace(self.model,**data).validate();self.presets.blockSignals(True);self.presets.setCurrentIndex(-1);self.presets.blockSignals(False);self.design_name.setText(tr('Custom'));self.preview.set_design(self.model);self.update_preview_info();self.status.setText(tr('Preview updated. Review & Apply to save it in Deadlock.'))
     def change_preview_scale(self,*_):
         if not hasattr(self,'resolution'):return
         self.preview.set_zoom(self.zoom.currentData());self.preview.set_resolution_height(self.resolution.currentData());self.update_preview_info()
@@ -277,90 +282,90 @@ class CrosshairPage(QWidget):
     def update_preview_info(self):
         if not hasattr(self,'fix_static'):return
         self.spread_row.setVisible(not self.model.static);self.fix_static.setVisible(not self.model.static or self.model.themed or self.model.collapse)
-        text='Themed hero reticle enabled' if self.model.themed else ('Static' if self.model.static else 'Dynamic / simulated spread')+f'  ·  gap {self.preview.inner_gap:.1f}'
-        if self.model.collapse:text+=' / movement collapse enabled'
+        text=tr('Themed hero reticle enabled') if self.model.themed else (tr('Static') if self.model.static else tr('Dynamic / simulated spread'))+tr('  ·  gap {0:.1f}').format(self.preview.inner_gap)
+        if self.model.collapse:text+=tr(' / movement collapse enabled')
         self.preview_info.setText(text);self.preview_info.setToolTip(text)
     def make_static(self):
-        self.set_model(replace(self.model,static=True,collapse=False,themed=False),True);self.status.setText('Static design ready. Adjust the gap, then Review & Apply.')
+        self.set_model(replace(self.model,static=True,collapse=False,themed=False),True);self.status.setText(tr('Static design ready. Adjust the gap, then Review & Apply.'))
     def open_gallery(self):
         gallery=CrosshairGallery(self.profiles,self)
         result=gallery.exec();entry=gallery.chosen;apply_requested=gallery.apply_requested;gallery.deleteLater()
         if result!=QDialog.Accepted or not entry:return
-        self.set_model(entry.design,True);self.design_name.setText(entry.name);self.status.setText(entry.name+' loaded. Customize it or apply it to Deadlock.')
+        self.set_model(entry.design,True);self.design_name.setText(entry.name);self.status.setText(entry.name+tr(' loaded. Customize it or apply it to Deadlock.'))
         if apply_requested:self.review()
     def update_colors(self):
         for key,button in [('color',self.color_button),('outline',self.outline_button)]:
             color=getattr(self.model,key);pix=QPixmap(18,18);pix.fill(Qt.transparent);p=QPainter(pix);p.setRenderHint(QPainter.Antialiasing);p.setPen(QPen(QColor(T.LINE_STRONG),1));p.setBrush(QColor(color));p.drawRect(QRectF(.5,.5,17,17));p.end();button.setIcon(QIcon(pix));button.setText('\u200e'+color.upper())
-    def pick_palette(self,color):self.set_model(replace(self.model,color=color),True);self.status.setText('Color updated in preview. Review & Apply to save.')
+    def pick_palette(self,color):self.set_model(replace(self.model,color=color),True);self.status.setText(tr('Color updated in preview. Review & Apply to save.'))
     def choose_color(self,key):
-        color=QColorDialog.getColor(QColor(getattr(self.model,key)),self,'Choose '+('fill' if key=='color' else 'outline')+' color')
-        if color.isValid():self.set_model(replace(self.model,**{key:color.name()}),True);self.status.setText('Color updated in preview. Review & Apply to save.')
+        color=QColorDialog.getColor(QColor(getattr(self.model,key)),self,tr('Choose ')+('fill' if key=='color' else 'outline')+' color')
+        if color.isValid():self.set_model(replace(self.model,**{key:color.name()}),True);self.status.setText(tr('Color updated in preview. Review & Apply to save.'))
     def change_background(self,index):
         if index<2:self.preview.set_background('dark' if index==0 else 'light');return
-        path,_=QFileDialog.getOpenFileName(self,'Choose a preview background','','Images (*.png *.jpg *.jpeg *.webp)')
+        path,_=QFileDialog.getOpenFileName(self,tr('Choose a preview background'),'','Images (*.png *.jpg *.jpeg *.webp)')
         if not path:self.background.setCurrentIndex(0);return
         reader=QImageReader(path);size=reader.size()
         if size.isValid() and max(size.width(),size.height())>1600:reader.setScaledSize(size.scaled(QSize(1600,1000),Qt.KeepAspectRatio))
         image=reader.read()
-        if image.isNull():self.error(ValueError('Could not open this image.'));self.background.setCurrentIndex(0);return
+        if image.isNull():self.error(ValueError(tr('Could not open this image.')));self.background.setCurrentIndex(0);return
         self.preview.set_background('image',QPixmap.fromImage(image))
     def load_profiles(self):
         try:
             if self.library.exists():
-                if self.library.stat().st_size>1024*1024:raise ValueError('The saved design library is too large.')
+                if self.library.stat().st_size>1024*1024:raise ValueError(tr('The saved design library is too large.'))
                 data=json.loads(self.library.read_text(encoding='utf-8'));self.profiles={k:import_design(v) for k,v in data.items() if isinstance(k,str) and 0<len(k)<=60}
         except Exception:self.profiles={}
     def rebuild_presets(self):
         self.presets.blockSignals(True);self.presets.clear()
         catalog=entries(self.profiles)
         for entry in sorted(catalog,key=lambda e:0 if e.key.startswith('builtin:') else 1 if e.group=='players' else 2 if e.group=='builtin' else 3):
-            self.presets.addItem(entry.name+(' / Player' if entry.group=='players' else ' / Saved' if entry.group=='saved' else ''),entry.key)
+            self.presets.addItem(entry.name+(tr(' / Player') if entry.group=='players' else tr(' / Saved') if entry.group=='saved' else ''),entry.key)
         self.presets.setCurrentIndex(-1);self.presets.blockSignals(False)
     def choose_preset(self,index):
         if self.loading or index<0:return
-        entry=next(e for e in entries(self.profiles) if e.key==self.presets.itemData(index));self.set_model(entry.design);self.design_name.setText(entry.name);self.status.setText(entry.name+' loaded. Customize or apply it to Deadlock.')
+        entry=next(e for e in entries(self.profiles) if e.key==self.presets.itemData(index));self.set_model(entry.design);self.design_name.setText(entry.name);self.status.setText(entry.name+tr(' loaded. Customize or apply it to Deadlock.'))
     def write_profiles(self):atomic(self.library,json.dumps({k:export_design(v) for k,v in self.profiles.items()},ensure_ascii=False,indent=2).encode())
     def save_profile(self):
-        name,ok=QInputDialog.getText(self,'Save Crosshair','Design name:')
+        name,ok=QInputDialog.getText(self,tr('Save Crosshair'),tr('Design name:'))
         if not ok:return
         name=name.strip()
-        if not name or len(name)>60:self.error(ValueError('Use a name between 1 and 60 characters.'));return
+        if not name or len(name)>60:self.error(ValueError(tr('Use a name between 1 and 60 characters.')));return
         try:
-            if name in self.profiles and QMessageBox.question(self,'Replace design','A saved design has this name. Replace it?')!=QMessageBox.Yes:return
-            if name not in self.profiles and len(self.profiles)>=100:raise ValueError('You can save up to 100 designs.')
-            self.profiles[name]=self.model;self.write_profiles();self.rebuild_presets();self.design_name.setText(name);self.status.setText('Saved on this device: '+name)
+            if name in self.profiles and QMessageBox.question(self,tr('Replace design'),tr('A saved design has this name. Replace it?'))!=QMessageBox.Yes:return
+            if name not in self.profiles and len(self.profiles)>=100:raise ValueError(tr('You can save up to 100 designs.'))
+            self.profiles[name]=self.model;self.write_profiles();self.rebuild_presets();self.design_name.setText(name);self.status.setText(tr('Saved on this device: ')+name)
         except Exception as e:self.error(e)
     def delete_profile(self):
-        if not self.profiles:self.status.setText('No saved designs yet.');return
-        name,ok=QInputDialog.getItem(self,'Delete Saved Crosshair','Choose a design:',sorted(self.profiles),editable=False)
+        if not self.profiles:self.status.setText(tr('No saved designs yet.'));return
+        name,ok=QInputDialog.getItem(self,tr('Delete Saved Crosshair'),tr('Choose a design:'),sorted(self.profiles),editable=False)
         if ok:
-            try:self.profiles.pop(name);self.write_profiles();self.rebuild_presets();self.status.setText('Saved design removed: '+name)
+            try:self.profiles.pop(name);self.write_profiles();self.rebuild_presets();self.status.setText(tr('Saved design removed: ')+name)
             except Exception as e:self.error(e)
-    def copy_code(self):QApplication.clipboard().setText(share_code(self.model));self.status.setText('Toolbox code copied. Paste it in Crosshair Designer on another device.')
+    def copy_code(self):QApplication.clipboard().setText(share_code(self.model));self.status.setText(tr('Toolbox code copied. Paste it in Crosshair Designer on another device.'))
     def paste_code(self):
-        code,ok=QInputDialog.getMultiLineText(self,'Import Toolbox Code','Paste a DLTB1. code:',QApplication.clipboard().text()[:4096])
+        code,ok=QInputDialog.getMultiLineText(self,tr('Import Toolbox Code'),tr('Paste a DLTB1. code:'),QApplication.clipboard().text()[:4096])
         if ok:
-            try:self.set_model(read_code(code),True);self.status.setText('Imported into preview. Review & Apply to save in game.')
+            try:self.set_model(read_code(code),True);self.status.setText(tr('Imported into preview. Review & Apply to save in game.'))
             except Exception as e:self.error(e)
     def export_file(self):
-        name,_=QFileDialog.getSaveFileName(self,'Export Crosshair','deadlock-crosshair.json','JSON (*.json)')
+        name,_=QFileDialog.getSaveFileName(self,tr('Export Crosshair'),'deadlock-crosshair.json','JSON (*.json)')
         if name:
-            try:atomic(Path(name),json.dumps(export_design(self.model),indent=2).encode());self.status.setText('Crosshair exported.')
+            try:atomic(Path(name),json.dumps(export_design(self.model),indent=2).encode());self.status.setText(tr('Crosshair exported.'))
             except Exception as e:self.error(e)
     def import_file(self):
-        name,_=QFileDialog.getOpenFileName(self,'Import Crosshair','','JSON (*.json)')
+        name,_=QFileDialog.getOpenFileName(self,tr('Import Crosshair'),'','JSON (*.json)')
         if name:
             try:
                 path=Path(name)
-                if path.stat().st_size>8192:raise ValueError('This design file is too large.')
-                self.set_model(import_design(json.loads(path.read_text(encoding='utf-8-sig'))),True);self.status.setText('Imported into preview. Review & Apply to save in game.')
+                if path.stat().st_size>8192:raise ValueError(tr('This design file is too large.'))
+                self.set_model(import_design(json.loads(path.read_text(encoding='utf-8-sig'))),True);self.status.setText(tr('Imported into preview. Review & Apply to save in game.'))
             except Exception as e:self.error(e)
     def store(self):
         root,video=self.context();return CrosshairStore(root,video)
     def reload_current(self):
         self.loaded=True;self.loaded_context=self.context()
         try:
-            store=self.store();design,paths=store.current();self.current_model=design;self.set_model(design,True);self.design_name.setText('In-game')
+            store=self.store();design,paths=store.current();self.current_model=design;self.set_model(design,True);self.design_name.setText(tr('In-game'))
             if store.video:
                 try:
                     fields=kv.section(store.video.read_text(encoding='utf-8'),['video.cfg']).children;height=int(next(n.value for n in fields if n.key=='setting.defaultresheight'))
@@ -369,20 +374,20 @@ class CrosshairPage(QWidget):
                         if index<0:self.resolution.addItem(str(height),height);index=self.resolution.count()-1
                         self.resolution.setCurrentIndex(index)
                 except (ValueError,StopIteration,OSError):pass
-            self.apply_button.setEnabled(True);self.restore_button.setEnabled(store.can_restore());self.status.setText(f'Loaded from Deadlock / {len(paths)} save locations. Editing only changes the preview.')
+            self.apply_button.setEnabled(True);self.restore_button.setEnabled(store.can_restore());self.status.setText(tr('Loaded from Deadlock / {0} save locations. Editing only changes the preview.').format(len(paths)))
         except Exception as e:
-            self.apply_button.setEnabled(False);self.restore_button.setEnabled(False);self.status.setText(friendly_error(e)+' You can still design, save and share.')
+            self.apply_button.setEnabled(False);self.restore_button.setEnabled(False);self.status.setText(friendly_error(e)+tr(' You can still design, save and share.'))
     def review(self,restoring=False):
         try:
             ensure_closed();store=self.store();plan=store.restore_plan() if restoring else store.plan(self.model,self.all_heroes.isChecked())
             if not plan.changes:self.status.setText(store.apply(plan));self.restore_button.setEnabled(store.can_restore());return
-            dialog=QDialog(self);dialog.setWindowTitle('Restore Crosshair' if restoring else 'Apply Crosshair');dialog.setLayoutDirection(Qt.LeftToRight);dialog.setStyleSheet(CROSSHAIR_STYLE);dialog.resize(840,620);layout=QVBoxLayout(dialog);layout.setContentsMargins(24,22,24,20);layout.setSpacing(14)
-            layout.addWidget(note(f'{len(plan.changes)} files will change, with a backup. Close Deadlock before applying.','cardtitle'))
+            dialog=QDialog(self);dialog.setWindowTitle(tr('Restore Crosshair') if restoring else tr('Apply Crosshair'));dialog.setLayoutDirection(SIDE);dialog.setStyleSheet(CROSSHAIR_STYLE);dialog.resize(840,620);layout=QVBoxLayout(dialog);layout.setContentsMargins(24,22,24,20);layout.setSpacing(14)
+            layout.addWidget(note(tr('{0} files will change, with a backup. Close Deadlock before applying.').format(len(plan.changes)),'cardtitle'))
             output=QPlainTextEdit();output.setReadOnly(True);output.setPlainText('\n\n'.join(str(c.path)+'\n'+''.join(difflib.unified_diff(c.before.decode('utf-8').splitlines(True),c.after.decode('utf-8').splitlines(True),fromfile='current',tofile='restored' if restoring else 'crosshair')) for c in plan.changes));layout.addWidget(output,1)
-            buttons=QDialogButtonBox();buttons.addButton('Restore && Back Up' if restoring else 'Apply && Back Up',QDialogButtonBox.AcceptRole).setObjectName('primary');buttons.addButton('Cancel',QDialogButtonBox.RejectRole);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);layout.addWidget(buttons)
+            buttons=QDialogButtonBox();buttons.addButton('Restore && Back Up' if restoring else 'Apply && Back Up',QDialogButtonBox.AcceptRole).setObjectName('primary');buttons.addButton(tr('Cancel'),QDialogButtonBox.RejectRole);buttons.accepted.connect(dialog.accept);buttons.rejected.connect(dialog.reject);layout.addWidget(buttons)
             if dialog.exec()!=QDialog.Accepted:return
-            if self.context()!=self.loaded_context:raise ValueError('The game folder or account changed. Read the game settings and try again.')
+            if self.context()!=self.loaded_context:raise ValueError(tr('The game folder or account changed. Read the game settings and try again.'))
             message=store.apply(plan);self.reload_current();self.status.setText(message)
         except Exception as e:self.error(e)
     def error(self,error):
-        message=friendly_error(error);self.status.setText(message);QMessageBox.warning(self,'Crosshair Designer',message)
+        message=friendly_error(error);self.status.setText(message);QMessageBox.warning(self,tr('Crosshair Designer'),message)

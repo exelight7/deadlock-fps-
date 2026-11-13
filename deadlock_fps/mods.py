@@ -1,4 +1,5 @@
 """Bounded, transactional imports; recognize supported VPKs by their contents."""
+from .i18n import tr
 from dataclasses import dataclass
 from pathlib import Path
 import hashlib,os,sys,zipfile
@@ -39,13 +40,13 @@ class ModLibrary:
     def import_report(self,paths,cancel=None,progress=None):
         matched={};ignored=[];total=0;visited=0
         def stop():
-            if cancel and cancel.is_set():raise ImportCancelled('أُلغي الاستيراد؛ لم تتغير ملفات اللعبة.')
+            if cancel and cancel.is_set():raise ImportCancelled(tr('أُلغي الاستيراد؛ لم تتغير ملفات اللعبة.'))
         def accept(stream,name):
             nonlocal total
             stop();chunks=[];size=0
             while chunk:=stream.read(256*1024):
                 stop();size+=len(chunk);total+=len(chunk)
-                if size>MAX_FILE or total>MAX_TOTAL:raise ValueError('الحزمة أكبر من المسموح. اختر ملفات المودات فقط.')
+                if size>MAX_FILE or total>MAX_TOTAL:raise ValueError(tr('الحزمة أكبر من المسموح. اختر ملفات المودات فقط.'))
                 chunks.append(chunk)
             data=b''.join(chunks);sha=hashlib.sha256(data).hexdigest();key=next((k for k,h in HASHES.items() if sha==h),None)
             if key:vpk_entries(data);matched[key]=data
@@ -53,12 +54,12 @@ class ModLibrary:
             if progress:progress(('read',name))
         def files(source):
             nonlocal visited
-            if not source.exists():raise ValueError('الملف أو المجلد غير موجود: '+source.name)
-            if source.is_symlink():raise ValueError('اختر الملفات الأصلية بدل الروابط الرمزية.')
+            if not source.exists():raise ValueError(tr('الملف أو المجلد غير موجود: ')+source.name)
+            if source.is_symlink():raise ValueError(tr('اختر الملفات الأصلية بدل الروابط الرمزية.'))
             if source.is_file():yield source;return
             for base,dirs,names in os.walk(source,followlinks=False):
                 stop();visited+=len(names)+len(dirs)
-                if visited>4096:raise ValueError('المجلد كبير جدًا؛ اختر مجلد MODS أو الحزمة مباشرة.')
+                if visited>4096:raise ValueError(tr('المجلد كبير جدًا؛ اختر مجلد MODS أو الحزمة مباشرة.'))
                 if len(Path(base).relative_to(source).parts)>=4:dirs[:]=[]
                 for name in names:
                     if '.vpk' in name.lower() or name.lower().endswith('.zip'):yield Path(base)/name
@@ -69,22 +70,22 @@ class ModLibrary:
                 if path.suffix.lower()=='.zip':
                     with zipfile.ZipFile(path) as archive:
                         members=archive.infolist()
-                        if len(members)>4096:raise ValueError('الحزمة تحتوي ملفات كثيرة جدًا؛ اختر حزمة MODS الأصلية.')
+                        if len(members)>4096:raise ValueError(tr('الحزمة تحتوي ملفات كثيرة جدًا؛ اختر حزمة MODS الأصلية.'))
                         for entry in members:
                             if entry.is_dir() or '.vpk' not in Path(entry.filename).name.lower():continue
-                            if entry.file_size>MAX_FILE or total+entry.file_size>MAX_TOTAL:raise ValueError('ملف مود أكبر من الحد المسموح.')
+                            if entry.file_size>MAX_FILE or total+entry.file_size>MAX_TOTAL:raise ValueError(tr('ملف مود أكبر من الحد المسموح.'))
                             with archive.open(entry) as stream:accept(stream,Path(entry.filename).name)
                 else:
-                    if path.stat().st_size>MAX_FILE:raise ValueError('ملف المود أكبر من 64 MB.')
+                    if path.stat().st_size>MAX_FILE:raise ValueError(tr('ملف المود أكبر من 64 MB.'))
                     with path.open('rb') as stream:accept(stream,path.name)
         stop()
-        if not matched:raise ValueError('لم أجد مودًا مدعومًا. أضف حزمة MODS الأصلية أو ملفاتها؛ يُتعرف عليها حتى لو تغيّر الاسم.')
+        if not matched:raise ValueError(tr('لم أجد مودًا مدعومًا. أضف حزمة MODS الأصلية أو ملفاتها؛ يُتعرف عليها حتى لو تغيّر الاسم.'))
         if progress:progress(('commit',''))
         previous={};written=[]
         try:
             for key,data in matched.items():
                 target=self.cache/MODS[key][0]
-                if target.is_symlink():raise ValueError('ملف المكتبة يشير إلى رابط رمزي؛ اختر مكتبة سليمة.')
+                if target.is_symlink():raise ValueError(tr('ملف المكتبة يشير إلى رابط رمزي؛ اختر مكتبة سليمة.'))
                 old=target.read_bytes() if target.exists() else None;previous[target]=old
                 if old!=data:atomic(target,data);written.append(target)
         except Exception:

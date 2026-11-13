@@ -1,4 +1,5 @@
 """Native modern Deadlock reticles: validated models, sharing, scoped transactions."""
+from .i18n import tr
 from dataclasses import dataclass,asdict,replace
 from pathlib import Path
 import base64,json,math,re,uuid,zlib
@@ -40,15 +41,15 @@ class Crosshair:
     def validate(self):
         for key,(_,lo,hi) in NUMBERS.items():
             v=getattr(self,key)
-            if type(v) not in (int,float) or not math.isfinite(v) or not lo<=v<=hi:raise ValueError('Invalid value: '+key)
+            if type(v) not in (int,float) or not math.isfinite(v) or not lo<=v<=hi:raise ValueError(tr('Invalid value: ')+key)
         for key in BOOLEANS:
-            if type(getattr(self,key)) is not bool:raise ValueError('Invalid option: '+key)
+            if type(getattr(self,key)) is not bool:raise ValueError(tr('Invalid option: ')+key)
         for key in ('color','outline'):
-            if not isinstance(getattr(self,key),str) or not re.fullmatch(r'#[0-9a-fA-F]{6}',getattr(self,key)):raise ValueError('Invalid color.')
+            if not isinstance(getattr(self,key),str) or not re.fullmatch(r'#[0-9a-fA-F]{6}',getattr(self,key)):raise ValueError(tr('Invalid color.'))
         return self
     @classmethod
     def from_dict(cls,data):
-        if not isinstance(data,dict) or set(data)-cls.__dataclass_fields__.keys():raise ValueError('Invalid design or unsupported fields.')
+        if not isinstance(data,dict) or set(data)-cls.__dataclass_fields__.keys():raise ValueError(tr('Invalid design or unsupported fields.'))
         return cls(**data).validate()
     def native(self):
         design=self.normalized();result={native:format(getattr(design,k),'.6g') for k,(native,_,_) in NUMBERS.items()}
@@ -67,13 +68,13 @@ class Crosshair:
         for key,native in BOOLEANS.items():
             if native in values:
                 v=str(values[native]).lower()
-                if v not in ('true','false','0','1'):raise ValueError('Unknown crosshair option: '+native)
+                if v not in ('true','false','0','1'):raise ValueError(tr('Unknown crosshair option: ')+native)
                 data[key]=v in ('true','1')
         for key,prefix in [('color','crosshair_color_'),('outline','crosshair_outline_color_')]:
             rgb=[]
             for i,c in enumerate('rgb'):
                 v=float(values.get(prefix+c,int(getattr(default,key)[1+i*2:3+i*2],16)))
-                if not v.is_integer() or not 0<=v<=255:raise ValueError('Color is out of range.')
+                if not v.is_integer() or not 0<=v<=255:raise ValueError(tr('Color is out of range.'))
                 rgb.append(int(v))
             data[key]='#'+''.join(f'{v:02x}' for v in rgb)
         return cls.from_dict(data)
@@ -88,21 +89,21 @@ PRESETS={
 
 def export_design(design):return {'format':'deadlock-toolbox-crosshair','version':1,'design':asdict(design.validate())}
 def import_design(data):
-    if not isinstance(data,dict) or set(data)!={'format','version','design'} or data['format']!='deadlock-toolbox-crosshair' or type(data['version']) is not int or data['version']!=1:raise ValueError('Unsupported design file.')
+    if not isinstance(data,dict) or set(data)!={'format','version','design'} or data['format']!='deadlock-toolbox-crosshair' or type(data['version']) is not int or data['version']!=1:raise ValueError(tr('Unsupported design file.'))
     return Crosshair.from_dict(data['design'])
 def share_code(design):
     raw=json.dumps(export_design(design),sort_keys=True,separators=(',',':')).encode()
     return 'DLTB1.'+base64.urlsafe_b64encode(zlib.compress(raw,9)).decode().rstrip('=')
 def read_code(code):
     code=code.strip()
-    if len(code)>4096 or not re.fullmatch(r'DLTB1\.[A-Za-z0-9_-]+',code):raise ValueError('Paste a Toolbox code starting with DLTB1. Native DL codes are not supported here.')
+    if len(code)>4096 or not re.fullmatch(r'DLTB1\.[A-Za-z0-9_-]+',code):raise ValueError(tr('Paste a Toolbox code starting with DLTB1. Native DL codes are not supported here.'))
     try:
         value=code[6:];packed=base64.b64decode(value+'='*(-len(value)%4),altchars=b'-_',validate=True)
         decoder=zlib.decompressobj();raw=decoder.decompress(packed,8193)
-        if len(raw)>8192 or not decoder.eof or decoder.unused_data:raise ValueError('Code is too large or damaged.')
+        if len(raw)>8192 or not decoder.eof or decoder.unused_data:raise ValueError(tr('Code is too large or damaged.'))
         return import_design(json.loads(raw))
     except (ValueError,zlib.error,UnicodeDecodeError,TypeError) as error:
-        raise ValueError('Invalid design code. Copy the complete code from Toolbox.') from error
+        raise ValueError(tr('Invalid design code. Copy the complete code from Toolbox.')) from error
 
 @dataclass
 class Change:
@@ -118,22 +119,22 @@ class Plan:
 class CrosshairStore:
     def __init__(self,root,video=None):
         self.root=game_root(root);self.video=Path(video).resolve() if video else None
-        if self.video and self.video not in video_files(self.root):raise ValueError('Choose a Steam account in Overview.')
+        if self.video and self.video not in video_files(self.root):raise ValueError(tr('Choose a Steam account in Overview.'))
         self.folder=self.root/'.deadlock-fps-studio/crosshair';self.latest=self.folder/'latest.json'
     def paths(self):
         paths=[self.root/'game/citadel/cfg/citadel_hero_settings.lst']
         if self.video and self.video.parent.parent.name=='local':paths.append(self.video.parent.parent.parent/'remote/cfg/citadel_hero_settings.lst')
         for p in paths:
-            if p.is_symlink():raise ValueError('Symbolic links to hero settings are not supported.')
+            if p.is_symlink():raise ValueError(tr('Symbolic links to hero settings are not supported.'))
         return tuple(dict.fromkeys(paths))
     @staticmethod
     def read(path):
         with path.open('rb') as f:raw=f.read(2*1024*1024+1)
-        if len(raw)>2*1024*1024:raise ValueError('The hero settings file is too large.')
+        if len(raw)>2*1024*1024:raise ValueError(tr('The hero settings file is too large.'))
         text=raw.decode('utf-8');kv3.section(text,['base']);return raw,text
     def current(self):
         found=[p for p in self.paths() if p.is_file()]
-        if not found:raise ValueError('Change your crosshair once inside Deadlock, close the game, then click Read from Game.')
+        if not found:raise ValueError(tr('Change your crosshair once inside Deadlock, close the game, then click Read from Game.'))
         # Prefer the explicitly selected Steam account's cloud source.
         path=found[-1];_,text=self.read(path)
         return Crosshair.from_native(kv3.fields(text,['base'])),tuple(found)
@@ -144,7 +145,7 @@ class CrosshairStore:
             if all_heroes:
                 heroes=kv3.section(text,['heroes'])
                 for n in heroes.children:
-                    if n.kind!='object':raise ValueError('Invalid hero settings.')
+                    if n.kind!='object':raise ValueError(tr('Invalid hero settings.'))
                     scopes.append(('heroes',n.key))
             output=text
             for scope in scopes:
@@ -158,22 +159,22 @@ class CrosshairStore:
         if not self.latest.exists():return False
         data=json.loads(self.latest.read_text());return bool(data.get('snapshot'))
     def restore_plan(self):
-        if not self.can_restore():raise ValueError('No crosshair change is available to restore for this folder.')
+        if not self.can_restore():raise ValueError(tr('No crosshair change is available to restore for this folder.'))
         name=json.loads(self.latest.read_text())['snapshot']
-        if not isinstance(name,str) or not re.fullmatch('[0-9a-f]{32}',name):raise ValueError('Invalid backup record.')
+        if not isinstance(name,str) or not re.fullmatch('[0-9a-f]{32}',name):raise ValueError(tr('Invalid backup record.'))
         folder=self.folder/name
-        if folder.is_symlink():raise ValueError('Invalid backup path.')
+        if folder.is_symlink():raise ValueError(tr('Invalid backup path.'))
         manifest=json.loads((folder/'manifest.json').read_text());allowed=set(self.paths());changes=[];seen=set()
-        if manifest.get('schema')!=1 or not isinstance(manifest.get('records'),list):raise ValueError('Invalid backup.')
+        if manifest.get('schema')!=1 or not isinstance(manifest.get('records'),list):raise ValueError(tr('Invalid backup.'))
         for i,record in enumerate(manifest['records']):
             p=Path(record['path'])
-            if p not in allowed or p in seen:raise ValueError('This backup belongs to a different folder or account. Select the previous account first.')
+            if p not in allowed or p in seen:raise ValueError(tr('This backup belongs to a different folder or account. Select the previous account first.'))
             seen.add(p)
             old=(folder/f'{i}.before').read_bytes();applied=(folder/f'{i}.after').read_bytes()
-            if digest(old)!=record['before_hash'] or digest(applied)!=record['after_hash']:raise ValueError('The backup is damaged.')
+            if digest(old)!=record['before_hash'] or digest(applied)!=record['after_hash']:raise ValueError(tr('The backup is damaged.'))
             current,text=self.read(p);output=text;scopes=[]
             for scope in record['scopes']:
-                if scope!=['base'] and not (len(scope)==2 and scope[0]=='heroes' and re.fullmatch('[A-Za-z0-9_.-]+',scope[1])):raise ValueError('Invalid restore scope.')
+                if scope!=['base'] and not (len(scope)==2 and scope[0]=='heroes' and re.fullmatch('[A-Za-z0-9_.-]+',scope[1])):raise ValueError(tr('Invalid restore scope.'))
                 before_fields=kv3.fields(old.decode('utf-8'),scope);after_fields=kv3.fields(applied.decode('utf-8'),scope)
                 patch={k:before_fields.get(k) for k in after_fields if k in Crosshair().native() and not equivalent(before_fields.get(k),after_fields.get(k))}
                 output=kv3.update(output,scope,patch);scopes.append(tuple(scope))
@@ -182,10 +183,10 @@ class CrosshairStore:
         return Plan(changes,restoring=True)
     def apply(self,plan):
         ensure_closed();allowed=set(self.paths())
-        if self.folder.resolve().is_relative_to(self.root) is False:raise ValueError('Invalid backup folder.')
+        if self.folder.resolve().is_relative_to(self.root) is False:raise ValueError(tr('Invalid backup folder.'))
         for change in plan.changes:
-            if change.path not in allowed or change.path.is_symlink():raise ValueError('Invalid settings path.')
-            if change.path.read_bytes()!=change.before:raise ValueError('The file changed during review. Read from Game and try again.')
+            if change.path not in allowed or change.path.is_symlink():raise ValueError(tr('Invalid settings path.'))
+            if change.path.read_bytes()!=change.before:raise ValueError(tr('The file changed during review. Read from Game and try again.'))
         if not plan.changes:
             if plan.restoring:atomic(self.latest,b'{"snapshot":null}')
             return 'This crosshair is already applied. No game files changed.'
@@ -198,7 +199,7 @@ class CrosshairStore:
         try:
             for c in plan.changes:
                 ensure_closed()
-                if c.path.read_bytes()!=c.before:raise ValueError('A file changed before writing. Review the changes again.')
+                if c.path.read_bytes()!=c.before:raise ValueError(tr('A file changed before writing. Review the changes again.'))
                 atomic(c.path,c.after);written.append(c)
             atomic(self.latest,json.dumps({'snapshot':None if plan.restoring else folder.name}).encode())
         except Exception:

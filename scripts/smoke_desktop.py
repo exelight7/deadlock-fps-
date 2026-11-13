@@ -26,6 +26,5 @@ finally:
     if process.poll() is None:process.terminate()
     _,error=process.communicate(timeout=10)
     # The offscreen platform has no size-hint support and says so; tests/test_motion.py treats that line as benign too.
-    error=b'
-'.join(line for line in error.splitlines() if line.strip() and b'propagateSizeHints' not in line)
+    error=b'\n'.join(line for line in error.splitlines() if line.strip() and b'propagateSizeHints' not in line)
     if error:raise RuntimeError(error.decode(errors='replace'))

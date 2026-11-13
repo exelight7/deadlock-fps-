@@ -5,18 +5,21 @@ stops by itself, so nothing repaints while the window is idle. Widgets that are
 not on screen skip straight to their final state, which keeps headless runs and
 tests deterministic.
 """
+import math
 from PySide6.QtCore import Qt, QObject, QEvent, QEasingCurve, QVariantAnimation, QRect, QRectF, QPointF, QTimer, QSize
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPixmap, QLinearGradient, QRadialGradient, QPen, QFont, QIcon
+from PySide6.QtGui import QColor, QPainter, QPixmap, QPolygonF, QPen, QFont, QIcon
 from PySide6.QtWidgets import QWidget, QPushButton, QFrame, QGraphicsDropShadowEffect
+from . import theme as T
 
-BASE = QColor('#0a1016')
-GOLD = QColor('#e9c48c')
-GOLD_BRIGHT = QColor('#f7deb2')
-MINT = QColor('#86e3c3')
-AMBER = QColor('#d9a45c')
-MUTED = QColor('#93a7b4')
-TEXT = QColor('#eef3f5')
-FAMILIES = ['Noto Sans Arabic', 'Segoe UI']
+BASE = QColor(T.BASE)
+GOLD = QColor(T.BRASS)
+GOLD_BRIGHT = QColor(T.BRASS_BRIGHT)
+MINT = QColor(T.VERDIGRIS)
+AMBER = QColor(T.AMBER)
+MUTED = QColor(T.TEXT_MUTED)
+TEXT = QColor(T.TEXT)
+FAMILIES = list(T.DISPLAY)
+LABELS = list(T.BODY)
 
 
 def mix(a, b, t):
@@ -191,7 +194,7 @@ class NavButton(QPushButton):
         self.setObjectName('nav')
         self.setCheckable(True)
         self.setCursor(Qt.PointingHandCursor)
-        self.setMinimumHeight(40)
+        self.setMinimumHeight(42)
         self.hover = Fader(self, 150, self.update)
         self.active = Fader(self, 260, self.update)
         self.pulse = tween(self, 1500, lambda _: self.update(), QEasingCurve.Linear)
@@ -229,20 +232,21 @@ class NavButton(QPushButton):
         hover, active = self.hover.level, self.active.level
         if not self.isEnabled():
             painter.setOpacity(.45)
-        if hover > 0 and active < 1:
-            painter.setPen(Qt.NoPen)
-            painter.setBrush(QColor(255, 255, 255, round(13 * hover * (1 - active))))
-            painter.drawRoundedRect(rect, 11, 11)
-        if self.keyboard_focus and self.hasFocus():
-            painter.setPen(QPen(alpha(GOLD, .8), 1))
-            painter.setBrush(Qt.NoBrush)
-            painter.drawRoundedRect(rect.adjusted(1, 1, -1, -1), 10, 10)
         rtl = self.layoutDirection() == Qt.RightToLeft
-        margin, size = 13, 21
+        if hover > 0 and active < 1:
+            # A hairline plate rises under the pointer; the selected plate belongs to NavIndicator.
+            painter.setPen(QPen(alpha(QColor(T.LINE_STRONG), hover * (1 - active)), 1))
+            painter.setBrush(alpha(QColor(T.SURFACE), .9 * hover * (1 - active)))
+            painter.drawRect(rect)
+        if self.keyboard_focus and self.hasFocus():
+            painter.setPen(QPen(alpha(GOLD, .9), 1))
+            painter.setBrush(Qt.NoBrush)
+            painter.drawRect(rect.adjusted(2, 2, -2, -2))
+        margin, size = 16, 20
         drift = 3 * hover * (1 - active) * (-1 if rtl else 1)
         icon_left = (rect.right() - margin - size if rtl else rect.left() + margin) + drift
         opacity = painter.opacity()
-        painter.setOpacity(opacity * (.58 + .42 * max(hover, active)))
+        painter.setOpacity(opacity * (.55 + .45 * max(hover, active)))
         self.glyph.paint(painter, QRect(round(icon_left), round((self.height() - size) / 2), size, size))
         painter.setOpacity(opacity)
         text = self.text()
@@ -250,32 +254,35 @@ class NavButton(QPushButton):
         if badge:
             text = text[:-2]
         font = QFont(self.font())
-        font.setFamilies(FAMILIES)
-        font.setPixelSize(13)
+        font.setFamilies(LABELS)
+        font.setPixelSize(14)
         font.setWeight(QFont.DemiBold)
         painter.setFont(font)
-        painter.setPen(mix(mix(MUTED, TEXT, hover), GOLD_BRIGHT, active))
+        painter.setPen(mix(mix(QColor(T.TEXT_SOFT), TEXT, hover), GOLD_BRIGHT, active))
         reserve = 22 if badge else 0
         if rtl:
-            area = QRectF(rect.left() + margin + reserve, rect.top(), icon_left - 11 - rect.left() - margin - reserve, rect.height())
+            area = QRectF(rect.left() + margin + reserve, rect.top(), icon_left - 12 - rect.left() - margin - reserve, rect.height())
             flags = Qt.AlignRight
         else:
-            area = QRectF(icon_left + size + 11, rect.top(), rect.right() - margin - reserve - icon_left - size - 11, rect.height())
+            area = QRectF(icon_left + size + 12, rect.top(), rect.right() - margin - reserve - icon_left - size - 12, rect.height())
             flags = Qt.AlignLeft
         text = painter.fontMetrics().elidedText(text, Qt.ElideRight, max(0, int(area.width())))
-        painter.drawText(area, int(flags | Qt.AlignVCenter | Qt.AlignAbsolute | Qt.TextSingleLine), text)
+        painter.drawText(area.adjusted(0, -1, 0, -1), int(flags | Qt.AlignVCenter | Qt.AlignAbsolute | Qt.TextSingleLine), text)
         if badge:
             center = QPointF(rect.left() + margin + 5 if rtl else rect.right() - margin - 5, rect.center().y())
             if self.pulse.state() == QVariantAnimation.Running:
                 wave = float(self.pulse.currentValue() or 0.)
-                painter.setPen(Qt.NoPen)
-                painter.setBrush(alpha(GOLD, .45 * (1 - wave)))
-                painter.drawEllipse(center, 4 + 8 * wave, 4 + 8 * wave)
+                painter.setPen(QPen(alpha(GOLD, .6 * (1 - wave)), 1))
+                painter.setBrush(Qt.NoBrush)
+                painter.drawPolygon(diamond(center, 5 + 8 * wave))
             painter.setPen(Qt.NoPen)
-            painter.setBrush(alpha(GOLD, .28))
-            painter.drawEllipse(center, 6.5, 6.5)
             painter.setBrush(GOLD_BRIGHT)
-            painter.drawEllipse(center, 3.5, 3.5)
+            painter.drawPolygon(diamond(center, 4.5))
+
+
+def diamond(center, radius):
+    return QPolygonF([QPointF(center.x(), center.y() - radius), QPointF(center.x() + radius, center.y()),
+                      QPointF(center.x(), center.y() + radius), QPointF(center.x() - radius, center.y())])
 
 
 class NavIndicator(QWidget):
@@ -329,17 +336,20 @@ class NavIndicator(QWidget):
         painter.setRenderHint(QPainter.Antialiasing)
         rect = QRectF(self.rect()).adjusted(.5, .5, -.5, -.5)
         rtl = self.layoutDirection() == Qt.RightToLeft
-        fill = QLinearGradient(rect.right() if rtl else rect.left(), 0, rect.left() if rtl else rect.right(), 0)
-        fill.setColorAt(0, alpha(GOLD, .22))
-        fill.setColorAt(1, alpha(GOLD, .05))
-        painter.setPen(QPen(alpha(GOLD, .30), 1))
-        painter.setBrush(fill)
-        painter.drawRoundedRect(rect, 11, 11)
-        height = min(22., rect.height() * .5)
-        bar = QRectF(rect.right() - 3.5 if rtl else rect.left() + .5, rect.center().y() - height / 2, 3, height)
+        cut = min(9., rect.height() / 2)
+        # A brass-washed plate: square on the leading edge, cut on the trailing corners.
+        if rtl:
+            points = [rect.topRight(), QPointF(rect.left() + cut, rect.top()), QPointF(rect.left(), rect.top() + cut),
+                      QPointF(rect.left(), rect.bottom() - cut), QPointF(rect.left() + cut, rect.bottom()), rect.bottomRight()]
+        else:
+            points = [rect.topLeft(), QPointF(rect.right() - cut, rect.top()), QPointF(rect.right(), rect.top() + cut),
+                      QPointF(rect.right(), rect.bottom() - cut), QPointF(rect.right() - cut, rect.bottom()), rect.bottomLeft()]
+        painter.setPen(QPen(QColor(T.BRASS_DEEP), 1))
+        painter.setBrush(QColor(T.BRASS_WASH))
+        painter.drawPolygon(QPolygonF(points))
         painter.setPen(Qt.NoPen)
         painter.setBrush(GOLD_BRIGHT)
-        painter.drawRoundedRect(bar, 1.5, 1.5)
+        painter.drawRect(QRectF(rect.right() - 2.5 if rtl else rect.left() - .5, rect.top() - .5, 3, rect.height() + 1))
 
 
 class Glow(QObject):
@@ -388,13 +398,13 @@ class Glow(QObject):
         self.effect.setEnabled(level > .01)
 
 
-GLOWS = {'primary': ('#e9c48c', 26, .55), 'positive': ('#7fe0c0', 22, .45), 'danger': ('#f08f85', 22, .45), 'shortcut': ('#9fd8cf', 22, .35)}
+GLOWS = {'primary': (T.BRASS, 24, .50), 'positive': (T.VERDIGRIS, 20, .32), 'danger': (T.CRIMSON, 22, .55), 'shortcut': (T.BRASS, 20, .26)}
 
 
 def enliven(root):
     """Give the accent buttons and cards under `root` their hover glow (safe to call again)."""
     widgets = [(button, GLOWS.get(button.objectName())) for button in root.findChildren(QPushButton)]
-    widgets += [(card, ('#e9c48c', 26, .28)) for card in root.findChildren(QFrame, 'modCard')]
+    widgets += [(card, (T.BRASS, 24, .24)) for card in root.findChildren(QFrame, 'modCard')]
     for widget, spec in widgets:
         if spec and not widget.property('glow'):
             widget.setProperty('glow', True)
@@ -426,12 +436,14 @@ class StatusChip(QPushButton):
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(Qt.NoPen)
-        # The halo swells mid-change, then settles.
+        # The outline swells mid-change, then settles.
         swell = 1 - abs(2 * level - 1)
-        painter.setBrush(alpha(color, .22 + .25 * swell))
-        painter.drawEllipse(QPointF(7, 7), 5 + 2 * swell, 5 + 2 * swell)
+        painter.setPen(QPen(alpha(color, .35 + .4 * swell), 1))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawPolygon(diamond(QPointF(7, 7), 5.5 + 1.2 * swell))
+        painter.setPen(Qt.NoPen)
         painter.setBrush(color)
-        painter.drawEllipse(QPointF(7, 7), 3.2, 3.2)
+        painter.drawPolygon(diamond(QPointF(7, 7), 3.4))
         painter.end()
         self.setIcon(QIcon(pixmap))
 
@@ -443,7 +455,7 @@ class LevelMeter(QWidget):
         self.maximum = maximum
         self.marks = marks
         self.shown = 0.
-        self.setFixedHeight(18)
+        self.setFixedHeight(24)
         self.setLayoutDirection(Qt.LeftToRight)
         self.glide = QVariantAnimation(self)
         self.glide.setDuration(520)
@@ -465,36 +477,26 @@ class LevelMeter(QWidget):
         self.update()
 
     def paintEvent(self, event):
+        # A segmented gauge: verdigris for gentle levels, brass through the working range, crimson at the experimental end.
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        track = QRectF(7, self.height() / 2 - 3, self.width() - 14, 6)
-        painter.setPen(Qt.NoPen)
-        painter.setBrush(QColor('#1a2a35'))
-        painter.drawRoundedRect(track, 3, 3)
+        left, right = 6., self.width() - 6.
+        count = max(12, int((right - left) // 7))
+        step = (right - left) / count
+        top, height = 9., self.height() - 11.
         ratio = self.shown / self.maximum if self.maximum else 0
-        end = track.left() + track.width() * ratio
-        colors = QLinearGradient(track.left(), 0, track.right(), 0)
-        for stop, color in [(0, '#86e3c3'), (.42, '#e9c48c'), (1, '#f08f85')]:
-            colors.setColorAt(stop, QColor(color))
-        if ratio > 0:
-            clip = QPainterPath()
-            clip.addRoundedRect(track, 3, 3)
-            painter.save()
-            painter.setClipPath(clip)
-            painter.fillRect(QRectF(track.left(), track.top(), end - track.left(), track.height()), colors)
-            painter.restore()
+        low, middle, high = QColor(T.VERDIGRIS), QColor(T.BRASS), QColor(T.CRIMSON_TEXT)
+        painter.setPen(Qt.NoPen)
+        for index in range(count):
+            at = (index + .5) / count
+            lit = max(0., min(1., ratio * count - index))
+            shade = mix(mix(low, middle, at / .42), high, (at - .42) / .58)
+            painter.setBrush(mix(QColor(T.SUNKEN), shade, .12 + .88 * lit))
+            painter.drawRect(QRectF(left + index * step + 1, top, step - 2, height))
         for mark in self.marks:
-            x = track.left() + track.width() * mark / self.maximum
-            painter.setBrush(QColor('#0a1016') if mark < self.shown else QColor('#3b5261'))
-            painter.drawEllipse(QPointF(x, track.center().y()), 1.6, 1.6)
-        tip = mix(mix(QColor('#86e3c3'), QColor('#e9c48c'), ratio / .42), QColor('#f08f85'), (ratio - .42) / .58)
-        halo = QRadialGradient(QPointF(end, track.center().y()), 9)
-        halo.setColorAt(0, alpha(tip, .55))
-        halo.setColorAt(1, alpha(tip, 0))
-        painter.setBrush(halo)
-        painter.drawEllipse(QPointF(end, track.center().y()), 9, 9)
-        painter.setBrush(QColor('#fff6e4'))
-        painter.drawEllipse(QPointF(end, track.center().y()), 3.6, 3.6)
+            x = left + (right - left) * mark / self.maximum
+            painter.setBrush(GOLD_BRIGHT if mark <= self.shown else QColor(T.LINE_STRONG))
+            painter.drawPolygon(diamond(QPointF(x, 4), 3))
 
 
 class Intro(QWidget):
@@ -531,34 +533,37 @@ class Intro(QWidget):
         leave = ease(max(0., (t - .52) / .48))
         painter = QPainter(self)
         painter.setRenderHints(QPainter.Antialiasing | QPainter.TextAntialiasing | QPainter.SmoothPixmapTransform)
-        painter.fillRect(self.rect(), alpha(BASE, 1 - leave))
-        center = QPointF(self.width() / 2, self.height() / 2 - 26)
-        glow = QRadialGradient(center, 230)
-        glow.setColorAt(0, alpha(GOLD, .13 * arrive * (1 - leave)))
-        glow.setColorAt(1, alpha(GOLD, 0))
-        painter.fillRect(self.rect(), glow)
+        painter.fillRect(self.rect(), alpha(QColor(T.INK), 1 - leave))
+        center = QPointF(self.width() / 2, self.height() / 2 - 30)
         painter.setOpacity(arrive * (1 - leave))
+        # The sunburst opens behind the emblem as it arrives.
+        painter.setPen(QPen(alpha(GOLD, .22), 1))
+        for index in range(48):
+            angle = math.radians(index * 7.5)
+            inner, outer = 96, 96 + (150 if index % 4 == 0 else 96) * arrive
+            painter.drawLine(QPointF(center.x() + inner * math.cos(angle), center.y() + inner * math.sin(angle)),
+                             QPointF(center.x() + outer * math.cos(angle), center.y() + outer * math.sin(angle)))
         size = 132 * (.92 + .08 * arrive + .10 * leave)
         if not self.logo.isNull():
             painter.drawPixmap(QRectF(center.x() - size / 2, center.y() - size / 2, size, size), self.logo, QRectF(self.logo.rect()))
         font = QFont()
         font.setFamilies(FAMILIES)
-        font.setPixelSize(24)
-        font.setWeight(QFont.ExtraBold)
+        font.setPixelSize(26)
+        font.setWeight(QFont.DemiBold)
         painter.setFont(font)
         painter.setPen(TEXT)
         rise = 10 * (1 - arrive)
-        painter.drawText(QRectF(0, center.y() + 76 + rise, self.width(), 34), int(Qt.AlignHCenter | Qt.AlignVCenter), self.title)
+        painter.drawText(QRectF(0, center.y() + 84 + rise, self.width(), 38), int(Qt.AlignHCenter | Qt.AlignVCenter), self.title)
         if self.caption:
+            font.setFamilies(list(T.BODY))
             font.setPixelSize(11)
-            font.setWeight(QFont.DemiBold)
-            font.setLetterSpacing(QFont.AbsoluteSpacing, 3)
+            font.setLetterSpacing(QFont.AbsoluteSpacing, 0 if T.has_arabic(self.caption) else 3)
             painter.setFont(font)
             painter.setPen(GOLD)
-            painter.drawText(QRectF(0, center.y() + 112 + rise, self.width(), 20), int(Qt.AlignHCenter | Qt.AlignVCenter), self.caption)
-        line = QRectF(center.x() - 70, center.y() + 146, 140, 2)
+            painter.drawText(QRectF(0, center.y() + 124 + rise, self.width(), 20), int(Qt.AlignHCenter | Qt.AlignVCenter), self.caption)
+        line = QRectF(center.x() - 80, center.y() + 158, 160, 1.5)
         painter.setPen(Qt.NoPen)
-        painter.setBrush(alpha(TEXT, .10))
-        painter.drawRoundedRect(line, 1, 1)
+        painter.setBrush(alpha(TEXT, .12))
+        painter.drawRect(line)
         painter.setBrush(GOLD_BRIGHT)
-        painter.drawRoundedRect(QRectF(line.left(), line.top(), line.width() * ease(min(1., t / .6)), 2), 1, 1)
+        painter.drawRect(QRectF(line.left(), line.top(), line.width() * ease(min(1., t / .6)), 1.5))

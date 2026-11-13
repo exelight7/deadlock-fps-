@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c9a45c" color="#c9a45c" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter">
+  <path d="M6 3v5"/>
+  <path d="M6 13v8"/>
+  <path d="M12 3v10"/>
+  <path d="M12 18v3"/>
+  <path d="M18 3v2"/>
+  <path d="M18 10v11"/>
+  <path d="M6 8l2.5 2.5L6 13l-2.5-2.5z"/>
+  <path d="M12 13l2.5 2.5L12 18l-2.5-2.5z"/>
+  <path d="M18 5l2.5 2.5L18 10l-2.5-2.5z"/>
+</svg>

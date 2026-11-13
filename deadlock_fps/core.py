@@ -1,4 +1,5 @@
 """Preview-first file operations with immutable originals and transactional rollback."""
+from .i18n import tr
 from pathlib import Path
 import hashlib, json, os, re, shutil, struct, tempfile
 from decimal import Decimal, InvalidOperation
@@ -20,36 +21,75 @@ def atomic(path,data):
         if os.path.exists(name): os.unlink(name)
 
 def game_root(path):
-    if not str(path).strip():raise ValueError('اربط اللعبة أولًا: اختر مجلد Deadlock من صفحة ابدأ هنا.')
+    if not str(path).strip():raise ValueError(tr('اربط اللعبة أولًا: اختر مجلد Deadlock من صفحة ابدأ هنا.'))
     p=Path(path).expanduser().resolve()
     for candidate in [p,p.parent,p.parent.parent]:
         if (candidate/'game/citadel/gameinfo.gi').is_file():return candidate
-    if not (p/'game/citadel/gameinfo.gi').is_file(): raise ValueError('اختر مجلد Deadlock الذي يحتوي game/citadel/gameinfo.gi')
+    if not (p/'game/citadel/gameinfo.gi').is_file(): raise ValueError(tr('اختر مجلد Deadlock الذي يحتوي game/citadel/gameinfo.gi'))
     return p
 
+GAME_PROCESSES={'deadlock','deadlock.exe','citadel','citadel.exe','project8','project8.exe'}
+
 def steam_roots():
-    home=Path.home(); roots=[home/'.local/share/Steam',home/'.steam/steam',home/'.var/app/com.valvesoftware.Steam/.local/share/Steam']
+    home=Path.home(); roots=[home/'.local/share/Steam',home/'.steam/steam',home/'.steam/root',home/'.steam/debian-installation',
+        home/'.var/app/com.valvesoftware.Steam/.local/share/Steam',home/'.var/app/com.valvesoftware.Steam/data/Steam',home/'snap/steam/common/.local/share/Steam']
     if os.name=='nt':
         import winreg
-        for hive,key in [(winreg.HKEY_CURRENT_USER,r'Software\Valve\Steam'),(winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\WOW6432Node\Valve\Steam')]:
+        for hive,key in [(winreg.HKEY_CURRENT_USER,r'Software\Valve\Steam'),(winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\WOW6432Node\Valve\Steam'),(winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\Valve\Steam')]:
             try:
                 with winreg.OpenKey(hive,key) as k:
                     for value in ['SteamPath','InstallPath']:
                         try: roots.append(Path(winreg.QueryValueEx(k,value)[0]))
                         except OSError: pass
             except OSError: pass
-        roots += [Path(os.environ.get('PROGRAMFILES(X86)','C:/Program Files (x86)'))/'Steam',Path('C:/Steam')]
-    return list(dict.fromkeys(p.resolve() for p in roots if p.exists()))
+        roots += [Path(os.environ.get('PROGRAMFILES(X86)','C:/Program Files (x86)'))/'Steam',Path(os.environ.get('PROGRAMFILES','C:/Program Files'))/'Steam',Path('C:/Steam')]
+    found=[]
+    for p in roots:
+        try:
+            if p.exists():found.append(p.resolve())
+        except OSError:pass
+    return list(dict.fromkeys(found))
 
-def detect_games():
+def drive_libraries():
+    """Usual Steam library folders on every mounted drive, for libraries Steam's own list no longer mentions."""
+    result=[]
+    try:mounts=[Path(d.mountpoint) for d in psutil.disk_partitions(all=False)]
+    except Exception:mounts=[]
+    for mount in mounts:
+        for name in ('SteamLibrary','Steam','Games/Steam','Games/SteamLibrary','Program Files (x86)/Steam'):
+            result.append(mount/name)
+    return result
+
+def steam_libraries():
     libraries=[]
     for root in steam_roots():
         libraries.append(root)
         f=root/'steamapps/libraryfolders.vdf'
-        if f.exists():
-            for p in re.findall(r'"path"\s*"([^"]+)"',f.read_text(errors='replace')):
-                libraries.append(Path(p.replace('\\\\','\\')))
-    return list(dict.fromkeys(p/'steamapps/common/Deadlock' for p in libraries if (p/'steamapps/common/Deadlock/game/citadel/gameinfo.gi').exists()))
+        try:
+            if f.exists():
+                for p in re.findall(r'"path"\s*"([^"]+)"',f.read_text(errors='replace')):
+                    libraries.append(Path(p.replace('\\\\','\\')))
+        except OSError:pass
+    return list(dict.fromkeys(libraries))
+
+def running_game_root():
+    """The folder of a Deadlock process that is running right now, wherever it was installed."""
+    try:
+        for p in psutil.process_iter(['name','exe']):
+            if (p.info['name'] or '').lower() in GAME_PROCESSES and p.info.get('exe'):
+                for parent in Path(p.info['exe']).parents:
+                    if (parent/'game/citadel/gameinfo.gi').is_file():return parent
+    except Exception:pass
+    return None
+
+def detect_games():
+    def installed(library):
+        try:return (library/'steamapps/common/Deadlock/game/citadel/gameinfo.gi').exists()
+        except OSError:return False
+    games=[p/'steamapps/common/Deadlock' for p in steam_libraries()+drive_libraries() if installed(p)]
+    running=running_game_root()
+    if running:games.insert(0,running)
+    return list(dict.fromkeys(games))
 
 def video_files(root):
     roots=steam_roots()
@@ -65,8 +105,8 @@ def video_files(root):
 
 def ensure_closed():
     for p in psutil.process_iter(['name']):
-        if (p.info['name'] or '').lower() in {'deadlock','deadlock.exe','citadel','citadel.exe','project8','project8.exe'}:
-            raise ValueError('أغلق Deadlock قبل التطبيق أو الاسترجاع.')
+        if (p.info['name'] or '').lower() in GAME_PROCESSES:
+            raise ValueError(tr('أغلق Deadlock قبل التطبيق أو الاسترجاع.'))
 
 def vpk_entries(path):
     b=path if isinstance(path,bytes) else path.read_bytes()
@@ -172,7 +212,7 @@ class Studio:
     def __init__(self,root,video=None):
         self.root=game_root(root)
         self.video=Path(video).resolve() if video else None
-        if self.video and self.video not in video_files(self.root): raise ValueError('اختر ملف الفيديو من حسابات Steam المكتشفة.')
+        if self.video and self.video not in video_files(self.root): raise ValueError(tr('اختر ملف الفيديو من حسابات Steam المكتشفة.'))
         self.store=self.root/'.deadlock-fps-studio'
         self.manifest=self.store/'state.json'
     def state(self):
@@ -207,7 +247,7 @@ class Studio:
             actual=flat(text,['video.cfg'])
             if all(equivalent(actual.get(k),expected_values.get(k)) for k in keys):
                 return clean_base(original.decode('utf-8-sig'),text,owned).encode()
-        raise ValueError(f'تغيّرت تعديلات {p.name}. اضغط إصلاح رجوع الإعدادات؛ ستُحفظ الحالة الحالية قبل الدمج.')
+        raise ValueError(tr('تغيّرت تعديلات {0}. اضغط إصلاح رجوع الإعدادات؛ ستُحفظ الحالة الحالية قبل الدمج.').format(p.name))
     def drift(self):
         state=self.state();changed=[]
         for name,e in state['files'].items():
@@ -219,7 +259,7 @@ class Studio:
         """Reapply the saved recipe on current files; never revert a whole patched gameinfo."""
         from .settings import Settings
         ensure_closed();state=self.state()
-        if not state.get('settings'):return 'طبّق مستوى التخفيف أولًا لحفظه.'
+        if not state.get('settings'):return tr('طبّق مستوى التخفيف أولًا لحفظه.')
         settings=Settings.from_dict(state['settings']);new=json.loads(json.dumps(state))
         if settings.mods:
             from .mods import ModLibrary
@@ -248,7 +288,7 @@ class Studio:
             result=self.apply(plan,settings,mod_only=not graphics)
         except Exception:
             atomic(self.manifest,json.dumps(state,indent=2).encode());raise
-        return 'تم إصلاح التعديلات على الملفات الحالية مع حفظ الدقة وتغييرات تحديث اللعبة. '+result
+        return tr('تم إصلاح التعديلات على الملفات الحالية مع حفظ الدقة وتغييرات تحديث اللعبة. ')+result
     def plan(self,s,mod_folder=None):
         ensure_closed(); state=self.state(); planned={}
         video,convars,scene=values(s)
@@ -266,7 +306,7 @@ class Studio:
             if source is None: raise ValueError('Video config not found')
             source=keep_resolution(source,self.video.read_bytes())
             planned[self.video]=kv.update(source.decode('utf-8-sig'),['video.cfg'],video).encode()
-        else: raise ValueError('شغل اللعبة مرة واحدة ثم اختر حساب Steam الذي تريد تعديل إعداداته.')
+        else: raise ValueError(tr('شغل اللعبة مرة واحدة ثم اختر حساب Steam الذي تريد تعديل إعداداته.'))
         moddir=self.root/'game/citadel/fps_studio'
         for key,(filename,_,_) in MODS.items():
             target=self.checked_path(moddir/filename.split(' - ')[0])
@@ -276,7 +316,7 @@ class Studio:
                 if not source.exists(): source=folder/'MODS'/filename
                 if not source.exists(): source=folder/filename.split(' - ')[0]
                 if not source.exists() and target.exists(): source=target
-                if not source.exists(): raise ValueError(f'استورد المود أولًا من صفحة المودات: {filename}')
+                if not source.exists(): raise ValueError(tr('استورد المود أولًا من صفحة المودات: {0}').format(filename))
                 vpk_entries(source); self.baseline(target,state); planned[target]=source.read_bytes()
             elif str(target) in state['files']: planned[target]=self.baseline(target,state)
         # Revert previously managed files that are no longer selected (e.g. another Steam account).
@@ -307,7 +347,7 @@ class Studio:
             if key in mods:
                 source=Path(folder)/filename
                 if not source.exists() and target.exists():source=target
-                if not source.exists():raise ValueError(f'استورد المود أولًا: {MODS[key][1]}')
+                if not source.exists():raise ValueError(tr('استورد المود أولًا: {0}').format(MODS[key][1]))
                 vpk_entries(source);data=source.read_bytes()
                 if (target.read_bytes() if target.exists() else None)!=data:planned[target]=data
             elif str(target) in state['files'] and (target.read_bytes() if target.exists() else None)!=base:planned[target]=base
@@ -316,7 +356,7 @@ class Studio:
         ensure_closed()
         if not plan:
             state=self.state();state['graphics_managed']=not mod_only or self.graphics_managed(state);state['settings']=s.to_dict();atomic(self.manifest,json.dumps(state,indent=2).encode())
-            return 'الإعدادات مطبقة بالفعل.'
+            return tr('الإعدادات مطبقة بالفعل.')
         state=self.state(); previous={}; new=json.loads(json.dumps(state))
         self.store.mkdir(parents=True,exist_ok=True)
         for p,b in plan.items():
@@ -345,7 +385,7 @@ class Studio:
         except Exception:
             for p,b in previous.items(): self.write(p,b)
             raise
-        return f'تم تطبيق الإعدادات وحفظ النسخ الأصلية ({len(plan)} ملفات).'
+        return tr('تم تطبيق الإعدادات وحفظ النسخ الأصلية ({0} ملفات).').format(len(plan))
     @staticmethod
     def write(p,b):
         if b is None: p.unlink(missing_ok=True)
@@ -358,11 +398,11 @@ class Studio:
             if (digest(current[p]) if current[p] is not None else None)!=e['applied']:
                 try:original=self.baseline(p,state)
                 except ValueError:
-                    if not preserve_changes:raise ValueError('توجد تغييرات فعلية خارج البرنامج. استخدم الإصلاح أو خيار حفظ الحالة الحالية قبل الاسترجاع.')
+                    if not preserve_changes:raise ValueError(tr('توجد تغييرات فعلية خارج البرنامج. استخدم الإصلاح أو خيار حفظ الحالة الحالية قبل الاسترجاع.'))
             originals[p]=original
             if p.name=='video.txt' and originals[p] is not None and current[p] is not None:
                 originals[p]=keep_resolution(originals[p],current[p])
-        if not originals: return 'لا توجد نسخة تحتاج إلى الاسترجاع.'
+        if not originals: return tr('لا توجد نسخة تحتاج إلى الاسترجاع.')
         # Preserve every current file before restoration, including patch changes.
         archive=self.store/'history'/datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')
         for p,b in current.items():
@@ -374,4 +414,4 @@ class Studio:
         except Exception:
             for p,b in current.items(): self.write(p,b)
             raise
-        return 'تم استرجاع الملفات الأصلية وحفظ نسخة من الحالة السابقة.'
+        return tr('تم استرجاع الملفات الأصلية وحفظ نسخة من الحالة السابقة.')

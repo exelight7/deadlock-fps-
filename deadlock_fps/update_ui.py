@@ -1,4 +1,5 @@
 """Update Center: explicit release state, portable downloads and installation help."""
+from .i18n import tr
 from datetime import datetime
 import sys
 from pathlib import Path
@@ -22,7 +23,7 @@ def panel(title=None,description=None,icon_name=None):
 
 class StateTitle(Text):
     """Headline of a status panel. Its colour follows the outcome the text reports."""
-    TONES=(('danger',('تعذر',)),('success',('✓','أنت على آخر إصدار')),('ready',('تحديث جديد',)))
+    TONES=(('danger',(tr('تعذر'),)),('success',('✓',tr('أنت على آخر إصدار'))),('ready',(tr('تحديث جديد'),)))
     def __init__(self,value):
         super().__init__('','stateTitle');self.setTextFormat(Qt.PlainText);self.setText(value)
     def setText(self,value):
@@ -31,8 +32,8 @@ class StateTitle(Text):
 
 
 def checked_time(value):
-    try:return datetime.fromtimestamp(value).astimezone().strftime('%Y-%m-%d %H:%M') if value else 'غير معروف'
-    except (ValueError,OSError,OverflowError):return 'غير معروف'
+    try:return datetime.fromtimestamp(value).astimezone().strftime('%Y-%m-%d %H:%M') if value else tr('غير معروف')
+    except (ValueError,OSError,OverflowError):return tr('غير معروف')
 
 
 class UpdatePage(QWidget):
@@ -44,39 +45,39 @@ class UpdatePage(QWidget):
         self.client=UpdateClient(self.store,self,manager)
         root=QVBoxLayout(self);root.setContentsMargins(0,0,0,0);root.setSpacing(12)
         scroll=QScrollArea();scroll.setWidgetResizable(True);body=QWidget();outer=QHBoxLayout(body);outer.setContentsMargins(0,0,12,0);column=QWidget();column.setMaximumWidth(1080);v=QVBoxLayout(column);v.setContentsMargins(0,0,0,0);v.setSpacing(16);outer.addStretch(1);outer.addWidget(column,1000);outer.addStretch(1);scroll.setWidget(body);root.addWidget(scroll,1)
-        v.addWidget(UtilityHeader(6,'التحديث والتثبيت','افحص، نزّل، ثم ثبّت بضغطة. بدون نقل ملفات يدويًا.','UPDATE / INSTALL'))
+        v.addWidget(UtilityHeader(6,tr('التحديث والتثبيت'),tr('افحص، نزّل، ثم ثبّت بضغطة. بدون نقل ملفات يدويًا.'),'UPDATE / INSTALL'))
 
         # Where things stand, and the one button that refreshes it.
         frame,c=panel();v.addWidget(frame)
         row=QHBoxLayout();row.setSpacing(12);copy=QVBoxLayout();copy.setSpacing(4)
-        self.state=StateTitle('ابدأ بفحص الإصدارات.');copy.addWidget(self.state);self.detail=text('الفحص والتنزيل يعملان في الخلفية.');copy.addWidget(self.detail)
-        self.checked=text('لم يتم الفحص بعد.','sectionLabel');copy.addWidget(self.checked);row.addLayout(copy,1)
-        self.channel=text('نسخة تجريبية محلية' if self.current.pre else 'إصدارات مستقرة','badge');self.channel.setWordWrap(False);row.addWidget(self.channel,0,Qt.AlignTop);c.addLayout(row)
+        self.state=StateTitle(tr('ابدأ بفحص الإصدارات.'));copy.addWidget(self.state);self.detail=text(tr('الفحص والتنزيل يعملان في الخلفية.'));copy.addWidget(self.detail)
+        self.checked=text(tr('لم يتم الفحص بعد.'),'sectionLabel');copy.addWidget(self.checked);row.addLayout(copy,1)
+        self.channel=text(tr('نسخة تجريبية محلية') if self.current.pre else tr('إصدارات مستقرة'),'badge');self.channel.setWordWrap(False);row.addWidget(self.channel,0,Qt.AlignTop);c.addLayout(row)
         self.progress=QProgressBar();self.progress.setRange(0,100);self.progress.setLayoutDirection(Qt.LeftToRight);self.progress.setTextVisible(False);c.addWidget(self.progress);self.progress.hide()
         self.progress_text=text('','sectionLabel');self.progress_text.setLayoutDirection(Qt.LeftToRight);c.addWidget(self.progress_text);self.progress_text.hide()
-        row=QHBoxLayout();row.setSpacing(8);self.check_button=QPushButton('التحقق من التحديثات');self.check_button.setObjectName('positive');self.check_button.setIcon(icon('refresh',T.VERDIGRIS));self.check_button.setIconSize(QSize(16,16));self.check_button.clicked.connect(self.check);row.addWidget(self.check_button)
-        self.release_button=QPushButton('صفحة الإصدارات');self.release_button.setObjectName('quiet');self.release_button.setIcon(icon('external',T.TEXT_SOFT));self.release_button.setIconSize(QSize(16,16));self.release_button.clicked.connect(self.open_release);row.addWidget(self.release_button);row.addStretch();c.addLayout(row)
+        row=QHBoxLayout();row.setSpacing(8);self.check_button=QPushButton(tr('التحقق من التحديثات'));self.check_button.setObjectName('positive');self.check_button.setIcon(icon('refresh',T.VERDIGRIS));self.check_button.setIconSize(QSize(16,16));self.check_button.clicked.connect(self.check);row.addWidget(self.check_button)
+        self.release_button=QPushButton(tr('صفحة الإصدارات'));self.release_button.setObjectName('quiet');self.release_button.setIcon(icon('external',T.TEXT_SOFT));self.release_button.setIconSize(QSize(16,16));self.release_button.clicked.connect(self.open_release);row.addWidget(self.release_button);row.addStretch();c.addLayout(row)
 
         # The two versions side by side.
         row=QHBoxLayout();row.setSpacing(16);v.addLayout(row)
-        frame,c=panel();c.setSpacing(4);c.addWidget(text('إصدارك الحالي','sectionLabel'));self.current_label=text(current,'value');c.addWidget(self.current_label);c.addWidget(text('Windows / Linux • x64' if platform_key() else 'هذا النظام لا يملك حزمة تنزيل متوافقة.','sectionLabel'));row.addWidget(frame,1)
-        frame,c=panel();c.setSpacing(4);c.addWidget(text('آخر إصدار عام','sectionLabel'));self.latest=text('—','value');c.addWidget(self.latest);self.published=text('المصدر: GitHub · exelight7/deadlock-fps-','sectionLabel');c.addWidget(self.published);row.addWidget(frame,1)
+        frame,c=panel();c.setSpacing(4);c.addWidget(text(tr('إصدارك الحالي'),'sectionLabel'));self.current_label=text(current,'value');c.addWidget(self.current_label);c.addWidget(text('Windows / Linux • x64' if platform_key() else tr('هذا النظام لا يملك حزمة تنزيل متوافقة.'),'sectionLabel'));row.addWidget(frame,1)
+        frame,c=panel();c.setSpacing(4);c.addWidget(text(tr('آخر إصدار عام'),'sectionLabel'));self.latest=text('—','value');c.addWidget(self.latest);self.published=text(tr('المصدر: GitHub · exelight7/deadlock-fps-'),'sectionLabel');c.addWidget(self.published);row.addWidget(frame,1)
 
-        frame,c=panel('ما الجديد؟',icon_name='file');v.addWidget(frame);self.notes=QPlainTextEdit();self.notes.setObjectName('notes');self.notes.setReadOnly(True);self.notes.setMinimumHeight(145);self.notes.setMaximumHeight(220);self.notes.setLayoutDirection(Qt.LeftToRight);self.notes.setPlainText('ستظهر ملاحظات الإصدار هنا بعد الفحص.');c.addWidget(self.notes)
-        frame,c=panel('تركيب النسخة الجديدة',icon_name='updates');v.addWidget(frame)
-        c.addWidget(text('1. اضغط التحقق من التحديثات ثم تنزيل التحديث.\n2. بعد التحقق، اضغط تثبيت النسخة المنزّلة.\n3. افتح النسخة الجديدة من الزر أو قائمة التطبيقات.'))
-        c.addWidget(text('التثبيت لحسابك فقط، دون صلاحية مدير. تُحفظ النسخة السابقة، وإعدادات اللعبة والنسخ الاحتياطية تبقى في مكانها.','sectionLabel'))
-        self.auto_check=QCheckBox('فحص عند تشغيل البرنامج • بحد أقصى مرة يوميًا');self.auto_check.setChecked(self.store.auto_check);self.auto_check.toggled.connect(self.save_preference);c.addWidget(self.auto_check)
-        row=QHBoxLayout();self.install_current_button=QPushButton('تثبيت هذه النسخة في قائمة التطبيقات');self.install_current_button.setObjectName('quiet');self.install_current_button.clicked.connect(self.install_current);self.install_current_button.setVisible(bool(getattr(sys,'frozen',False)));row.addWidget(self.install_current_button);row.addStretch();c.addLayout(row)
+        frame,c=panel(tr('ما الجديد؟'),icon_name='file');v.addWidget(frame);self.notes=QPlainTextEdit();self.notes.setObjectName('notes');self.notes.setReadOnly(True);self.notes.setMinimumHeight(145);self.notes.setMaximumHeight(220);self.notes.setLayoutDirection(Qt.LeftToRight);self.notes.setPlainText(tr('ستظهر ملاحظات الإصدار هنا بعد الفحص.'));c.addWidget(self.notes)
+        frame,c=panel(tr('تركيب النسخة الجديدة'),icon_name='updates');v.addWidget(frame)
+        c.addWidget(text(tr('1. اضغط التحقق من التحديثات ثم تنزيل التحديث.\n2. بعد التحقق، اضغط تثبيت النسخة المنزّلة.\n3. افتح النسخة الجديدة من الزر أو قائمة التطبيقات.')))
+        c.addWidget(text(tr('التثبيت لحسابك فقط، دون صلاحية مدير. تُحفظ النسخة السابقة، وإعدادات اللعبة والنسخ الاحتياطية تبقى في مكانها.'),'sectionLabel'))
+        self.auto_check=QCheckBox(tr('فحص عند تشغيل البرنامج • بحد أقصى مرة يوميًا'));self.auto_check.setChecked(self.store.auto_check);self.auto_check.toggled.connect(self.save_preference);c.addWidget(self.auto_check)
+        row=QHBoxLayout();self.install_current_button=QPushButton(tr('تثبيت هذه النسخة في قائمة التطبيقات'));self.install_current_button.setObjectName('quiet');self.install_current_button.clicked.connect(self.install_current);self.install_current_button.setVisible(bool(getattr(sys,'frozen',False)));row.addWidget(self.install_current_button);row.addStretch();c.addLayout(row)
         v.addStretch()
 
         # Download, then install: the order of the buttons is the order of the work.
         footer=ActionBar();root.addWidget(footer);row=QHBoxLayout();row.setSpacing(8);footer.body.addLayout(row)
-        self.download_button=QPushButton('تنزيل حزمة نظامك');self.download_button.setObjectName('primary');self.download_button.clicked.connect(self.download);row.addWidget(self.download_button)
-        self.install_button=QPushButton('تثبيت النسخة المنزّلة');self.install_button.setObjectName('positive');self.install_button.setIcon(icon('check',T.VERDIGRIS));self.install_button.setIconSize(QSize(16,16));self.install_button.clicked.connect(self.install_download);row.addWidget(self.install_button)
-        self.launch_button=QPushButton('فتح النسخة الجديدة');self.launch_button.clicked.connect(self.launch_installed);row.addWidget(self.launch_button)
-        self.cancel_button=QPushButton('إلغاء');self.cancel_button.clicked.connect(self.client.cancel);row.addWidget(self.cancel_button);row.addStretch()
-        self.folder_button=QPushButton('فتح مجلد التنزيل');self.folder_button.setObjectName('quiet');self.folder_button.setIcon(icon('folder',T.TEXT_SOFT));self.folder_button.setIconSize(QSize(16,16));self.folder_button.clicked.connect(self.open_folder);row.addWidget(self.folder_button)
+        self.download_button=QPushButton(tr('تنزيل حزمة نظامك'));self.download_button.setObjectName('primary');self.download_button.clicked.connect(self.download);row.addWidget(self.download_button)
+        self.install_button=QPushButton(tr('تثبيت النسخة المنزّلة'));self.install_button.setObjectName('positive');self.install_button.setIcon(icon('check',T.VERDIGRIS));self.install_button.setIconSize(QSize(16,16));self.install_button.clicked.connect(self.install_download);row.addWidget(self.install_button)
+        self.launch_button=QPushButton(tr('فتح النسخة الجديدة'));self.launch_button.clicked.connect(self.launch_installed);row.addWidget(self.launch_button)
+        self.cancel_button=QPushButton(tr('إلغاء'));self.cancel_button.clicked.connect(self.client.cancel);row.addWidget(self.cancel_button);row.addStretch()
+        self.folder_button=QPushButton(tr('فتح مجلد التنزيل'));self.folder_button.setObjectName('quiet');self.folder_button.setIcon(icon('folder',T.TEXT_SOFT));self.folder_button.setIconSize(QSize(16,16));self.folder_button.clicked.connect(self.open_folder);row.addWidget(self.folder_button)
         self.client.busyChanged.connect(self.refresh_buttons);self.client.phaseChanged.connect(self.phase_changed)
         self.client.found.connect(self.show_release);self.client.failed.connect(self.failed);self.client.cancelled.connect(self.cancelled);self.client.progress.connect(self.show_progress);self.client.downloaded.connect(self.downloaded)
         if self.store.release:self.show_release(self.store.release,True)
@@ -87,7 +88,7 @@ class UpdatePage(QWidget):
         old=self.store.auto_check;self.store.auto_check=value
         try:self.store.save_preferences()
         except OSError as e:
-            self.store.auto_check=old;self.auto_check.blockSignals(True);self.auto_check.setChecked(old);self.auto_check.blockSignals(False);self.detail.setText('تعذر حفظ تفضيل الفحص: '+str(e))
+            self.store.auto_check=old;self.auto_check.blockSignals(True);self.auto_check.setChecked(old);self.auto_check.blockSignals(False);self.detail.setText(tr('تعذر حفظ تفضيل الفحص: ')+str(e))
 
     def check(self):
         if self.client.busy or self.installing:return
@@ -99,17 +100,17 @@ class UpdatePage(QWidget):
     def show_release(self,release,cached=False):
         self.progress.hide();self.progress_text.hide()
         self.release=release;self.fresh=not cached;self.latest.setText(release.tag)
-        date=release.published_at[:10] or 'غير متوفر';self.published.setText('تاريخ النشر: '+date+' • GitHub')
-        self.notes.setPlainText(release.notes or 'لم يرفق هذا الإصدار ملاحظات.');newer=release.version>self.current
-        if cached:self.state.setText('نتيجة فحص محفوظة');self.detail.setText('اضغط التحقق من التحديثات لتأكيد آخر إصدار وتفعيل التنزيل.')
-        elif newer:self.state.setText('تحديث جديد متاح');self.detail.setText('يمكنك تنزيل الحزمة المتوافقة مع نظامك ومراجعة ما تغيّر أدناه.')
-        elif release.version==self.current:self.state.setText('أنت على آخر إصدار عام');self.detail.setText('يمكنك تنزيل الحزمة مرة أخرى إذا احتجتها.')
-        else:self.state.setText('نسختك أحدث من الإصدار العام');self.detail.setText('أنت تختبر نسخة أحدث. تنزيل الإصدار العام أدناه اختياري وهو أقدم من نسختك.')
+        date=release.published_at[:10] or tr('غير متوفر');self.published.setText(tr('تاريخ النشر: ')+date+' • GitHub')
+        self.notes.setPlainText(release.notes or tr('لم يرفق هذا الإصدار ملاحظات.'));newer=release.version>self.current
+        if cached:self.state.setText(tr('نتيجة فحص محفوظة'));self.detail.setText(tr('اضغط التحقق من التحديثات لتأكيد آخر إصدار وتفعيل التنزيل.'))
+        elif newer:self.state.setText(tr('تحديث جديد متاح'));self.detail.setText(tr('يمكنك تنزيل الحزمة المتوافقة مع نظامك ومراجعة ما تغيّر أدناه.'))
+        elif release.version==self.current:self.state.setText(tr('أنت على آخر إصدار عام'));self.detail.setText(tr('يمكنك تنزيل الحزمة مرة أخرى إذا احتجتها.'))
+        else:self.state.setText(tr('نسختك أحدث من الإصدار العام'));self.detail.setText(tr('أنت تختبر نسخة أحدث. تنزيل الإصدار العام أدناه اختياري وهو أقدم من نسختك.'))
         stamp=checked_time(self.store.checked_at)
-        self.checked.setText(('آخر فحص ناجح محفوظ: ' if cached else 'تم التحقق الآن: ')+stamp)
-        self.download_button.setText('تنزيل الإصدار العام (أقدم)' if release.version<self.current else ('تنزيل التحديث' if newer else 'تنزيل حزمة نظامك'))
-        if not release.package():self.detail.setText(self.detail.text()+' لا تتوفر حزمة متوافقة مع نظامك لهذا الإصدار.')
-        elif not release.asset('SHA256SUMS.txt'):self.detail.setText(self.detail.text()+' ملف التحقق غير موجود؛ التنزيل معطّل.')
+        self.checked.setText((tr('آخر فحص ناجح محفوظ: ') if cached else tr('تم التحقق الآن: '))+stamp)
+        self.download_button.setText(tr('تنزيل الإصدار العام (أقدم)') if release.version<self.current else (tr('تنزيل التحديث') if newer else tr('تنزيل حزمة نظامك')))
+        if not release.package():self.detail.setText(self.detail.text()+tr(' لا تتوفر حزمة متوافقة مع نظامك لهذا الإصدار.'))
+        elif not release.asset('SHA256SUMS.txt'):self.detail.setText(self.detail.text()+tr(' ملف التحقق غير موجود؛ التنزيل معطّل.'))
         self.updateAvailable.emit(newer);self.refresh_buttons()
 
     def refresh_buttons(self,*_):
@@ -122,19 +123,19 @@ class UpdatePage(QWidget):
         self.install_current_button.setEnabled(not busy)
 
     def phase_changed(self,phase):
-        title={'check':'جارٍ التحقق من الإصدارات…','checksum':'جارٍ قراءة بصمات الحزمة…','download':'جارٍ تنزيل الحزمة…'}
-        self.state.setText(title[phase]);self.detail.setText('يمكنك متابعة استخدام التطبيق أو إلغاء العملية في أي وقت.');self.progress.show();self.progress.setRange(0,0);self.progress_text.hide()
+        title={'check':tr('جارٍ التحقق من الإصدارات…'),'checksum':tr('جارٍ قراءة بصمات الحزمة…'),'download':tr('جارٍ تنزيل الحزمة…')}
+        self.state.setText(title[phase]);self.detail.setText(tr('يمكنك متابعة استخدام التطبيق أو إلغاء العملية في أي وقت.'));self.progress.show();self.progress.setRange(0,0);self.progress_text.hide()
 
     def failed(self,message):
         self.fresh=False
-        self.state.setText('تعذر إكمال العملية');self.detail.setText(message)
+        self.state.setText(tr('تعذر إكمال العملية'));self.detail.setText(message)
         if self.release:
             stamp=checked_time(self.store.checked_at)
-            self.checked.setText('آخر فحص ناجح: '+stamp+' • النتيجة المعروضة محفوظة')
+            self.checked.setText(tr('آخر فحص ناجح: ')+stamp+tr(' • النتيجة المعروضة محفوظة'))
         self.progress.hide();self.progress_text.hide();self.updateAvailable.emit(False);self.refresh_buttons()
 
     def cancelled(self):
-        self.state.setText('تم الإلغاء');self.detail.setText('توقفت العملية. أُزيلت أي أجزاء تنزيل غير مكتملة؛ يمكنك إعادة المحاولة.');self.progress.hide();self.progress_text.hide();self.refresh_buttons()
+        self.state.setText(tr('تم الإلغاء'));self.detail.setText(tr('توقفت العملية. أُزيلت أي أجزاء تنزيل غير مكتملة؛ يمكنك إعادة المحاولة.'));self.progress.hide();self.progress_text.hide();self.refresh_buttons()
 
     def show_progress(self,received,total):
         self.progress.setRange(0,100);self.progress.setValue(int(received*100/total));self.progress_text.show();self.progress_text.setText(f'{received/1048576:.1f} / {total/1048576:.1f} MB · {int(received*100/total)}%')
@@ -143,7 +144,7 @@ class UpdatePage(QWidget):
         if self.download_button.isEnabled():self.client.download(self.release,self.download_folder)
 
     def downloaded(self,path):
-        self.saved_path=path;self.saved_hash=self.client.downloaded_hash;self.saved_version=self.client.release.tag;self.installed_binary=None;self.progress.setRange(0,100);self.progress.setValue(100);self.state.setText('تم التحقق من التنزيل ✓');self.detail.setText('جاهز. اضغط «تثبيت النسخة المنزّلة»؛ لا تحتاج تفك الملفات أو تنقلها.');self.progress_text.setText(str(path));self.refresh_buttons()
+        self.saved_path=path;self.saved_hash=self.client.downloaded_hash;self.saved_version=self.client.release.tag;self.installed_binary=None;self.progress.setRange(0,100);self.progress.setValue(100);self.state.setText(tr('تم التحقق من التنزيل ✓'));self.detail.setText(tr('جاهز. اضغط «تثبيت النسخة المنزّلة»؛ لا تحتاج تفك الملفات أو تنقلها.'));self.progress_text.setText(str(path));self.refresh_buttons()
 
     def install_download(self):
         if not self.install_button.isEnabled():return
@@ -158,22 +159,22 @@ class UpdatePage(QWidget):
 
     def begin_install(self,operation):
         from .server_ui import Job
-        self.installing=True;self.state.setText('جارٍ تثبيت النسخة الجديدة…');self.progress.show();self.progress.setRange(0,0);self.refresh_buttons()
+        self.installing=True;self.state.setText(tr('جارٍ تثبيت النسخة الجديدة…'));self.progress.show();self.progress.setRange(0,0);self.refresh_buttons()
         self.install_job=Job(operation)
         self.install_job.signals.result.connect(self.install_complete)
         self.install_job.signals.failure.connect(self.install_failed)
         QThreadPool.globalInstance().start(self.install_job)
 
     def install_complete(self,result):
-        self.installing=False;self.installed_binary,warning=result;self.progress.hide();self.state.setText('تم التثبيت ✓');self.detail.setText(warning or 'النسخة الجديدة جاهزة في قائمة التطبيقات. افتحها، ثم أغلق هذه النسخة.');self.refresh_buttons()
+        self.installing=False;self.installed_binary,warning=result;self.progress.hide();self.state.setText(tr('تم التثبيت ✓'));self.detail.setText(warning or tr('النسخة الجديدة جاهزة في قائمة التطبيقات. افتحها، ثم أغلق هذه النسخة.'));self.refresh_buttons()
 
     def install_failed(self,message):
-        self.installing=False;self.progress.hide();self.state.setText('تعذر التثبيت');self.detail.setText(message+' يمكنك إعادة المحاولة أو فك الحزمة يدويًا.');self.refresh_buttons()
+        self.installing=False;self.progress.hide();self.state.setText(tr('تعذر التثبيت'));self.detail.setText(message+tr(' يمكنك إعادة المحاولة أو فك الحزمة يدويًا.'));self.refresh_buttons()
 
     def launch_installed(self):
         if not self.installed_binary:return
         ok,_=QProcess.startDetached(str(self.installed_binary),[],str(self.installed_binary.parent))
-        if not ok:self.detail.setText('تعذر فتح النسخة. افتح الملف من: '+str(self.installed_binary))
+        if not ok:self.detail.setText(tr('تعذر فتح النسخة. افتح الملف من: ')+str(self.installed_binary))
 
     def open_release(self):QDesktopServices.openUrl(QUrl(self.release.url if self.release else RELEASES_URL))
     def open_folder(self):

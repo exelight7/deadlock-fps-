@@ -1,4 +1,5 @@
 """Cancellable Qt networking; no polling, worker threads or executable replacement."""
+from .i18n import tr
 import json
 from urllib.parse import urlsplit
 from PySide6.QtCore import QObject, Signal, QUrl
@@ -31,14 +32,14 @@ class UpdateClient(QObject):
     def check(self):
         if self.busy:return
         try:self.store.mark_attempt()
-        except OSError as e:self.failed.emit('تعذر حفظ وقت الفحص: '+str(e));return
+        except OSError as e:self.failed.emit(tr('تعذر حفظ وقت الفحص: ')+str(e));return
         self.phase='check';self.busyChanged.emit(True);self.phaseChanged.emit(self.phase)
         self._get(LATEST_URL)
 
     def download(self,release,folder):
         if self.busy:return
         asset=release.package();manifest=release.asset('SHA256SUMS.txt')
-        if not asset or not manifest:self.failed.emit('لا تتوفر حزمة متوافقة مع نظامك وملف تحقق لهذا الإصدار.');return
+        if not asset or not manifest:self.failed.emit(tr('لا تتوفر حزمة متوافقة مع نظامك وملف تحقق لهذا الإصدار.'));return
         self.release=release;self.asset=asset;self.folder=folder;self.downloaded_hash='';self.phase='checksum'
         self.busyChanged.emit(True);self.phaseChanged.emit(self.phase);self._get(manifest.url)
 
@@ -65,7 +66,7 @@ class UpdateClient(QObject):
         try:allowed=allowed_redirect(target.toString(),self.phase)
         except ValueError:allowed=False
         if allowed:reply.redirectAllowed.emit()
-        else:self._fail('أوقف التنزيل: وجهة التحويل خارج خوادم GitHub المعتمدة.')
+        else:self._fail(tr('أوقف التنزيل: وجهة التحويل خارج خوادم GitHub المعتمدة.'))
 
     def _read(self,reply):
         if self._reply is not reply:return
@@ -80,7 +81,7 @@ class UpdateClient(QObject):
                     if self._reply is not reply:return
                 else:
                     limit=MAX_METADATA if self.phase=='check' else MAX_CHECKSUMS
-                    if len(self.buffer)+len(chunk)>limit:raise ValueError('استجابة الخادم أكبر من المسموح.')
+                    if len(self.buffer)+len(chunk)>limit:raise ValueError(tr('استجابة الخادم أكبر من المسموح.'))
                     self.buffer.extend(chunk)
         except Exception as e:self._fail(str(e))
 
@@ -94,9 +95,9 @@ class UpdateClient(QObject):
             if status==304 and self.phase=='check' and reply.error()==QNetworkReply.NoError:
                 release=self.store.unchanged();self._idle();self.found.emit(release,False);return
             if status!=200 or reply.error()!=QNetworkReply.NoError:
-                if status==403 or status==429:raise ValueError('وصل GitHub لحد الطلبات. انتظر قليلًا ثم أعد الفحص.')
-                if status==404:raise ValueError('لا يوجد إصدار عام متاح في المستودع حاليًا.')
-                raise ValueError('تعذر الاتصال بـ GitHub. تحقق من الإنترنت ثم أعد المحاولة. '+reply.errorString())
+                if status==403 or status==429:raise ValueError(tr('وصل GitHub لحد الطلبات. انتظر قليلًا ثم أعد الفحص.'))
+                if status==404:raise ValueError(tr('لا يوجد إصدار عام متاح في المستودع حاليًا.'))
+                raise ValueError(tr('تعذر الاتصال بـ GitHub. تحقق من الإنترنت ثم أعد المحاولة. ')+reply.errorString())
             if self.phase=='check':
                 data=json.loads(bytes(self.buffer).decode('utf-8'));etag=bytes(reply.rawHeader('ETag')).decode('utf-8')
                 release=self.store.record(data,etag);self._idle();self.found.emit(release,False)

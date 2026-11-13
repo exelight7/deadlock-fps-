@@ -1,3 +1,4 @@
+from .i18n import tr
 from dataclasses import dataclass, asdict
 MAX_LEVEL = 200
 @dataclass
@@ -19,8 +20,8 @@ class Settings:
         if type(self.level) is not int or not 0<=self.level<=MAX_LEVEL or not 0<=self.textures<=4 or not 0<=self.particles<=2 or not 0<=self.fps<=500:
             raise ValueError('Graphics settings outside allowed range')
         if self.aspect_ratio is not None and (type(self.aspect_ratio) not in (int,float) or not 1.78<=self.aspect_ratio<=3.50):
-            raise ValueError('نسبة الأبعاد يجب أن تكون بين 1.78 و3.50.')
-        if 'names' in self.mods and 'health' in self.mods: raise ValueError('مود إزالة الأسماء يتعارض مع مود شريط الصحة القديم؛ اختر أحدهما.')
+            raise ValueError(tr('نسبة الأبعاد يجب أن تكون بين 1.78 و3.50.'))
+        if 'names' in self.mods and 'health' in self.mods: raise ValueError(tr('مود إزالة الأسماء يتعارض مع مود شريط الصحة القديم؛ اختر أحدهما.'))
         if any(m not in MODS for m in self.mods): raise ValueError('Unknown mod')
     @classmethod
     def at_level(cls,level,**kwargs):
@@ -36,10 +37,10 @@ class Settings:
         result=cls(**data);result.validate();return result
 
 MODS = {
- 'daylock': ('pak01_dir.vpk - daylock','Daylock','إضاءة نهارية — افحص وضوح الخريطة'),
- 'names': ('pak02_dir.vpk - Remove Name Tags','Remove Name Tags','إخفاء أسماء اللاعبين'),
- 'health': ('pak03_dir.vpk - Old Healthbars','Old Healthbars','شريط الصحة القديم'),
- 'sinner': ('pak26_dir.vpk - Sinner Fix','Sinner Fix','تعديل Sinner المرفق — تأثيره غير موثق'),
+ 'daylock': ('pak01_dir.vpk - daylock','Daylock',tr('إضاءة نهارية — افحص وضوح الخريطة')),
+ 'names': ('pak02_dir.vpk - Remove Name Tags','Remove Name Tags',tr('إخفاء أسماء اللاعبين')),
+ 'health': ('pak03_dir.vpk - Old Healthbars','Old Healthbars',tr('شريط الصحة القديم')),
+ 'sinner': ('pak26_dir.vpk - Sinner Fix','Sinner Fix',tr('تعديل Sinner المرفق — تأثيره غير موثق')),
 }
 PRESETS={
  'balanced': Settings.at_level(25,preset='balanced'),
@@ -47,17 +48,17 @@ PRESETS={
  'ultra': Settings.at_level(100,preset='ultra'),
 }
 
-LEVELS=[(0,'جودة أعلى','جهاز قوي • تفاصيل أكثر وحمل أكبر على الجهاز'),
- (20,'تخفيف بسيط','جهاز متوسط • خامات أخف وإلغاء الوهج'),
- (40,'تخفيف متوسط','جهاز ضعيف • تقليل الظلال والتظليل والجزيئات'),
- (60,'تخفيف قوي','جهاز ضعيف جدًا • تعطيل الضباب وتقليل الحطام والقوائم'),
- (80,'تخفيف عنيف • الأساسي','أبسط خامات • إضاءة وأعشاب ومؤثرات أقل من ملفك'),
- (100,'تخفيف شديد','تفاصيل شديدة الانخفاض • قد يقل وضوح بعض المؤثرات'),
- (110,'تخفيف ممتد','تقليل تظليل المسافات وتفاصيل التظليل المحيطي'),
- (125,'تخفيف أشد','تقليل ظلال الإضاءة الصغيرة وآثار الخامات على الشخصيات'),
- (150,'تخفيف فائق','تقليل تظليل الشعر والظلال الذاتية وتفاصيل الوجه'),
- (175,'تخفيف فائق + صوت','يخفف حسابات حجب الصوت أيضًا • قد يقل الإحساس باتجاهه'),
- (200,'أقصى تخفيف تجريبي','يقلل الجزيئات الفيزيائية • قد تختفي بعض المؤثرات')]
+LEVELS=[(0,tr('جودة أعلى'),tr('جهاز قوي • تفاصيل أكثر وحمل أكبر على الجهاز')),
+ (20,tr('تخفيف بسيط'),tr('جهاز متوسط • خامات أخف وإلغاء الوهج')),
+ (40,tr('تخفيف متوسط'),tr('جهاز ضعيف • تقليل الظلال والتظليل والجزيئات')),
+ (60,tr('تخفيف قوي'),tr('جهاز ضعيف جدًا • تعطيل الضباب وتقليل الحطام والقوائم')),
+ (80,tr('تخفيف عنيف • الأساسي'),tr('أبسط خامات • إضاءة وأعشاب ومؤثرات أقل من ملفك')),
+ (100,tr('تخفيف شديد'),tr('تفاصيل شديدة الانخفاض • قد يقل وضوح بعض المؤثرات')),
+ (110,tr('تخفيف ممتد'),tr('تقليل تظليل المسافات وتفاصيل التظليل المحيطي')),
+ (125,tr('تخفيف أشد'),tr('تقليل ظلال الإضاءة الصغيرة وآثار الخامات على الشخصيات')),
+ (150,tr('تخفيف فائق'),tr('تقليل تظليل الشعر والظلال الذاتية وتفاصيل الوجه')),
+ (175,tr('تخفيف فائق + صوت'),tr('يخفف حسابات حجب الصوت أيضًا • قد يقل الإحساس باتجاهه')),
+ (200,tr('أقصى تخفيف تجريبي'),tr('يقلل الجزيئات الفيزيائية • قد تختفي بعض المؤثرات'))]
 
 def level_info(level):return next((name,desc) for threshold,name,desc in reversed(LEVELS) if level>=threshold)
 
@@ -128,4 +129,4 @@ def values(s):
     if s.aspect_ratio is not None:convars['r_aspectratio']=f'{s.aspect_ratio:.2f}'
     return video,convars,scene
 
-TEXTURE_LABELS = ["خامات مفصلة", "تخفيف بسيط", "تخفيف متوسط", "خامات بسيطة", "أبسط خامات • أقصى تخفيف"]
+TEXTURE_LABELS = [tr("خامات مفصلة"), tr("تخفيف بسيط"), tr("تخفيف متوسط"), tr("خامات بسيطة"), tr("أبسط خامات • أقصى تخفيف")]

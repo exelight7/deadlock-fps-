@@ -1,4 +1,5 @@
 """Offline, attributed snapshots; no network requests while browsing the gallery."""
+from .i18n import tr
 from dataclasses import dataclass
 from .crosshair import Crosshair,PRESETS
 
@@ -33,7 +34,7 @@ PLAYERS=(
     player('mikaels','MikaelS','2025-03',Crosshair(width=3,length=5,gap=1,opacity=1,border=1,dot_opacity=0,dot_border_opacity=0,color='#00ff00')),
 )
 
-BASE_NAMES={'صليب صغير':'Small Cross','نقطة خضراء':'Green Dot','صليب سماوي':'Cyan Hybrid','دائرة':'Green Ring','صليب كلاسيكي':'Classic Cross'}
+BASE_NAMES={'صليب صغير':tr('Small Cross'),'نقطة خضراء':tr('Green Dot'),'صليب سماوي':tr('Cyan Hybrid'),'دائرة':tr('Green Ring'),'صليب كلاسيكي':tr('Classic Cross')}
 
 def studio(key,name,**values):
     model=Crosshair(width=2,length=6,gap=-6,opacity=1,border=1,border_opacity=.85,dot=0,dot_opacity=0,dot_border_opacity=0,static=True)

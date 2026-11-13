@@ -1,4 +1,5 @@
 """Only Toolbox-owned rules, elevated by a short-lived helper on explicit apply."""
+from .i18n import tr
 from pathlib import Path
 from dataclasses import asdict
 import hashlib,json,os,shutil,subprocess,sys,tempfile
@@ -7,18 +8,18 @@ CHAIN='DLTB_OUT'
 PREFIX='DeadlockToolbox_SDR_'
 
 def validate_plan(plan):
-    if not isinstance(plan,dict) or plan.get('schema')!=1:raise ValueError('خطة اتصال غير صالحة.')
+    if not isinstance(plan,dict) or plan.get('schema')!=1:raise ValueError(tr('خطة اتصال غير صالحة.'))
     result={'schema':1,'reset':plan.get('reset',False)}
-    if type(result['reset']) is not bool:raise ValueError('خطة غير صالحة.')
+    if type(result['reset']) is not bool:raise ValueError(tr('خطة غير صالحة.'))
     for key in ['old','new']:
         rows=plan.get(key)
-        if not isinstance(rows,list) or len(rows)>2000:raise ValueError('عدد قواعد غير صالح.')
+        if not isinstance(rows,list) or len(rows)>2000:raise ValueError(tr('عدد قواعد غير صالح.'))
         checked=[]
         for item in rows:
-            if not isinstance(item,dict) or set(item)!={'ip','first','last'}:raise ValueError('قاعدة غير صالحة.')
+            if not isinstance(item,dict) or set(item)!={'ip','first','last'}:raise ValueError(tr('قاعدة غير صالحة.'))
             checked.append(checked_relay(item['ip'],item['first'],item['last']))
         result[key]=sorted(set(checked))
-    if result['reset'] and result['new']:raise ValueError('خطة فك الحظر لا تقبل قواعد جديدة.')
+    if result['reset'] and result['new']:raise ValueError(tr('خطة فك الحظر لا تقبل قواعد جديدة.'))
     return result
 
 def rule_name(relay):return PREFIX+hashlib.sha256(f'{relay.ip}:{relay.first}:{relay.last}'.encode()).hexdigest()[:24]
@@ -28,13 +29,13 @@ def _run(args,**kwargs):
 
 def linux_apply(plan,run=_run):
     iptables=shutil.which('iptables');restore=shutil.which('iptables-restore')
-    if not iptables or not restore:raise RuntimeError('ثبّت iptables وiptables-restore لتفعيل اختيار السيرفرات.')
+    if not iptables or not restore:raise RuntimeError(tr('ثبّت iptables وiptables-restore لتفعيل اختيار السيرفرات.'))
     def command(*args,required=True):
         result=run([iptables,'-w','5',*args])
-        if required and result.returncode:raise RuntimeError(result.stderr.strip() or 'تعذر تعديل قواعد Toolbox.')
+        if required and result.returncode:raise RuntimeError(result.stderr.strip() or tr('تعذر تعديل قواعد Toolbox.'))
         return result
     existing=command('-S',CHAIN,required=False)
-    if existing.returncode and ('Permission denied' in existing.stderr or 'Operation not permitted' in existing.stderr):raise PermissionError('تحتاج العملية صلاحية المدير.')
+    if existing.returncode and ('Permission denied' in existing.stderr or 'Operation not permitted' in existing.stderr):raise PermissionError(tr('تحتاج العملية صلاحية المدير.'))
     if not plan['new']:
         # Remove only our jump and our dedicated chain. Never flush a built-in chain.
         if existing.returncode==0:
@@ -49,7 +50,7 @@ def linux_apply(plan,run=_run):
     def replace(lines):
         script='\n'.join(['*filter','-F '+CHAIN,*lines,'COMMIT',''])
         result=run([restore,'-w','5','--noflush'],input=script)
-        if result.returncode:raise RuntimeError(result.stderr.strip() or 'تعذر تطبيق قواعد Toolbox.')
+        if result.returncode:raise RuntimeError(result.stderr.strip() or tr('تعذر تطبيق قواعد Toolbox.'))
     rules=[f'-A {CHAIN} -d {r.ip} -p udp --dport {r.first}:{r.last} -j DROP' for r in plan['new']]
     try:
         replace(rules)
@@ -63,7 +64,7 @@ def windows_apply(plan,run=_run):
     netsh=str(Path(os.environ.get('SystemRoot','C:/Windows'))/'System32/netsh.exe')
     def command(args):
         result=run([netsh,'advfirewall','firewall',*args])
-        if result.returncode:raise RuntimeError(result.stderr.strip() or result.stdout.strip() or 'تعذر تعديل قواعد Toolbox.')
+        if result.returncode:raise RuntimeError(result.stderr.strip() or result.stdout.strip() or tr('تعذر تعديل قواعد Toolbox.'))
     def add(relay):
         command(['add','rule','name='+rule_name(relay),'dir=out','action=block','enable=yes','profile=any',
                  'protocol=UDP','remoteip='+relay.ip,f'remoteport={relay.first}-{relay.last}'])
@@ -72,7 +73,7 @@ def windows_apply(plan,run=_run):
         # netsh's rule name is the user-facing DisplayName; Name may be a GUID.
         script="$ErrorActionPreference='Stop'; Get-NetFirewallRule -DisplayName 'DeadlockToolbox_SDR_*' -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -match '^DeadlockToolbox_SDR_[a-f0-9]{24}$' } | Remove-NetFirewallRule"
         result=run(['powershell.exe','-NoProfile','-NonInteractive','-Command',script])
-        if result.returncode:raise RuntimeError(result.stderr.strip() or 'تعذر فك حظر Toolbox.')
+        if result.returncode:raise RuntimeError(result.stderr.strip() or tr('تعذر فك حظر Toolbox.'))
         return
     old=set(plan['old']);new=set(plan['new']);created=[];removed=[]
     try:
@@ -88,11 +89,11 @@ def windows_apply(plan,run=_run):
 def helper_main(path):
     p=Path(path)
     with p.open('rb') as source:raw=source.read(512*1024+1)
-    if len(raw)>512*1024:raise ValueError('خطة قواعد أكبر من المسموح.')
+    if len(raw)>512*1024:raise ValueError(tr('خطة قواعد أكبر من المسموح.'))
     plan=validate_plan(json.loads(raw))
     if os.name=='nt':windows_apply(plan)
     elif sys.platform.startswith('linux'):linux_apply(plan)
-    else:raise RuntimeError('اختيار السيرفرات مدعوم على Windows وLinux فقط.')
+    else:raise RuntimeError(tr('اختيار السيرفرات مدعوم على Windows وLinux فقط.'))
 
 def apply_elevated(plan):
     checked=validate_plan(plan)
@@ -112,9 +113,9 @@ def apply_elevated(plan):
             command=['powershell.exe','-NoProfile','-NonInteractive','-Command',script]
         elif sys.platform.startswith('linux'):
             pkexec=shutil.which('pkexec')
-            if not pkexec:raise RuntimeError('ثبّت polkit لتظهر نافذة صلاحية المدير.')
+            if not pkexec:raise RuntimeError(tr('ثبّت polkit لتظهر نافذة صلاحية المدير.'))
             command=[pkexec,exe,*args]
-        else:raise RuntimeError('النظام غير مدعوم.')
+        else:raise RuntimeError(tr('النظام غير مدعوم.'))
         result=subprocess.run(command,capture_output=True,text=True,timeout=180,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
-        if result.returncode:raise RuntimeError(result.stderr.strip() or 'لم تُطبّق القواعد: أُلغيت صلاحية المدير أو فشلت العملية.')
+        if result.returncode:raise RuntimeError(result.stderr.strip() or tr('لم تُطبّق القواعد: أُلغيت صلاحية المدير أو فشلت العملية.'))
     finally:Path(name).unlink(missing_ok=True)

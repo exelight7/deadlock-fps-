@@ -1,4 +1,5 @@
 """Row painting for the server table: every cell is drawn here, so the look does not depend on the platform style."""
+from .i18n import tr
 from PySide6.QtCore import Qt, QRect, QRectF, QEvent
 from PySide6.QtGui import QColor, QPen, QPainter, QPainterPath, QFont, QFontMetrics, QIcon
 from PySide6.QtWidgets import QStyledItemDelegate, QStyleOptionViewItem, QStyle, QTableWidgetItem
@@ -88,7 +89,7 @@ class SelectionDelegate(ServerRowDelegate):
             painter.fillRect(QRect(leading, option.rect.top(), 3, option.rect.height()), QColor(CHECK_FILL))
             painter.setFont(cell_font(10))
             painter.setPen(QColor(T.BRASS_BRIGHT))
-            painter.drawText(option.rect.adjusted(0, 37, 0, 0), Qt.AlignCenter, 'محدد')
+            painter.drawText(option.rect.adjusted(0, 37, 0, 0), Qt.AlignCenter, tr('محدد'))
         painter.restore()
 
     def editorEvent(self, event, model, option, index):

@@ -1,6 +1,6 @@
 """Render every screen of the app to PNG without touching a real game, real settings or the network.
 
-    python scripts/make_screenshots.py [output folder] [--size 1200x820] [--only 0,4] [--dialogs] [--ltr] [--docs]
+    python scripts/make_screenshots.py [output folder] [--size 1200x820] [--only 0,4] [--dialogs] [--lang en|ar] [--docs]
 
 The window runs against a throw-away Deadlock folder and a temporary data
 folder, ping results are sample values, and nothing is applied. `--docs`
@@ -24,9 +24,9 @@ from PySide6.QtCore import Qt, QThreadPool  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 SHOWN_PATH = r'C:\Program Files (x86)\Steam\steamapps\common\Deadlock'
-NAMES = ['overview', 'graphics', 'mods', 'backups', 'servers', 'crosshair', 'update-center', 'mod-inspector']
+NAMES = ['overview', 'graphics', 'mods', 'backups', 'servers', 'crosshair', 'update-center', 'mod-inspector', 'settings']
 DOCS = {'overview': 'screenshot.png', 'graphics': 'graphics.png', 'mods': 'mods.png', 'backups': 'backups.png', 'servers': 'servers.png',
-        'crosshair': 'crosshair.png', 'update-center': 'update-center.png', 'mod-inspector': 'mod-inspector.png'}
+        'crosshair': 'crosshair.png', 'update-center': 'update-center.png', 'mod-inspector': 'mod-inspector.png', 'settings': 'settings.png'}
 
 
 def option(name, default):
@@ -40,17 +40,19 @@ def settle(app, rounds=6):
 
 
 def main():
+    from deadlock_fps import i18n
+    i18n.activate(option('--lang', 'en'))            # before the interface modules are imported
     from deadlock_fps.core import ASSETS
     from deadlock_fps.design import STYLE, dark_palette, load_fonts
     from deadlock_fps.servers import PingResult
     docs = '--docs' in sys.argv
-    positional = [a for i, a in enumerate(sys.argv[1:], 1) if not a.startswith('--') and sys.argv[i - 1] not in ('--size', '--only')]
+    positional = [a for i, a in enumerate(sys.argv[1:], 1) if not a.startswith('--') and sys.argv[i - 1] not in ('--size', '--only', '--lang')]
     target = ROOT / 'docs' if docs else Path(positional[0] if positional else ROOT / 'build/screenshots')
     width, height = (int(v) for v in option('--size', '1200x820').split('x'))
-    only = [int(v) for v in option('--only', ','.join(map(str, range(8)))).split(',')]
+    only = [int(v) for v in option('--only', ','.join(map(str, range(9)))).split(',')]
     target.mkdir(parents=True, exist_ok=True)
     app = QApplication.instance() or QApplication([])
-    app.setLayoutDirection(Qt.LeftToRight if '--ltr' in sys.argv else Qt.RightToLeft)   # --ltr checks that layouts mirror
+    app.setLayoutDirection(Qt.RightToLeft if i18n.LANGUAGE == 'ar' and '--ltr' not in sys.argv else Qt.LeftToRight)
     app.setStyle('Fusion')
     load_fonts()
     app.setPalette(dark_palette())
@@ -91,6 +93,10 @@ def main():
                 while time.monotonic() < deadline:
                     app.processEvents()
                     time.sleep(.01)
+                if docs and i18n.LANGUAGE == 'ar':
+                    if index:
+                        continue
+                    DOCS['overview'] = 'screenshot-ar.png'
                 name = DOCS[NAMES[index]] if docs else '%d-%s-%dx%d.png' % (index, NAMES[index], width, height)
                 real = window.path.text()
                 window.path.setText(SHOWN_PATH)      # never publish the temporary folder (it contains the user name)

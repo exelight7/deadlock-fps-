@@ -55,7 +55,9 @@ class Interface(GameFixture):
     def test_only_inspector_is_added_and_removed_features_are_absent(self):
         from deadlock_fps.crosshair_ui import CrosshairGallery
         labels=[button.text() for button in self.window.nav]
-        self.assertEqual(len(labels),8);self.assertEqual(labels[7],'فحص المودات')
+        self.assertEqual(len(labels),9);self.assertEqual(labels[7],'فحص المودات');self.assertEqual(labels[8],'الإعدادات')
+        self.assertTrue(self.window.nav[7].isHidden(),'the inspector is reached from the Mods page, not the rail')
+        self.window.navigate(7);self.assertTrue(self.window.nav[2].isChecked());self.assertEqual(self.window.stack.currentIndex(),7)
         for name in ('Profiles Hub','Launch Center'):self.assertNotIn(name,labels)
         for name in ('profiles_page','launch_page','workspace'):self.assertFalse(hasattr(self.window,name))
         self.assertFalse(hasattr(self.window.crosshair,'favorite_button'))

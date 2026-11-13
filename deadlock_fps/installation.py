@@ -1,4 +1,5 @@
 """Per-user installs. Never overwrite an executable that may still be running."""
+from .i18n import tr
 from pathlib import Path, PurePosixPath
 import hashlib
 import hmac
@@ -50,12 +51,12 @@ def install_folder(source, version=__version__, base=None, shortcut=True):
     Version.parse(version)
     source = Path(source).resolve()
     if not executable(source).is_file() or not (source / '_internal').is_dir():
-        raise ValueError('حزمة التطبيق ناقصة. فك الحزمة كاملة ثم أعد المحاولة.')
+        raise ValueError(tr('حزمة التطبيق ناقصة. فك الحزمة كاملة ثم أعد المحاولة.'))
     if any(p.is_symlink() and (p.is_dir() or not p.resolve().is_relative_to(source)) for p in source.rglob('*')):
-        raise ValueError('الحزمة تحتوي روابط ملفات غير مدعومة.')
+        raise ValueError(tr('الحزمة تحتوي روابط ملفات غير مدعومة.'))
     base = Path(base or install_base()).resolve()
     if base.is_relative_to(source):
-        raise ValueError('مجلد التثبيت يجب أن يكون خارج حزمة المصدر.')
+        raise ValueError(tr('مجلد التثبيت يجب أن يكون خارج حزمة المصدر.'))
     base.mkdir(parents=True, exist_ok=True)
     stage = Path(tempfile.mkdtemp(prefix='.install-', dir=base))
     target = base / (version + '-' + stage.name.removeprefix('.install-'))
@@ -75,7 +76,7 @@ def install_folder(source, version=__version__, base=None, shortcut=True):
         try:
             create_shortcut(binary)
         except (OSError, subprocess.SubprocessError) as error:
-            warning = 'تم التثبيت لكن تعذر إنشاء الاختصار. افتح التطبيق من: ' + str(binary)
+            warning = tr('تم التثبيت لكن تعذر إنشاء الاختصار. افتح التطبيق من: ') + str(binary)
             output=getattr(error,'stderr',None)
             shortcut_error=output.decode(errors='replace').strip() if isinstance(output,bytes) else str(error)
     # Keep non-secret diagnostics for support, including windowed Windows builds.
@@ -90,12 +91,12 @@ def install_archive(archive, version, expected, base=None, shortcut=True):
     archive = Path(archive)
     with archive.open('rb') as stream:
         if not expected or not hmac.compare_digest(hashlib.file_digest(stream, 'sha256').hexdigest(), expected):
-            raise ValueError('تغير ملف التنزيل. نزّل التحديث من جديد.')
+            raise ValueError(tr('تغير ملف التنزيل. نزّل التحديث من جديد.'))
         stream.seek(0)
         with zipfile.ZipFile(stream) as bundle, tempfile.TemporaryDirectory(prefix='toolbox-update-') as temp:
             entries = bundle.infolist()
             if len(entries) > 20000 or sum(e.file_size for e in entries) > MAX_EXPANDED:
-                raise ValueError('حجم الحزمة بعد الفك أكبر من المسموح.')
+                raise ValueError(tr('حجم الحزمة بعد الفك أكبر من المسموح.'))
             seen = set()
             for entry in entries:
                 path = PurePosixPath(entry.filename)
@@ -105,7 +106,7 @@ def install_archive(archive, version, expected, base=None, shortcut=True):
                         or stat.S_ISLNK(entry.external_attr >> 16)
                         or any(p.endswith(('.', ' ')) for p in path.parts)
                         or any(ord(c) < 32 for c in entry.filename)):
-                    raise ValueError('مسارات غير آمنة داخل الحزمة.')
+                    raise ValueError(tr('مسارات غير آمنة داخل الحزمة.'))
                 seen.add(key)
             bundle.extractall(temp)
             return install_folder(Path(temp) / 'DeadlockToolbox', version, base, shortcut)

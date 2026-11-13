@@ -5,6 +5,7 @@ stops by itself, so nothing repaints while the window is idle. Widgets that are
 not on screen skip straight to their final state, which keeps headless runs and
 tests deterministic.
 """
+from .i18n import tr
 import math
 from PySide6.QtCore import Qt, QObject, QEvent, QEasingCurve, QVariantAnimation, QRect, QRectF, QPointF, QTimer, QSize
 from PySide6.QtGui import QColor, QPainter, QPixmap, QPolygonF, QPen, QFont, QIcon
@@ -413,7 +414,7 @@ def enliven(root):
 
 class StatusChip(QPushButton):
     """Header chip whose dot turns from amber to mint once the game is connected."""
-    CONNECTED = ('اللعبة مرتبطة', 'Game connected')
+    CONNECTED = (tr('اللعبة مرتبطة'), 'Game connected')
 
     def __init__(self, text):
         super().__init__()

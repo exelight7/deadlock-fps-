@@ -63,6 +63,7 @@ ICONS = {
     'crosshair': [('c', 12, 12, 6), 'M12 2v5', 'M12 17v5', 'M2 12h5', 'M17 12h5', ('d', 12, 12, 1.1)],
     'updates': ['M12 3v11', 'M7 9.5l5 5 5-5', 'M4 17v4h16v-4'],
     'inspector': [('c', 10, 10, 6.5), 'M15 15l6 6', 'M7 10l2.2 2.2L13 8.2'],
+    'settings': [('c', 12, 12, 3), 'M12 2.5v3', 'M12 18.5v3', 'M2.5 12h3', 'M18.5 12h3', 'M5.3 5.3l2.1 2.1', 'M16.6 16.6l2.1 2.1', 'M5.3 18.7l2.1-2.1', 'M16.6 7.4l2.1-2.1', ('c', 12, 12, 7)],
     # Mods.
     'daylock': [('c', 12, 12, 4), 'M12 2v3', 'M12 19v3', 'M2 12h3', 'M19 12h3', 'M4.9 4.9 7 7', 'M17 17l2.1 2.1', 'M4.9 19.1 7 17', 'M17 7l2.1-2.1'],
     'names': ['M3 6h11l7 6-7 6H3z', ('c', 14, 12, 1.5), 'M6 10h4', 'M6 14h3'],
@@ -551,7 +552,7 @@ def readme_banner(target):
     p.setPen(Qt.NoPen)
     p.setBrush(QColor(T.BRASS))
     p.drawPolygon([__import__('PySide6.QtCore', fromlist=['QPointF']).QPointF(x, y) for x, y in ((1540, 160), (1546, 166), (1540, 172), (1534, 166))])
-    text(178, 44, 'خلّ Deadlock أخف، واضبطها على ذوقك.', T.BODY, 26, T.TEXT_SOFT, 500)
+    text(178, 44, 'Make Deadlock lighter, and make it yours.', T.BODY, 26, T.TEXT_SOFT, 500)
     text(222, 26, 'Independent project. Not affiliated with Valve.', T.BODY, 13, T.TEXT_MUTED)
     p.end()
     target.parent.mkdir(parents=True, exist_ok=True)

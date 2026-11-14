@@ -30,7 +30,7 @@ def main(check):
     for name, svg in sorted(wanted.items()):
         path = TARGET / (name + '.svg')
         if check:
-            if not path.is_file() or path.read_bytes() != svg.encode('utf-8'):
+            if not path.is_file() or path.read_bytes().replace(b'\r\n', b'\n') != svg.encode('utf-8'):   # a Windows checkout may hold CRLF
                 bad.append(name)
         else:
             path.write_bytes(svg.encode('utf-8'))

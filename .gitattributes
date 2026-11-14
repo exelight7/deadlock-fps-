@@ -1,0 +1,8 @@
+# The repository is LF on every platform.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.zip binary
+*.vpk binary
+# Game reference files keep their original bytes.
+assets/reference/** -text

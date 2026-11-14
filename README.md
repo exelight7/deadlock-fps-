@@ -13,9 +13,9 @@
 **Make Deadlock lighter, and make it yours.**<br>
 Graphics, mods, crosshair and servers in one app for Windows and Linux.
 
-### [⬇ &nbsp;Download for Windows](https://github.com/exelight7/deadlock-fps-/releases/download/v3.5.5/DeadlockToolbox-windows-x64.zip) &nbsp;&nbsp;◆&nbsp;&nbsp; [⬇ &nbsp;Download for Linux](https://github.com/exelight7/deadlock-fps-/releases/download/v3.5.5/DeadlockToolbox-linux-x64.zip)
+### [⬇ &nbsp;Download for Windows](https://github.com/exelight7/deadlock-fps-/releases/latest/download/DeadlockToolbox-windows-x64.zip) &nbsp;&nbsp;◆&nbsp;&nbsp; [⬇ &nbsp;Download for Linux](https://github.com/exelight7/deadlock-fps-/releases/latest/download/DeadlockToolbox-linux-x64.zip)
 
-[All releases](https://github.com/exelight7/deadlock-fps-/releases) &nbsp;·&nbsp; [What's new in 3.5.5](docs/RELEASE_v3.5.5.md) &nbsp;·&nbsp; [العربية](#-بالعربية)
+[All releases](https://github.com/exelight7/deadlock-fps-/releases) &nbsp;·&nbsp; [What's new in 4.0](docs/RELEASE_v4.0.0.md) &nbsp;·&nbsp; [العربية](#-بالعربية)
 
 </div>
 
@@ -31,6 +31,9 @@ Graphics, mods, crosshair and servers in one app for Windows and Linux.
 | <img src="assets/icons/gauge.svg" width="26" alt=""> | **Performance** | One slider from 0 to 200 lightens the graphics while your resolution stays untouched. View width and frame limit are separate. |
 | <img src="assets/icons/crosshair.svg" width="26" alt=""> | **Crosshair** | Design your own with a live preview, or start from 50 ready designs. |
 | <img src="assets/icons/mods.svg" width="26" alt=""> | **Mods** | Drop a bundle, pick the cards, install with one confirmation. Inspection for missing, damaged and conflicting files is one tab away. |
+| <img src="assets/icons/link.svg" width="26" alt=""> | **Repositories** | Add mod sources by address (GitHub, GitLab or any HTTPS server), see what each offers, how it was classified and how far to trust it, and search them all at once. |
+| <img src="assets/icons/gallery.svg" width="26" alt=""> | **Mod Hub** | Find mods across every repository and install them in two steps: a verified download, then a preview of exactly what changes. Update, disable, restore the previous version or remove, and check that everything is intact. See the [mod manager guide](docs/MOD_MANAGER.md). |
+| <img src="assets/icons/diamond.svg" width="26" alt=""> | **Knowledge Graph** | An interactive map of repositories, mods, versions, conflicts and the project itself, drawn from real data. |
 | <img src="assets/icons/servers.svg" width="26" alt=""> | **Servers** | Compare ping per region and block or allow the regions you choose. |
 | <img src="assets/icons/backups.svg" width="26" alt=""> | **Recovery** | One place to undo graphics, crosshair, mods and server blocks, and to export your settings. |
 | <img src="assets/icons/settings.svg" width="26" alt=""> | **Settings** | Language (English or Arabic), settings guard and update checks. |
@@ -71,7 +74,7 @@ Ink black, dark teal and aged brass in the spirit of 1930s art-deco New York. Ev
 
 ## ◆ Help and details
 
-[Installing mods](docs/MOD_INSTALL.md) · [Mod inspector](docs/MOD_INSPECTOR.md) · [Crosshair](docs/CROSSHAIR_GUIDE.md) · [Updates](docs/UPDATE_CENTER.md) · [Build from source](docs/BUILD.md)
+[Mod manager guide](docs/MOD_MANAGER.md) · [Installing built-in mods](docs/MOD_INSTALL.md) · [Mod inspector](docs/MOD_INSPECTOR.md) · [Publish a mod repository](docs/REPOSITORY_SPEC.md) · [Crosshair](docs/CROSSHAIR_GUIDE.md) · [Updates](docs/UPDATE_CENTER.md) · [Build from source](docs/BUILD.md)
 
 <details>
 <summary>More</summary>

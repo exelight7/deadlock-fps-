@@ -7,7 +7,7 @@ from deadlock_fps.core import Studio,atomic
 from deadlock_fps.settings import MODS
 from deadlock_fps.mods import ModLibrary,HASHES,ImportCancelled,ImportReport
 from deadlock_fps.mod_install import prepare_mods,commit_mods
-from deadlock_fps.mod_ui import DropArea
+from deadlock_fps.pages.classic import ClassicPack
 import test_mod_inspector as fixtures
 vpk=fixtures.vpk
 
@@ -85,7 +85,7 @@ class DesktopControls(fixtures.GameFixture):
         cls.app=QApplication.instance() or QApplication([])
     def setUp(self):
         super().setUp();from deadlock_fps.ui import Window
-        with patch('deadlock_fps.ui.detect_games',return_value=[]),patch('deadlock_fps.mods.ModLibrary.discover',return_value=[]),patch('deadlock_fps.server_ui.ServerStore',return_value=fixtures.ServerStore(self.folder/'servers')):self.window=Window()
+        with patch('deadlock_fps.game_link.detect_games',return_value=[]),patch('deadlock_fps.mods.ModLibrary.discover',return_value=[]),patch('deadlock_fps.pages.servers.ServerStore',return_value=fixtures.ServerStore(self.folder/'servers')):self.window=Window()
         self.window.guard_timer.stop();self.window.servers.activate=lambda:None;self.window.path.setText(str(self.root));self.window.library=self.library
     def tearDown(self):
         self.window.close();QThreadPool.globalInstance().waitForDone(3000);self.app.processEvents();super().tearDown()
@@ -96,37 +96,52 @@ class DesktopControls(fixtures.GameFixture):
         self.assertFalse(self.window.mods_page.busy)
 
     def test_drag_accepts_local_files_only(self):
-        mime=QMimeData();mime.setUrls([QUrl.fromLocalFile(str(self.folder/'mods.zip'))]);self.assertEqual(DropArea.paths(mime),[self.folder/'mods.zip'])
-        mime.setUrls([QUrl('https://example.com/mods.zip')]);self.assertEqual(DropArea.paths(mime),[])
+        mime=QMimeData();mime.setUrls([QUrl.fromLocalFile(str(self.folder/'mods.zip'))]);self.assertEqual(ClassicPack.paths(mime),[self.folder/'mods.zip'])
+        mime.setUrls([QUrl('https://example.com/mods.zip')]);self.assertEqual(ClassicPack.paths(mime),[])
     def test_conflicting_import_requires_choice_and_card_highlights(self):
         page=self.window.mods_page;page.imported(ImportReport({'names','health','daylock'},[]));self.assertTrue(page.checks['daylock'].isChecked());self.assertFalse(page.checks['names'].isChecked());self.assertFalse(page.checks['health'].isChecked())
         page.checks['names'].setChecked(True);page.checks['health'].setChecked(True);self.assertFalse(page.checks['names'].isChecked());self.assertTrue(page.cards['health'].property('selected'))
-    def test_graphics_slider_is_direct_and_synced(self):
-        self.window.graphics_level.setValue(165);self.assertEqual(self.window.level.value(),165);self.window.level.setValue(75);self.assertEqual(self.window.graphics_level.value(),75)
+    def test_graphics_slider_is_direct(self):
+        self.window.level.setValue(165);self.assertEqual(self.window.settings().level,165);self.window.level.setValue(75);self.assertEqual(self.window.settings().level,75)
     def test_stale_worker_cannot_clear_active_install(self):
         page=self.window.mods_page;page.sequence=2;page.stage='apply';page.finished(1);self.assertTrue(page.applying);page.finished(2);self.assertFalse(page.busy)
     def test_cancel_review_leaves_game_and_manifest_unchanged(self):
         data=vpk();self.library.cache.mkdir();(self.library.cache/MODS['daylock'][0]).write_bytes(data);self.window.mod_checks['daylock'].setChecked(True)
         with patch.dict(HASHES,daylock=hashlib.sha256(data).hexdigest()),patch('deadlock_fps.mod_install.ensure_closed'):
             prepared=prepare_mods(self.root,self.library,('daylock',));before=self.gi.read_bytes()
-            with patch('deadlock_fps.mod_ui.ModReview.exec',return_value=0):self.window.mods_page.prepared(prepared)
+            with patch('deadlock_fps.pages.classic.ClassicReview.exec',return_value=0):self.window.mods_page.prepared(prepared)
         self.assertEqual(self.gi.read_bytes(),before);self.assertFalse(Studio(self.root).manifest.exists());self.assertFalse(self.window.mods_page.busy)
 
     def test_cancel_queued_preparation_never_opens_review(self):
         from unittest.mock import Mock
         page=self.window.mods_page;page.stage='prepare';page.cancel_event=threading.Event();page.cancel_event.set()
-        with patch('deadlock_fps.mod_ui.ModReview') as review:page.prepared(Mock());review.assert_not_called()
+        with patch('deadlock_fps.pages.classic.ClassicReview') as review:page.prepared(Mock());review.assert_not_called()
         self.assertFalse(page.busy);self.assertFalse(Studio(self.root).manifest.exists())
-    def test_compact_mod_workspace_keeps_cards_and_actions_visible(self):
-        self.window.resize(940,680);self.window.navigate(2);self.window.show();self.app.processEvents()
-        page=self.window.mods_page;self.assertFalse(self.window.hero.isVisible());self.assertTrue(page.actions_panel.isVisible())
-        viewport=page.drop.parentWidget().parentWidget()
-        card=page.cards['daylock'];self.assertTrue(viewport.rect().intersects(card.geometry()));self.assertGreaterEqual(viewport.height(),card.geometry().bottom())
+    def test_compact_mod_workspace_keeps_cards_and_actions_reachable(self):
+        self.window.resize(940,680);self.window.navigate('mods.installed');self.window.installed.show_classic();self.window.show();self.app.processEvents()
+        page=self.window.mods_page;installed=self.window.installed;self.assertTrue(page.install_button.isVisible());self.assertTrue(page.drop.isVisible())
+        self.assertFalse(installed.scroll.horizontalScrollBar().isVisible(),'the classic pack never scrolls sideways')
+        for key in MODS:self.assertTrue(page.cards[key].isVisible())
+        installed.scroll.ensureWidgetVisible(page.install_button);self.app.processEvents()
+        viewport=installed.scroll.viewport();spot=page.install_button.mapTo(viewport,page.install_button.rect().center());self.assertTrue(viewport.rect().contains(spot),'the install button can be scrolled into view')
+
+    def test_the_rows_say_what_is_ready_and_the_button_follows_the_choice(self):
+        page=self.window.mods_page;data=vpk();self.library.cache.mkdir();(self.library.cache/MODS['daylock'][0]).write_bytes(data)
+        with patch.dict(HASHES,daylock=hashlib.sha256(data).hexdigest()):
+            page.refresh();self.assertEqual((page.labels['daylock'].text(),page.labels['daylock'].property('variant')),('Ready','info'));self.assertEqual(page.labels['names'].text(),'Add the files')
+            self.assertEqual(page.install_button.text(),'Choose a mod to start');self.assertFalse(page.install_button.isEnabled())
+            page.checks['daylock'].setChecked(True);self.assertEqual(page.install_button.text(),'Check and install the choice');self.assertTrue(page.install_button.isEnabled());self.assertIn('1 mods chosen',page.status.text())
+            self.assertEqual(page.cards['daylock'].property('selected'),'true')
+            self.assertEqual(page.summary()[0],('Daylock',False),'the summary for the folded row on Installed')
+    def test_the_pack_is_busy_proof_while_working(self):
+        page=self.window.mods_page;page.stage='import';page.busy_ui()
+        self.assertFalse(page.add_button.isEnabled());self.assertTrue(all(not c.isEnabled() for c in page.checks.values()));self.assertFalse(page.cancel_button.isHidden())
+        page.stage='';page.busy_ui();self.assertTrue(page.add_button.isEnabled());self.assertTrue(page.cancel_button.isHidden())
 
     def test_background_import_and_single_confirm_install_end_to_end(self):
         data=vpk();source=self.folder/'renamed.vpk';source.write_bytes(data);before=self.video.read_bytes();page=self.window.mods_page
         from PySide6.QtWidgets import QDialog
-        with patch.dict(HASHES,daylock=hashlib.sha256(data).hexdigest()),patch('deadlock_fps.mod_install.ensure_closed'),patch('deadlock_fps.mod_ui.ModReview.exec',return_value=QDialog.Accepted) as review:
+        with patch.dict(HASHES,daylock=hashlib.sha256(data).hexdigest()),patch('deadlock_fps.mod_install.ensure_closed'),patch('deadlock_fps.pages.classic.ClassicReview.exec',return_value=QDialog.Accepted) as review:
             page.import_paths([source]);self.settle();self.assertTrue(page.checks['daylock'].isChecked());self.assertFalse(Studio(self.root).manifest.exists())
             page.install();self.settle();self.assertEqual(review.call_count,1)
-        self.assertEqual(self.video.read_bytes(),before);self.assertEqual(Studio(self.root).state()['settings']['mods'],['daylock']);self.assertTrue(self.window.path.isEnabled());self.assertIn('تم',page.status.text())
+        self.assertEqual(self.video.read_bytes(),before);self.assertEqual(Studio(self.root).state()['settings']['mods'],['daylock']);self.assertTrue(self.window.path.isEnabled());self.assertIn('Done',page.status.text())

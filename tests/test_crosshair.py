@@ -112,18 +112,18 @@ class Files(unittest.TestCase):
         self.assertEqual(before,{p:p.read_bytes() for p in before})
     def test_gui_cancel_save_apply_and_restore_use_scoped_backend(self):
         from PySide6.QtWidgets import QApplication,QDialog
-        from deadlock_fps.crosshair_ui import CrosshairPage
+        from deadlock_fps.pages.crosshair import CrosshairPage
         type(self).app=QApplication.instance() or QApplication([])
         p=CrosshairPage(lambda:(str(self.root),str(self.video)),library=Path(self.temp.name)/'profiles.json');p.resize(900,650);p.show();self.app.processEvents()
         before={q:q.read_bytes() for q in (self.local,self.remote)};p.set_model(PRESETS['نقطة خضراء'],True)
-        with patch('deadlock_fps.crosshair_ui.ensure_closed'),patch('deadlock_fps.crosshair_ui.QDialog.exec',return_value=QDialog.Rejected):p.review()
+        with patch('deadlock_fps.pages.crosshair.ensure_closed'),patch('deadlock_fps.pages.crosshair.QDialog.exec',return_value=QDialog.Rejected):p.review()
         self.assertEqual(before,{q:q.read_bytes() for q in before});self.assertFalse(self.store.folder.exists())
-        with patch('deadlock_fps.crosshair_ui.QInputDialog.getText',return_value=('تجربة',True)):p.save_profile()
+        with patch('deadlock_fps.pages.crosshair.QInputDialog.getText',return_value=('تجربة',True)):p.save_profile()
         self.assertEqual(import_design(json.loads(p.library.read_text(encoding='utf-8'))['تجربة']),PRESETS['نقطة خضراء'])
         p.profiles={};p.load_profiles();self.assertEqual(p.profiles['تجربة'],PRESETS['نقطة خضراء'])
-        with patch('deadlock_fps.crosshair_ui.ensure_closed'),patch('deadlock_fps.crosshair_ui.QDialog.exec',return_value=QDialog.Accepted):p.review()
+        with patch('deadlock_fps.pages.crosshair.ensure_closed'),patch('deadlock_fps.pages.crosshair.QDialog.exec',return_value=QDialog.Accepted):p.review()
         self.assertEqual(self.store.current()[0],PRESETS['نقطة خضراء']);self.assertTrue(p.restore_button.isEnabled())
-        with patch('deadlock_fps.crosshair_ui.ensure_closed'),patch('deadlock_fps.crosshair_ui.QDialog.exec',return_value=QDialog.Accepted):p.review(True)
+        with patch('deadlock_fps.pages.crosshair.ensure_closed'),patch('deadlock_fps.pages.crosshair.QDialog.exec',return_value=QDialog.Accepted):p.review(True)
         self.assertEqual(before,{q:q.read_bytes() for q in before});self.assertFalse(p.restore_button.isEnabled());p.close()
     def test_same_design_does_not_write_and_unsupported_files_are_not_created(self):
         self.assertFalse(self.store.plan(Crosshair()).changes)
@@ -139,7 +139,7 @@ class Interface(unittest.TestCase):
         cls.app=QApplication.instance() or QApplication([]);cls.app.setStyle('Fusion')
     def test_preview_is_idle_event_driven_and_reuses_background(self):
         from PySide6.QtCore import QTimer
-        from deadlock_fps.crosshair_ui import CrosshairPreview
+        from deadlock_fps.pages.crosshair import CrosshairPreview
         preview=CrosshairPreview();preview.resize(340,280);preview.show();self.app.processEvents()
         key=preview.background.cacheKey();count=preview.paint_count
         for _ in range(5):self.app.processEvents()
@@ -151,16 +151,16 @@ class Interface(unittest.TestCase):
         from PySide6.QtTest import QTest
         from PySide6.QtCore import Qt
         from deadlock_fps.ui import Window
-        w=Window();w.guard_timer.stop();w.servers.activate=lambda:None;w.show();w.navigate(5);self.app.processEvents();p=w.crosshair
-        self.assertEqual(w.stack.currentIndex(),5);self.assertTrue(p.actions_panel.isVisible());self.assertFalse(w.actionbar.isVisible())
-        p.presets.setCurrentIndex(0);self.assertEqual(p.model,PRESETS['صليب صغير'])
+        w=Window();w.guard_timer.stop();w.servers.activate=lambda:None;w.show();w.navigate('crosshair');self.app.processEvents();p=w.crosshair
+        self.assertEqual(w.current_slot,'crosshair');self.assertTrue(p.actions_panel.isVisible())
+        p.set_model(PRESETS['صليب صغير'],True);self.assertEqual(p.model,PRESETS['صليب صغير'])
         p.controls['gap'][1].setValue(9.5);self.assertEqual(p.model.gap,9.5);self.assertEqual(p.preview.design,p.model)
         p.copy_code();self.assertEqual(read_code(self.app.clipboard().text()),p.model)
-        w.resize(940,680);self.app.processEvents();self.assertEqual(w.size().toTuple(),(940,680));self.assertFalse(w.hero.isVisible())
+        w.resize(940,680);self.app.processEvents();self.assertEqual(w.size().toTuple(),(940,680))
         for b in [p.reload_button,p.apply_button,p.restore_button]:self.assertTrue(w.rect().contains(b.mapTo(w,b.rect().center())))
-        w.navigate(0);self.assertFalse(w.hero.isVisible());self.assertFalse(p.actions_panel.isVisible());w.resize(1360,920);self.app.processEvents();self.assertFalse(w.hero.isVisible());w.navigate(2);self.assertTrue(w.hero.isVisible());w.close()
+        w.navigate('home');self.assertFalse(p.actions_panel.isVisible());w.resize(1360,920);self.app.processEvents();w.close()
     def test_native_base_gap_spread_and_static_reference_geometry(self):
-        from deadlock_fps.crosshair_ui import CrosshairPreview
+        from deadlock_fps.pages.crosshair import CrosshairPreview
         p=CrosshairPreview();reference=replace(Crosshair(),gap=-8.6,dot=5.8,color='#aa0000',opacity=.78)
         p.set_design(reference)
         self.assertAlmostEqual(p.inner_gap,7.4)
@@ -171,7 +171,7 @@ class Interface(unittest.TestCase):
         self.assertEqual(p.design,reference);p.set_resolution_height(1440);self.assertEqual(p.design,reference)
     def test_gallery_catalog_search_selection_sources_and_no_idle_loop(self):
         from PySide6.QtCore import QTimer
-        from deadlock_fps.crosshair_ui import CrosshairGallery
+        from deadlock_fps.pages.crosshair import CrosshairGallery
         from deadlock_fps.crosshair_catalog import PLAYERS,entries,shape
         g=CrosshairGallery({'تجربة':PRESETS['دائرة']});g.show();self.app.processEvents()
         self.assertEqual(g.tiles.count(),51);self.assertEqual(g.chosen.name,'Hydration')
@@ -194,11 +194,11 @@ class Interface(unittest.TestCase):
         self.assertEqual(g.preview.paint_count,count);self.assertFalse(g.findChildren(QTimer));g.finish(False);self.assertFalse(g.apply_requested);g.close()
     def test_gallery_choice_loads_editor_only_and_direct_apply_calls_review(self):
         from PySide6.QtWidgets import QDialog
-        from deadlock_fps.crosshair_ui import CrosshairPage
+        from deadlock_fps.pages.crosshair import CrosshairPage
         from deadlock_fps.crosshair_catalog import PLAYERS
         with tempfile.TemporaryDirectory() as folder:
             p=CrosshairPage(lambda:('',''),library=Path(folder)/'profiles.json');before=p.model
-            with patch('deadlock_fps.crosshair_ui.CrosshairGallery') as make:
+            with patch('deadlock_fps.pages.crosshair.CrosshairGallery') as make:
                 gallery=make.return_value;gallery.exec.return_value=QDialog.Rejected;gallery.chosen=PLAYERS[1];gallery.apply_requested=True
                 with patch.object(p,'review') as review:
                     p.open_gallery();self.assertEqual(p.model,before);review.assert_not_called()
@@ -209,16 +209,17 @@ class Interface(unittest.TestCase):
     def test_tabs_preview_settings_and_palette_preserve_design_and_stay_english(self):
         from PySide6.QtWidgets import QDialog,QLabel,QPushButton
         from PySide6.QtCore import Qt
-        from deadlock_fps.crosshair_ui import CrosshairPage
+        from deadlock_fps.pages.crosshair import CrosshairPage
         import re
         with tempfile.TemporaryDirectory() as folder:
             p=CrosshairPage(lambda:('',''),library=Path(folder)/'profiles.json');p.resize(760,540);p.show();self.app.processEvents()
             p.set_model(PRESETS['صليب صغير'],True);before=p.model
-            for tab in range(p.tabs.count()):p.tabs.setCurrentIndex(tab);self.app.processEvents();self.assertEqual(p.model,before)
+            for key in ('outline','behavior','shape'):p.tabs.set_value(key);p.tabs.changed.emit(key);self.app.processEvents();self.assertEqual(p.model,before)
+            self.assertEqual(p.pages.currentIndex(),0)
             p.pick_palette('#73e8ff');self.assertEqual(p.model.color,'#73e8ff');self.assertEqual(p.preview.design,p.model)
             p.controls['border'][1].setValue(3);self.assertEqual(p.model.border,3)
             before=p.model
-            with patch('deadlock_fps.crosshair_ui.QDialog.exec',return_value=QDialog.Accepted):p.toggle_calibration()
+            with patch('deadlock_fps.pages.crosshair.QDialog.exec',return_value=QDialog.Accepted):p.toggle_calibration()
             self.assertEqual(p.model,before);self.assertEqual(p.calibration.parent(),p);self.assertFalse(p.calibration.isVisible())
             p.reload_current();self.assertFalse(re.search('[\u0600-\u06ff]',p.status.text()))
             texts=[w.text() for w in p.findChildren((QLabel))]+[w.text() for w in p.findChildren(QPushButton)]

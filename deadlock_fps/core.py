@@ -75,9 +75,13 @@ def steam_libraries():
 def running_game_root():
     """The folder of a Deadlock process that is running right now, wherever it was installed."""
     try:
-        for p in psutil.process_iter(['name','exe']):
-            if (p.info['name'] or '').lower() in GAME_PROCESSES and p.info.get('exe'):
-                for parent in Path(p.info['exe']).parents:
+        # Only the name is read for every process; the executable path (which opens the process) only for a match.
+        for p in psutil.process_iter(['name']):
+            if (p.info['name'] or '').lower() not in GAME_PROCESSES:continue
+            try:exe=p.exe()
+            except Exception:continue
+            if exe:
+                for parent in Path(exe).parents:
                     if (parent/'game/citadel/gameinfo.gi').is_file():return parent
     except Exception:pass
     return None
@@ -300,6 +304,7 @@ class Studio:
         elif s.aspect_ratio is not None:
             text=kv.update(text,['GameInfo','ConVars'],{'r_aspectratio':f'{s.aspect_ratio:.2f}'})
         if s.mods: text=kv.add_search_path(text)
+        if state.get('addons'): text=kv.add_addons_path(text)
         planned[gi]=text.encode()
         if self.video:
             source=self.baseline(self.video,state)
@@ -340,6 +345,7 @@ class Studio:
                 paths=kv.section(text,['GameInfo','FileSystem','SearchPaths']).children
                 for n in reversed(paths):
                     if n.key.lower()=='game' and n.value=='citadel/fps_studio':text=text[:n.start]+text[n.end:]
+        if state.get('addons'):text=kv.add_addons_path(text)
         if text!=current.decode('utf-8-sig'):planned[gi]=text.encode()
         for key,(filename,_,_) in MODS.items():
             target=self.checked_path(self.root/'game/citadel/fps_studio'/filename.split(' - ')[0])
@@ -352,10 +358,12 @@ class Studio:
                 if (target.read_bytes() if target.exists() else None)!=data:planned[target]=data
             elif str(target) in state['files'] and (target.read_bytes() if target.exists() else None)!=base:planned[target]=base
         return planned
-    def apply(self,plan,s,mod_only=False):
+    def apply(self,plan,s,mod_only=False,addons=None):
         ensure_closed()
         if not plan:
-            state=self.state();state['graphics_managed']=not mod_only or self.graphics_managed(state);state['settings']=s.to_dict();atomic(self.manifest,json.dumps(state,indent=2).encode())
+            state=self.state();state['graphics_managed']=not mod_only or self.graphics_managed(state);state['settings']=s.to_dict()
+            if addons is not None:state['addons']=bool(addons)
+            self.store.mkdir(parents=True,exist_ok=True);atomic(self.manifest,json.dumps(state,indent=2).encode())
             return tr('الإعدادات مطبقة بالفعل.')
         state=self.state(); previous={}; new=json.loads(json.dumps(state))
         self.store.mkdir(parents=True,exist_ok=True)
@@ -379,6 +387,7 @@ class Studio:
                         c={'r_aspectratio':c['r_aspectratio']} if s.aspect_ratio is not None else {};scene={}
                     entry['owned']=[(['video.cfg'],list(v))] if p.name=='video.txt' else [(['GameInfo','ConVars'],list(c)),(['GameInfo','SceneSystem'],list(scene))]
         new['schema']=2;new['graphics_managed']=not mod_only or self.graphics_managed(state);new['settings']=s.to_dict(); new['updated']=datetime.now(timezone.utc).isoformat()
+        if addons is not None:new['addons']=bool(addons)
         try:
             for p,b in plan.items(): self.write(p,b)
             atomic(self.manifest,json.dumps(new,indent=2).encode())
@@ -386,6 +395,26 @@ class Studio:
             for p,b in previous.items(): self.write(p,b)
             raise
         return tr('تم تطبيق الإعدادات وحفظ النسخ الأصلية ({0} ملفات).').format(len(plan))
+    def addons_enabled(self):
+        """True when gameinfo.gi currently lists citadel/addons, whoever put it there."""
+        try:return kv.has_addons_path((self.root/'game/citadel/gameinfo.gi').read_text(encoding='utf-8-sig'))
+        except (OSError,ValueError):return False
+    def enable_addons(self,mod_folder=''):
+        """Make Deadlock load mods from game/citadel/addons, through the same backup and rollback as every other change.
+
+        Steam replaces gameinfo.gi on updates and on 'verify integrity'. When that happened the recorded
+        digest no longer matches; for a mods-only state the saved recipe is re-applied on the new file
+        (repair). If graphics settings are managed too, the user is told to use the repair button instead."""
+        from .settings import Settings
+        ensure_closed();state=self.state();gi=self.checked_path(self.root/'game/citadel/gameinfo.gi')
+        try:self.baseline(gi,state)
+        except ValueError:
+            if self.graphics_managed(state):raise
+            self.repair(mod_folder or str(self.store));state=self.state()
+        current=gi.read_bytes().decode('utf-8-sig');text=kv.add_addons_path(current)
+        settings=Settings.from_dict(state['settings']) if state.get('settings') else Settings(mods=())
+        plan={gi:text.encode()} if text!=current else {}
+        return self.apply(plan,settings,mod_only=True,addons=True)
     @staticmethod
     def write(p,b):
         if b is None: p.unlink(missing_ok=True)

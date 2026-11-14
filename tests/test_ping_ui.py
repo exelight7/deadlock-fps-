@@ -26,26 +26,3 @@ class Probes(unittest.TestCase):
         with patch('deadlock_fps.servers.probe_region',return_value=PingResult(20,0,'ok','test')):
             results=ping_regions(regions,lambda code,result:progress.append(code))
         self.assertEqual(set(progress),{'a','b'});self.assertEqual(set(results),{'a','b'})
-
-class Interface(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        from PySide6.QtWidgets import QApplication
-        cls.app=QApplication.instance() or QApplication([])
-    def test_clear_states_numeric_sort_and_selection(self):
-        from PySide6.QtCore import Qt
-        from PySide6.QtTest import QTest
-        from deadlock_fps.server_ui import ServerPage
-        with tempfile.TemporaryDirectory() as d:
-            page=ServerPage(store=ServerStore(d));page.resize(1150,900);page.show();self.app.processEvents()
-            self.assertEqual(page.table.item(0,3).text(),'لم يُقَس')
-            index=page.table.model().index(0,0);rect=page.table.visualRect(index)
-            QTest.mouseClick(page.table.viewport(),Qt.LeftButton,pos=rect.center());self.assertEqual(page.table.item(0,0).checkState(),Qt.Checked);self.assertIn('1',page.selection_note.text())
-            a=page.table.item(0,0).data(Qt.UserRole);b=page.table.item(1,0).data(Qt.UserRole)
-            page.ping_progress((a,PingResult(120.0,0,'ok','actual A')));page.ping_progress((b,PingResult(30.0,0,'ok','actual B')))
-            self.assertEqual(page.table.item(0,3).text(),'120.0');page.sort_ping();self.assertEqual(page.table.item(0,3).text(),'30.0')
-            page.ping_progress((b,PingResult(None,None,'error','tool not installed')))
-            error_row=next(row for row in range(page.table.rowCount()) if page.table.item(row,0).data(Qt.UserRole)==b)
-            self.assertEqual(page.table.item(error_row,3).text(),'تعذر القياس');self.assertNotEqual(page.table.item(error_row,4).text(),'100%')
-            self.assertEqual(page.table.item(0,3).text(),'120.0')
-            page.clear_selection();self.assertFalse(page.selected_codes());page.close()

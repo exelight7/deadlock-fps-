@@ -24,6 +24,8 @@ from PySide6.QtCore import Qt, QThreadPool  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 SHOWN_PATH = r'C:\Program Files (x86)\Steam\steamapps\common\Deadlock'
+# Picture number → window address (shell/registry.py); the numbers only name the files.
+ADDRESSES = ['home', 'performance', 'mods.installed', 'backups', 'servers', 'crosshair', 'settings.update', 'mods.health', 'settings']
 NAMES = ['overview', 'graphics', 'mods', 'backups', 'servers', 'crosshair', 'update-center', 'mod-inspector', 'settings']
 DOCS = {'overview': 'screenshot.png', 'graphics': 'graphics.png', 'mods': 'mods.png', 'backups': 'backups.png', 'servers': 'servers.png',
         'crosshair': 'crosshair.png', 'update-center': 'update-center.png', 'mod-inspector': 'mod-inspector.png', 'settings': 'settings.png'}
@@ -43,7 +45,8 @@ def main():
     from deadlock_fps import i18n
     i18n.activate(option('--lang', 'en'))            # before the interface modules are imported
     from deadlock_fps.core import ASSETS
-    from deadlock_fps.design import STYLE, dark_palette, load_fonts
+    from deadlock_fps.shell.base import dark_palette, load_fonts
+    from deadlock_fps import ui as _ui
     from deadlock_fps.servers import PingResult
     docs = '--docs' in sys.argv
     positional = [a for i, a in enumerate(sys.argv[1:], 1) if not a.startswith('--') and sys.argv[i - 1] not in ('--size', '--only', '--lang')]
@@ -56,7 +59,7 @@ def main():
     app.setStyle('Fusion')
     load_fonts()
     app.setPalette(dark_palette())
-    app.setStyleSheet(STYLE)
+    _ui.start_look(app, {})
     with tempfile.TemporaryDirectory() as folder:
         root = Path(folder)
         game = root / 'steamapps/common/Deadlock'
@@ -67,7 +70,7 @@ def main():
         video.parent.mkdir(parents=True)
         video.write_bytes((ASSETS / 'reference/video.txt').read_bytes())
         with patch('deadlock_fps.ui.QStandardPaths.writableLocation', return_value=str(root / 'data')), \
-                patch('deadlock_fps.ui.detect_games', return_value=[game]), patch('deadlock_fps.ui.video_files', return_value=[video]), \
+                patch('deadlock_fps.game_link.detect_games', return_value=[game]), patch('deadlock_fps.game_link.video_files', return_value=[video]), \
                 patch('deadlock_fps.core.video_files', return_value=[video]), patch('deadlock_fps.mods.ModLibrary.discover', return_value=[]):
             from deadlock_fps.ui import Window
             window = Window()
@@ -86,7 +89,7 @@ def main():
             for row in (0, 2):
                 window.servers.table.item(row, 0).setCheckState(Qt.Checked)
             for index in only:
-                window.navigate(index)
+                window.navigate(ADDRESSES[index])
                 settle(app)
                 window.transition.finish()
                 deadline = time.monotonic() + .6
@@ -106,8 +109,8 @@ def main():
                 print(target / name)
             if '--dialogs' in sys.argv or docs:
                 from types import SimpleNamespace
-                from deadlock_fps.crosshair_ui import CrosshairGallery
-                from deadlock_fps.mod_ui import ModReview
+                from deadlock_fps.pages.crosshair import CrosshairGallery
+                from deadlock_fps.pages.classic import ClassicReview as ModReview
                 gallery = CrosshairGallery(window.crosshair.profiles, window.crosshair)
                 plan = {game / 'game/citadel/fps_studio/pak01_dir.vpk': b'0' * 48213, game / 'game/citadel/gameinfo.gi': b'0' * 9120}
                 finding = SimpleNamespace(severity='warning', title='Daylock', detail='جرّب الوضوح داخل التدريب بعد التركيب.')

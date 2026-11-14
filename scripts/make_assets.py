@@ -18,7 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
-from deadlock_fps import theme as T  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import legacy_tokens as T  # noqa: E402  (the old brand colours, kept only to regenerate the old artwork)
 
 ASSETS = ROOT / 'assets'
 ICON_SIZES = (16, 24, 32, 48, 64, 128, 256, 512)

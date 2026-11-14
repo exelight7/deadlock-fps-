@@ -29,8 +29,8 @@ class Aspect(unittest.TestCase):
             self.assertEqual(flat(gi.read_text(),['GameInfo','ConVars'])['r_aspectratio'],'3.50')
     def test_slider_and_master_level_are_independent(self):
         app=QApplication.instance() or QApplication([]);w=Window();w.guard_timer.stop()
-        self.assertEqual((w.aspect.minimum(),w.aspect.maximum()),(178,350));w.aspect.setValue(350)
-        self.assertEqual(w.aspect_value.text(),'3.50');self.assertEqual(w.settings().aspect_ratio,3.5)
+        self.assertEqual((w.aspect.minimum,w.aspect.maximum),(178,350));w.aspect.setValue(350)
+        self.assertEqual(w.level_page.aspect_value.text(),'3.50');self.assertEqual(w.settings().aspect_ratio,3.5)
         w.level.setValue(25);self.assertEqual(w.settings().aspect_ratio,3.5)
         w.load_preset('ultra');self.assertEqual(w.settings().aspect_ratio,3.5)
-        w.aspect.setValue(178);self.assertEqual(w.aspect_value.text(),'1.78');w.close()
+        w.aspect.setValue(178);self.assertEqual(w.level_page.aspect_value.text(),'1.78');w.close()

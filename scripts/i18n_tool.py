@@ -17,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / 'deadlock_fps'
 SKIP_FILES = {'i18n.py', 'lang_en.py', 'lang_ar.py', 'theme.py', '__init__.py', 'crosshair_style.py'}
-ENGLISH_FILES = {'crosshair_ui.py', 'crosshair.py', 'crosshair_catalog.py'}
+ENGLISH_FILES = {'perf_ui.py', 'knowledge.py', 'explain.py', 'crosshair_ui.py', 'crosshair.py', 'crosshair_catalog.py', 'repo_ui.py', 'hub_ui.py', 'mod_service.py', 'graph_ui.py', 'store_service.py', 'stats_ui.py', 'stats_service.py'}
 ARABIC = re.compile(r'[ء-ي]{2,}')
 # English text is only wrapped where it is shown: as an argument of these calls (or inside a list/dict/concat that is).
 ENGLISH_CALLS = {'note', 'panel', 'QPushButton', 'QCheckBox', 'QLabel', 'Kicker', 'setText', 'setToolTip', 'setPlaceholderText', 'setWindowTitle',
@@ -150,6 +150,16 @@ def files():
     return [p for p in sorted(PACKAGE.glob('*.py')) if p.name not in SKIP_FILES]
 
 
+# Subpackages whose modules show text to the user. `wrap()` leaves them alone (they wrap by hand); `sources()` reads them,
+# so a string written there without a translation is reported instead of silently shown in the wrong language.
+TRANSLATED_SUBPACKAGES = ('perf', 'store', 'stats', 'shell', 'legacy', 'pages')
+
+
+def translated_files():
+    nested = [p for sub in TRANSLATED_SUBPACKAGES for p in sorted((PACKAGE / sub).glob('*.py')) if p.name not in SKIP_FILES]
+    return files() + nested
+
+
 def wrap():
     total = 0
     for path in files():
@@ -168,7 +178,7 @@ def wrap():
 def sources():
     """Every string literal passed to tr(), split by the language it is written in."""
     arabic, english = set(), set()
-    for path in files():
+    for path in translated_files():
         for node in ast.walk(ast.parse(path.read_text(encoding='utf-8'))):
             if isinstance(node, ast.Call) and call_name(node) == 'tr' and node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
                 (arabic if ARABIC.search(node.args[0].value) else english).add(node.args[0].value)

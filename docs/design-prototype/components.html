@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="dark" data-accent="blue">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deadlock Toolbox: components</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
+<style>
+  body { background: var(--color-bg-app); display: block; }
+  .gallery { max-width: 1040px; margin: 0 auto; padding: 0 24px 80px; }
+  .card { max-width: 320px; }
+</style>
+</head>
+<body>
+<div class="proto">
+  <b>Components</b>
+  <label>Language <select id="c-lang"><option value="en">English</option><option value="ar">العربية (RTL)</option></select></label>
+  <label>Theme <select id="c-theme"><option value="dark">Dark</option><option value="light">Light</option></select></label>
+  <label>Accent <select id="c-accent"><option value="blue">Blue</option><option value="violet">Violet</option><option value="orange">Orange</option></select></label>
+  <a href="index.html">Screens</a>
+</div>
+<div class="gallery" id="gallery"></div>
+<script src="app.js"></script>
+<script>
+'use strict';
+function cap(label, html) { return '<div class="cap">' + html + '<span>' + label + '</span></div>'; }
+function section(title, html) { return '<h2>' + title + '</h2><div class="demo">' + html + '</div>'; }
+function state(b, cls) { return b.replace('class="btn', 'class="btn ' + cls); }
+function draw() {
+  const root = document.documentElement;
+  root.lang = S.lang; root.dir = S.lang === 'ar' ? 'rtl' : 'ltr'; root.dataset.theme = S.theme; root.dataset.accent = S.accent;
+  const primary = btn(T('Install', 'ثبّت'), { kind: 'primary', icon: 'download' });
+  const normal = btn(T('Check again', 'افحص مجددًا'), { icon: 'refresh' });
+  document.getElementById('gallery').innerHTML =
+    section('Button', cap('primary', primary) + cap('hover', state(primary, 'is-hover')) + cap('pressed', state(primary, 'is-pressed')) + cap('focus', state(primary, 'is-focus')) +
+      cap('busy', btn(T('Installing', 'جارٍ التثبيت'), { kind: 'primary', busy: true, off: true })) + cap('disabled', btn(T('Install', 'ثبّت'), { kind: 'primary', off: true })) +
+      cap('secondary', normal) + cap('hover', state(normal, 'is-hover')) + cap('ghost', btn(T('Cancel', 'إلغاء'), { kind: 'ghost' })) + cap('danger', btn(T('Remove', 'احذف'), { kind: 'danger', icon: 'trash' })) +
+      cap('danger-quiet', btn(T('Restore the originals', 'استرجع الأصل'), { kind: 'danger-quiet' })) + cap('sm', btn(T('Update', 'حدّث'), { size: 'sm' })) + cap('lg', btn(T('Get the mod list', 'نزّل القائمة'), { kind: 'primary', size: 'lg' })) +
+      cap('icon', btn('', { icon: 'more', title: 'More' })) + cap('icon ghost', btn('', { kind: 'ghost', icon: 'x', title: 'Close' }))) +
+    section('TextField, SearchField, Select, PathField',
+      cap('default', field(T('Search mods', 'ابحث عن مود'), 'search', '')) + cap('focus', field(T('Search mods', 'ابحث عن مود'), 'search', 'is-focus')) +
+      cap('error + help', '<div class="fieldwrap"><div class="field is-error"><input value="steamcommunity.com/id/x" class="ltr"></div><span class="help err">' + T('A profile name can\'t be used here.', 'اسم الملف لا ينفع هنا.') + '</span></div>') +
+      cap('disabled', '<div class="field is-disabled"><input disabled value="' + T('Not available', 'غير متاح') + '"></div>') + cap('select', select([T('All types', 'كل الأنواع'), 'HUD'])) +
+      cap('path (always left-to-right)', '<div class="field" style="width:300px">' + ic('folder') + '<input class="mono" value="C:\\Steam\\steamapps\\common\\Deadlock"></div>')) +
+    section('Checkbox, Switch, SegmentedControl, Slider, Chip',
+      cap('off', check(T('Keep outside changes', 'احتفظ بالتغييرات'), false)) + cap('on', check(T('Keep outside changes', 'احتفظ بالتغييرات'), true)) + cap('switch off', check('', false, true)) + cap('switch on', check('', true, true)) +
+      cap('segmented', seg([T('System', 'النظام'), T('Dark', 'داكن'), T('Light', 'فاتح')], 1)) + cap('slider', '<div style="width:220px">' + slider(40) + '</div>') +
+      cap('chip on', '<button class="chip on">' + ic('check', 'sm') + T('Hide outdated', 'أخفِ القديمة') + '</button>') + cap('chip off', '<button class="chip">' + T('Show adult content', 'أظهر محتوى البالغين') + '</button>')) +
+    section('Badge', cap('neutral', badge(T('Off', 'متوقف'))) + cap('success', badge(T('Up to date', 'محدّث'), 'ok', 'check')) + cap('warning', badge(T('Not reviewed', 'لم يُراجَع'), 'warn', 'warn')) +
+      cap('danger', badge(T('Blocked', 'محظورة'), 'bad', 'block')) + cap('info', badge(T('Update', 'تحديث'), 'info')) + cap('count', '<span class="badge count">2</span>')) +
+    section('Tabs', '<div class="tabs" style="width:100%"><button class="tab on">' + T('Browse', 'تصفّح') + '</button><button class="tab">' + T('Installed', 'المثبّتة') + '<span class="badge count">2</span></button><button class="tab">' + T('Check', 'الفحص') + '</button></div>') +
+    section('Banner', '<div class="col" style="width:100%">' + banner('info', T('This sends a Steam account number', 'هذا يرسل رقم حساب Steam'), T('Nothing is saved on this PC.', 'لا شيء يُحفظ في هذا الجهاز.')) +
+      banner('ok', T('The originals are saved first', 'الأصل يُحفظ أولًا'), '') + banner('warn', T('Link the game to apply', 'اربط اللعبة لتطبّق'), '', btn(T('Link the game', 'اربط اللعبة'), { size: 'sm' })) +
+      banner('bad', T('Close Deadlock first', 'أغلق Deadlock أولًا'), T('Nothing was changed.', 'لا شيء تغيّر.'), btn(T('Try again', 'حاول مجددًا'), { size: 'sm' })) + '</div>') +
+    section('Card, ModCard, StatTile', '<div class="card"><h2>' + T('View width', 'عرض الرؤية') + '</h2><p class="soft">' + T('A plain card: title, one sentence, controls.', 'بطاقة عادية: عنوان، جملة واحدة، عناصر تحكم.') + '</p></div>' +
+      '<button class="card click mod" style="width:210px"><div class="pic" style="background:linear-gradient(135deg,hsl(205 45% 34%),hsl(245 40% 18%))">' + ic('box', 'lg') + badge(T('Installed', 'مثبّت'), 'ok', 'check') + '</div><div class="meta"><div class="name">Clean HUD</div><div class="by"><span>HUD</span><span>·</span><span>mira</span></div></div></button>' +
+      '<div class="tile"><div class="n ltr">53.8%</div><div class="l">' + T('win rate', 'نسبة الفوز') + '</div></div>') +
+    section('ProgressBar, Spinner, Skeleton', '<div class="col" style="width:320px"><div class="progress"><i style="width:45%"></i></div><div class="progress wait"><i></i></div><div class="row"><span class="spin"></span>' + skel('160px') + '</div></div>') +
+    section('EmptyState', empty('box', T('No mods yet', 'لا توجد مودات بعد'), T('One sentence that says what will appear here.', 'جملة واحدة تقول ماذا سيظهر هنا.'), btn(T('Browse mods', 'تصفّح المودات'), { kind: 'primary' })) +
+      empty('warn', T('The check could not finish', 'الفحص لم يكتمل'), T('What happened, and what to do next.', 'ماذا حدث، وماذا تفعل بعده.'), btn(T('Try again', 'حاول مجددًا')), true)) +
+    section('Menu, Tooltip, Toast', '<div class="menu"><button>' + ic('refresh', 'sm') + T('Update', 'حدّث') + '</button><button class="is-hover">' + ic('history', 'sm') + T('Previous version', 'الإصدار السابق') + '</button><button>' + ic('folder', 'sm') + T('Show files', 'اعرض الملفات') + '</button><hr><button style="color:var(--color-danger-text)">' + ic('trash', 'sm') + T('Remove', 'احذف') + '</button></div>' +
+      '<span class="tip">' + T('Can change how much you see', 'قد يغيّر ما تراه') + '</span>' +
+      '<div class="toast" style="position:static"><span style="color:var(--color-success-text)">' + ic('check') + '</span><span>' + T('Applied.', 'تم التطبيق.') + '</span>' + btn(T('Undo', 'تراجع'), { size: 'sm', kind: 'ghost' }) + '</div>') +
+    section('Dialog (confirm)', '<div class="dialog sm" style="position:static"><div class="head"><h2 class="grow">' + T('Remove Clean HUD?', 'تحذف Clean HUD؟') + '</h2>' + btn('', { kind: 'ghost', icon: 'x', title: 'Close' }) + '</div><div class="body"><p style="margin:0" class="soft">' +
+      T('Its file leaves the game and is kept in the recovery folder. Minimal Map needs this mod and will stop working.', 'ملفه يخرج من اللعبة ويُحفظ في مجلد الاسترجاع. Minimal Map يحتاج هذا المود وسيتوقف.') + '</p></div><div class="foot">' + btn(T('Cancel', 'إلغاء')) + btn(T('Remove', 'احذف'), { kind: 'danger' }) + '</div></div>') +
+    section('Icons (original, 20 px grid, 1.5 stroke, round)', Object.keys(ICONS).map(function (name) { return cap(name, ic(name, 'lg')); }).join(''));
+}
+['lang', 'theme', 'accent'].forEach(function (key) { document.getElementById('c-' + key).onchange = function (e) { S[key] = e.target.value; draw(); }; });
+location.hash.slice(1).split('&').forEach(function (pair) { const p = pair.split('='); if (p[0] in S) S[p[0]] = p[1]; });
+['lang', 'theme', 'accent'].forEach(function (key) { document.getElementById('c-' + key).value = S[key]; });
+draw();
+</script>
+</body>
+</html>

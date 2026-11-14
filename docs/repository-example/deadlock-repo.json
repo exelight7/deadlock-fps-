@@ -1,0 +1,75 @@
+{
+  "schema": "deadlock-mod-repository",
+  "schema_version": "1.0",
+  "repository": {
+    "id": "example-mods",
+    "name": "Example Mods",
+    "description": "A tiny repository that shows every field of the specification. The addresses are placeholders.",
+    "homepage": "https://example.org/mods",
+    "maintainer": "Example Maintainer",
+    "updated": "2026-11-14"
+  },
+  "mods": [
+    {
+      "id": "crimson-skin",
+      "name": "Crimson Skin",
+      "summary": "A deep red recolour.",
+      "description": "Replaces the default texture with a crimson palette.\nWorks with every hero that uses the shared material.",
+      "author": "Example Author",
+      "license": "CC-BY-4.0",
+      "categories": ["skins"],
+      "tags": ["red", "recolour"],
+      "homepage": "https://example.org/mods/crimson-skin",
+      "source_url": "https://example.org/source/crimson-skin",
+      "screenshots": ["https://example.org/mods/crimson-skin/1.png"],
+      "published": "2026-03-18",
+      "versions": [
+        {
+          "version": "1.1.0",
+          "published": "2026-04-01",
+          "changelog": "Fixes the brightness on the second material.",
+          "game": { "min_build": 100, "tested_build": 150 },
+          "package": {
+            "format": "vpk",
+            "url": "https://example.org/files/crimson-skin-1.1.0.vpk",
+            "size": 4194304,
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          "install": { "type": "vpk", "files": [ { "source": "" } ] },
+          "dependencies": [],
+          "conflicts": [ { "id": "azure-skin", "range": "*", "reason": "Both replace the same material." } ]
+        },
+        {
+          "version": "1.0.0",
+          "published": "2026-03-18",
+          "changelog": "First release.",
+          "game": { "min_build": 100, "max_build": 149 },
+          "package": {
+            "format": "zip",
+            "url": "https://example.org/files/crimson-skin-1.0.0.zip",
+            "size": 3145728,
+            "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+            "mirrors": ["https://mirror.example.net/crimson-skin-1.0.0.zip"]
+          },
+          "install": { "type": "vpk", "files": [ { "source": "pak/crimson.vpk" } ] },
+          "yanked": false
+        }
+      ]
+    },
+    {
+      "id": "clean-hud",
+      "name": "Clean HUD",
+      "summary": "Removes clutter from the interface.",
+      "author": "Example Author",
+      "categories": ["hud"],
+      "versions": [
+        {
+          "version": "0.9.0-beta.1",
+          "package": { "format": "vpk", "url": "https://example.org/files/clean-hud-0.9.0-beta.1.vpk", "size": 524288 },
+          "install": { "type": "vpk", "files": [] },
+          "dependencies": [ { "id": "crimson-skin", "range": ">=1.0 <2" } ]
+        }
+      ]
+    }
+  ]
+}

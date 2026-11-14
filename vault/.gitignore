@@ -1,0 +1,10 @@
+# Obsidian writes per-user UI state here; only graph.json (the colour groups) is shared.
+.obsidian/workspace*.json
+.obsidian/cache
+.obsidian/plugins/
+.obsidian/appearance.json
+.obsidian/core-plugins*.json
+.obsidian/hotkeys.json
+.trash/
+# The raw session transcript is large and personal: local only.
+AI Memory/Raw/

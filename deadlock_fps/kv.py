@@ -56,6 +56,21 @@ def update(text, path, values):
     parse(text)
     return text
 
+ADDONS_PATH='citadel/addons'
+def has_addons_path(text):
+    n=section(text,['GameInfo','FileSystem','SearchPaths'])
+    return any(c.key.lower()=='game' and c.value==ADDONS_PATH for c in n.children)
+
+def add_addons_path(text):
+    """Register `Game "citadel/addons"` above the first `citadel` entry: Source loads search paths in order, and the community convention (and every other mod manager) expects it there."""
+    n=section(text,['GameInfo','FileSystem','SearchPaths'])
+    if any(c.key.lower()=='game' and c.value==ADDONS_PATH for c in n.children): return text
+    anchor=next((c for c in n.children if c.key.lower() in ('mod','game','write') and c.value=='citadel'),None)
+    at=anchor.start if anchor else (n.children[0].start if n.children else n.close)
+    result=text[:at]+'Game "'+ADDONS_PATH+'" // Deadlock Toolbox\n\t\t\t'+text[at:]
+    parse(result)
+    return result
+
 def add_search_path(text):
     n=section(text,['GameInfo','FileSystem','SearchPaths'])
     if any(c.key.lower()=='game' and c.value=='citadel/fps_studio' for c in n.children): return text

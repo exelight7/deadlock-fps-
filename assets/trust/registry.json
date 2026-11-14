@@ -1,0 +1,12 @@
+{
+  "schema": "deadlock-trust-registry",
+  "version": 1,
+  "comment": "Review decisions shipped with the application. Repositories cannot grant themselves a label; see deadlock_fps/repos/trust.py. Identity is the canonical repository id.",
+  "entries": [
+    {
+      "repository": "github:exelight7/deadlock-fps-",
+      "label": "OFFICIAL",
+      "note": "The Deadlock Toolbox project repository."
+    }
+  ]
+}

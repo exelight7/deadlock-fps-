@@ -12,7 +12,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 os.environ.setdefault('QT_QPA_PLATFORM','offscreen')
 from PySide6.QtCore import QEventLoop,QTimer
 from PySide6.QtWidgets import QApplication
-from deadlock_fps.update_ui import UpdatePage
+from deadlock_fps.pages.update import UpdatePage
 from deadlock_fps.updates import UpdateStore,Version
 
 

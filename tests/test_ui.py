@@ -13,7 +13,8 @@ class Interface(unittest.TestCase):
             w.load_preset(key);s=w.settings()
             for field in ['textures','shadows','fog','ao','particles','fps','cpu','engine']:
                 self.assertEqual(getattr(s,field),getattr(expected,field))
-        for i in range(4):w.navigate(i);self.assertEqual(w.stack.currentIndex(),i)
+        for address,slot in (('home','home'),('performance','graphics'),('mods.installed','installed'),('backups','recovery')):w.navigate(address);self.assertEqual(w.current_slot,slot)
+        self.assertRaises(TypeError,w.navigate,1);self.assertRaises(KeyError,w.navigate,'mods.nope')
         self.assertFalse(hasattr(w,'resolution'));self.assertNotIn('scale',w.controls)
         w.mod_checks['names'].setChecked(True);w.mod_checks['health'].setChecked(True)
         self.assertFalse(w.mod_checks['names'].isChecked());self.assertTrue(w.mod_checks['health'].isChecked())

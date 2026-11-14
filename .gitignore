@@ -5,3 +5,6 @@ build/
 dist/
 *.spec
 .pytest_cache/
+.obsidian/
+# offscreen renders made while developing
+.shots/

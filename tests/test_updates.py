@@ -154,7 +154,7 @@ class Network(NetworkFixture):
 
 class Interface(NetworkFixture):
     def test_verified_download_can_install_in_background_and_retry_failure(self):
-        from deadlock_fps.update_ui import UpdatePage
+        from deadlock_fps.pages.update import UpdatePage
         from PySide6.QtCore import QThreadPool
         page=UpdatePage(store=self.store,current='2.1.0',manager=self.manager)
         page.saved_path=self.folder/'download.zip';page.saved_hash=HASH;page.saved_version='v2.2.2';page.refresh_buttons()
@@ -168,7 +168,7 @@ class Interface(NetworkFixture):
             install.assert_called_once_with(page.saved_path,'v2.2.2',HASH)
         self.assertEqual(page.installed_binary,binary);self.assertFalse(page.install_button.isEnabled());self.assertFalse(page.launch_button.isHidden());page.close()
     def test_release_states_cache_and_persistent_auto_preference(self):
-        from deadlock_fps.update_ui import UpdatePage
+        from deadlock_fps.pages.update import UpdatePage
         page=UpdatePage(store=self.store,current='2.1.0',manager=self.manager,download_folder=self.folder/'downloads')
         page.show_release(parse_release(release_data()),True);self.assertFalse(page.download_button.isEnabled());page.check();self.manager.replies[-1].feed(json.dumps(release_data()).encode());self.assertIn('تحديث جديد',page.state.text());self.assertTrue(page.download_button.isEnabled())
         self.assertTrue(page.progress.isHidden());self.assertTrue(page.progress_text.isHidden())
@@ -177,11 +177,13 @@ class Interface(NetworkFixture):
         preview=UpdatePage(store=self.store,current='2.3.0-preview.1',manager=Manager());preview.show_release(parse_release(release_data()));self.assertIn('أحدث',preview.state.text());self.assertIn('أقدم',preview.download_button.text());preview.close()
     def test_window_page_is_accessible_at_minimum_size_and_stops_network_on_close(self):
         from deadlock_fps.ui import Window
-        with patch('deadlock_fps.update_ui.UpdateStore',return_value=self.store):window=Window()
-        window.guard_timer.stop();window.servers.activate=lambda:None;window.resize(940,680);window.show();window.navigate(6);self.app.processEvents()
-        self.assertEqual(window.stack.currentIndex(),6);self.assertFalse(window.hero.isVisible());self.assertFalse(window.actionbar.isVisible());self.assertTrue(window.updates.download_button.isVisible());self.assertFalse(window.update_startup_timer.isActive())
-        for button in window.nav:
-            self.assertGreaterEqual(button.y(),0);self.assertLessEqual(button.y()+button.height(),window.height())
+        with patch('deadlock_fps.pages.update.UpdateStore',return_value=self.store):window=Window()
+        window.guard_timer.stop();window.servers.activate=lambda:None;window.resize(940,680);window.show();window.navigate('settings.update');self.app.processEvents()
+        self.assertEqual(window.current_slot,'settings');self.assertTrue(window.updates.download_button.isVisible());self.assertFalse(window.update_startup_timer.isActive())
+        # Every sidebar entry fits inside the sidebar at the minimum window size.
+        from PySide6.QtCore import QPoint
+        for button in window.nav.values():
+            top=button.mapTo(window.sidebar,QPoint(0,0)).y();self.assertGreaterEqual(top,0);self.assertLessEqual(top+button.height(),window.sidebar.height())
         manager=Manager();window.updates.client.manager=manager;window.updates.check();reply=manager.replies[-1];window.close();self.assertTrue(reply.aborted);self.assertFalse(window.updates.client.busy)
 
 if __name__=='__main__':unittest.main()

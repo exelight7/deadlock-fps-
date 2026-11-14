@@ -52,7 +52,7 @@ def platform_key(system=None,machine=None):
 def checked_url(value,path):
     if not isinstance(value,str):raise ValueError(tr('رابط الإصدار غير صالح.'))
     u=urlsplit(value)
-    if u.scheme!='https' or u.netloc!='github.com' or u.query or u.fragment or unquote(u.path)!=path:raise ValueError(tr('رابط إصدار خارج مستودع Toolbox المعتمد.'))
+    if u.scheme!='https' or u.netloc!='github.com' or u.query or u.fragment or unquote(u.path)!=path:raise ValueError(tr('رابط إصدار خارج مصدر Toolbox المعتمد.'))
     return value
 
 @dataclass(frozen=True)

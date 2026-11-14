@@ -32,6 +32,6 @@ class ExtendedLevels(unittest.TestCase):
             studio.restore();self.assertEqual(gi.read_bytes(),original);self.assertEqual(video.read_bytes(),original_video)
     def test_interface_above_150_keeps_aspect_independent(self):
         app=QApplication.instance() or QApplication([]);w=Window();w.guard_timer.stop();w.aspect.setValue(250)
-        self.assertEqual(w.level.maximum(),200)
-        w.level.setValue(175);self.assertEqual(w.settings().level,175);self.assertIn('175/200',w.level_title.text())
-        w.level.setValue(200);self.assertEqual(w.settings().aspect_ratio,2.5);self.assertIn('200/200',w.level_title.text());w.close()
+        self.assertEqual(w.level.maximum,200)
+        w.level.setValue(175);self.assertEqual(w.settings().level,175);self.assertIn('175 / 200',w.level_page.level_number.text())
+        w.level.setValue(200);self.assertEqual(w.settings().aspect_ratio,2.5);self.assertIn('200 / 200',w.level_page.level_number.text());w.close()

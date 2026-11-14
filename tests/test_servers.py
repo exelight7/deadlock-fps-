@@ -110,5 +110,5 @@ class Interface(unittest.TestCase):
         from PySide6.QtWidgets import QApplication
         from deadlock_fps.ui import Window
         app=QApplication.instance() or QApplication([]);w=Window();w.guard_timer.stop()
-        self.assertEqual(w.windowTitle(),'Deadlock Toolbox');w.navigate(4);self.assertEqual(w.stack.currentIndex(),4)
-        self.assertGreater(w.servers.table.rowCount(),10);self.assertIn('السيرفرات',w.nav[4].text());w.close()
+        self.assertEqual(w.windowTitle(),'Deadlock Toolbox');w.navigate('servers');self.assertEqual(w.current_slot,'servers')
+        self.assertGreater(w.servers.table.rowCount(),10);self.assertIn('السيرفرات',w.nav['servers'].text());w.close()

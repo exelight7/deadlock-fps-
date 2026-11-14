@@ -1,0 +1,159 @@
+/* Redesign components (Phase 2). A template: a token name in braces is filled by shell/theme.py from tokens.json.
+   Widgets carry a `component` property (the name from 04 Components) and optional `variant`, `size`, `state`.
+   Painted widgets (Switch, Slider, Bar, ConfidenceBar, Spinner, Skeleton) read the theme directly. */
+
+QMainWindow { background: {color.bg.app}; }
+
+*[component="Button"] {
+  min-height: {size.control.md}; padding: 0 {space.4}; border-radius: {radius.md};
+  border: {border.width} solid {color.border.default}; background: {color.bg.surface}; color: {color.text.primary};
+  font-size: {font.size.body}; font-weight: 500;
+}
+*[component="Button"]:hover { background: {color.bg.hover}; }
+*[component="Button"]:pressed { background: {color.bg.pressed}; }
+*[component="Button"]:focus { border: {border.width.focus} solid {color.border.focus}; }
+*[component="Button"]:disabled { background: {color.bg.surface}; color: {color.text.disabled}; border-color: {color.border.subtle}; }
+*[component="Button"][size="sm"] { min-height: {size.control.sm}; padding: 0 {space.3}; font-size: {font.size.body-sm}; }
+*[component="Button"][size="lg"] { min-height: {size.control.lg}; padding: 0 {space.5}; }
+*[component="Button"][variant="primary"] { background: {color.accent.fill}; border-color: {color.accent.fill}; color: {color.text.on-accent}; }
+*[component="Button"][variant="primary"]:hover { background: {color.accent.fill-hover}; }
+*[component="Button"][variant="primary"]:pressed { background: {color.accent.fill-pressed}; }
+*[component="Button"][variant="ghost"] { background: transparent; border-color: transparent; }
+*[component="Button"][variant="ghost"]:hover { background: {color.bg.hover}; }
+*[component="Button"][variant="danger"] { background: {color.danger.fill}; border-color: {color.danger.fill}; color: {color.text.on-accent}; }
+*[component="Button"][variant="danger"]:hover { background: {color.danger.fill-hover}; }
+*[component="Button"][variant="danger-quiet"] { background: transparent; border-color: {color.danger.border}; color: {color.danger.text}; }
+*[component="Button"][variant="primary"]:disabled, *[component="Button"][variant="danger"]:disabled { background: {color.bg.raised}; border-color: {color.bg.raised}; color: {color.text.disabled}; }
+
+*[component="IconButton"] { min-width: {size.control.md}; max-width: {size.control.md}; min-height: {size.control.md}; max-height: {size.control.md};
+  padding: 0; border-radius: {radius.md}; border: {border.width} solid {color.border.default}; background: {color.bg.surface}; }
+*[component="IconButton"][variant="ghost"] { border-color: transparent; background: transparent; }
+*[component="IconButton"]:hover { background: {color.bg.hover}; }
+*[component="IconButton"][size="sm"] { min-width: {size.control.sm}; max-width: {size.control.sm}; min-height: {size.control.sm}; max-height: {size.control.sm}; }
+*[component="LinkButton"] { border: none; background: transparent; color: {color.text.link}; padding: 0; font-size: {font.size.body}; font-weight: 500; text-align: left; }
+*[component="LinkButton"]:hover { text-decoration: underline; }
+
+*[component="Menu"] { background: {color.bg.raised}; border: {border.width} solid {color.border.default}; border-radius: {radius.md}; padding: {space.1}; color: {color.text.primary}; }
+*[component="Menu"]::item { min-height: 32px; padding: 0 {space.3}; border-radius: {radius.sm}; }
+*[component="Menu"]::item:selected { background: {color.bg.hover}; }
+*[component="Menu"]::separator { height: 1px; background: {color.border.subtle}; margin: {space.1} 0; }
+
+*[component="TextField"], *[component="SearchField"], *[component="PathField"], *[component="Select"] {
+  min-height: {size.control.md}; padding: 0 {space.3}; border-radius: {radius.md};
+  border: {border.width} solid {color.border.control}; background: {color.bg.sunken}; color: {color.text.primary};
+  font-size: {font.size.body}; selection-background-color: {color.accent.fill}; selection-color: {color.text.on-accent};
+}
+*[component="TextField"]:focus, *[component="SearchField"]:focus, *[component="PathField"]:focus, *[component="Select"]:focus { border: {border.width.focus} solid {color.border.focus}; }
+*[component="TextField"][state="error"] { border-color: {color.danger.text}; }
+*[component="TextField"]:disabled, *[component="Select"]:disabled { color: {color.text.disabled}; }
+*[component="Select"]::drop-down { border: none; width: {space.6}; }
+*[component="Select"] QAbstractItemView { background: {color.bg.raised}; border: {border.width} solid {color.border.default}; color: {color.text.primary}; selection-background-color: {color.bg.hover}; }
+*[component="PathField"] { font-family: {font.family.mono}; }
+*[component="FieldLabel"] { color: {color.text.secondary}; font-size: {font.size.body-sm}; }
+*[component="FieldHelp"] { color: {color.text.muted}; font-size: {font.size.caption}; }
+*[component="FieldHelp"][state="error"] { color: {color.danger.text}; }
+
+*[component="Checkbox"] { color: {color.text.primary}; font-size: {font.size.body}; spacing: {space.2}; }
+*[component="Checkbox"]::indicator { width: 18px; height: 18px; border-radius: 5px; border: {border.width} solid {color.border.control}; background: {color.bg.sunken}; }
+*[component="Checkbox"]::indicator:checked { background: {color.accent.fill}; border-color: {color.accent.fill}; }
+
+*[component="SegmentedControl"] { background: {color.bg.sunken}; border-radius: {radius.md}; }
+*[component="Segment"] { min-height: {size.control.sm}; padding: 0 {space.3}; border: none; border-radius: {radius.sm}; background: transparent; color: {color.text.secondary}; font-size: {font.size.body-sm}; }
+*[component="Segment"]:checked { background: {color.bg.raised}; color: {color.text.primary}; }
+
+*[component="Chip"] { min-height: {size.control.sm}; padding: 0 {space.3}; border-radius: 14px; border: {border.width} solid {color.border.default}; background: transparent; color: {color.text.secondary}; font-size: {font.size.body-sm}; }
+*[component="Chip"]:checked { background: {color.accent.tint}; border-color: {color.accent.tint}; color: {color.accent.text}; }
+
+*[component="Card"], *[component="DoorCard"], *[component="ModCard"], *[component="StatTile"] { background: {color.bg.surface}; border: {border.width} solid {color.border.subtle}; border-radius: {radius.lg}; }
+*[component="Card"][dashed="true"] { border-style: dashed; border-color: {color.border.control}; background: {color.bg.sunken}; }
+*[component="Card"][dashed="true"][dragging="true"] { border-color: {color.success.border}; background: {color.success.tint}; }
+*[component="Card"][clickable="true"]:hover, *[component="DoorCard"]:hover, *[component="ModCard"]:hover { border-color: {color.border.control}; }
+*[component="ModCard"][state="selected"] { border-color: {color.accent.fill}; }
+*[component="CardTitle"] { color: {color.text.primary}; font-size: {font.size.subtitle}; font-weight: 600; }
+*[component="CardText"] { color: {color.text.secondary}; font-size: {font.size.body}; }
+*[component="DoorIcon"] { min-width: 40px; max-width: 40px; min-height: 40px; max-height: 40px; border-radius: {radius.md}; background: {color.accent.tint}; }
+*[component="RowIcon"] { min-width: 32px; max-width: 32px; min-height: 32px; max-height: 32px; border-radius: 16px; background: {color.bg.raised}; }
+*[component="RowIcon"][tone="danger"] { background: {color.danger.tint}; }
+*[component="RowIcon"][tone="warning"] { background: {color.warning.tint}; }
+*[component="RowIcon"][tone="info"] { background: {color.info.tint}; }
+*[component="RowIcon"][tone="success"] { background: {color.success.tint}; }
+*[component="StatValue"] { color: {color.text.primary}; font-size: {font.size.title}; font-weight: 600; }
+*[component="CardTitle"][tone="danger"] { color: {color.danger.text}; }
+*[component="CardTitle"][tone="success"] { color: {color.success.text}; }
+*[component="CardTitle"][tone="info"] { color: {color.accent.text}; }
+*[component="StatusText"] { color: {color.text.secondary}; font-size: {font.size.body-sm}; }
+*[component="StatusText"][tone="danger"] { color: {color.danger.text}; }
+*[component="StatusText"][tone="warning"] { color: {color.warning.text}; }
+*[component="Muted"] { color: {color.text.muted}; font-size: {font.size.body-sm}; }
+*[component="ModPicture"] { background: {color.bg.raised}; border-top-left-radius: {radius.lg}; border-top-right-radius: {radius.lg}; }
+
+*[component="Tabs"] { border-bottom: {border.width} solid {color.border.subtle}; }
+*[component="Tab"] { min-height: {size.control.md}; padding: 0 {space.3}; border: none; border-bottom: 2px solid transparent; background: transparent; color: {color.text.secondary}; font-size: {font.size.body}; }
+*[component="Tab"]:hover { color: {color.text.primary}; background: transparent; border: none; border-bottom: 2px solid transparent; }
+*[component="Tab"]:checked, *[component="Tab"]:checked:hover { color: {color.text.primary}; background: transparent; border: none; border-bottom: 2px solid {color.accent.fill}; }
+
+*[component="Sidebar"] { background: {color.bg.sidebar}; border: none; }
+*[component="SidebarTitle"] { color: {color.text.primary}; font-size: {font.size.subtitle}; font-weight: 600; }
+*[component="NavItem"] { min-height: 40px; padding: 0 {space.3}; border: none; border-radius: {radius.md}; background: transparent; color: {color.text.secondary}; font-size: {font.size.body}; text-align: left; }
+*[component="NavItem"]:hover { background: {color.bg.hover}; color: {color.text.primary}; }
+*[component="NavItem"]:checked { background: {color.accent.tint}; color: {color.accent.text}; }
+*[component="TopBar"] { background: transparent; }
+*[component="PageTitle"] { color: {color.text.primary}; font-size: {font.size.title}; font-weight: 600; }
+*[component="GamePill"] { min-height: {size.control.sm}; padding: 0 {space.3}; border-radius: 14px; border: {border.width} solid {color.border.default}; background: {color.bg.surface}; color: {color.text.secondary}; font-size: {font.size.body-sm}; }
+*[component="GamePill"][state="linked"] { border-color: {color.success.border}; color: {color.success.text}; background: {color.success.tint}; }
+*[component="GamePill"][state="running"] { border-color: {color.warning.border}; color: {color.warning.text}; background: {color.warning.tint}; }
+*[component="ActionBar"] { background: {color.bg.surface}; border-top: {border.width} solid {color.border.subtle}; }
+
+*[component="Sheet"], *[component="Dialog"], *[component="Toast"] { background: {color.bg.raised}; border: {border.width} solid {color.border.default}; border-radius: {radius.lg}; color: {color.text.primary}; }
+*[component="Sheet"] { border-radius: 0; }
+*[component="Scrim"] { background: {color.bg.scrim}; }
+*[component="DialogTitle"] { color: {color.text.primary}; font-size: {font.size.subtitle}; font-weight: 600; }
+
+*[component="DataTable"] { background: {color.bg.surface}; border: none; color: {color.text.primary}; gridline-color: transparent; font-size: {font.size.body}; selection-background-color: {color.bg.selected}; selection-color: {color.text.primary}; }
+*[component="DataTable"] QHeaderView::section { background: {color.bg.surface}; color: {color.text.muted}; border: none; border-bottom: {border.width} solid {color.border.subtle}; padding: {space.2}; font-size: {font.size.body-sm}; font-weight: 500; }
+*[component="DataTable"]::item { border-bottom: {border.width} solid {color.border.subtle}; padding: 0 {space.2}; }
+*[component="List"] { background: {color.bg.surface}; border: {border.width} solid {color.border.subtle}; border-radius: {radius.lg}; }
+*[component="List"][variant="flat"] { background: transparent; border: none; border-radius: 0; }
+*[component="ListRow"] { border: none; border-bottom: {border.width} solid {color.border.subtle}; }
+*[component="ListRow"][last="true"] { border-bottom: none; }
+*[component="RowTitle"] { color: {color.text.primary}; font-size: {font.size.body}; font-weight: 500; }
+*[component="KeyLabel"] { color: {color.text.muted}; font-size: {font.size.body-sm}; }
+*[component="KeyValueValue"] { color: {color.text.primary}; font-size: {font.size.body}; }
+
+*[component="Badge"] { min-height: 22px; padding: 0 {space.2}; border-radius: 11px; font-size: {font.size.caption}; font-weight: 500; background: {color.bg.raised}; color: {color.text.secondary}; border: {border.width} solid {color.border.default}; }
+*[component="Badge"][variant="success"] { background: {color.success.tint}; color: {color.success.text}; border-color: {color.success.border}; }
+*[component="Badge"][variant="warning"] { background: {color.warning.tint}; color: {color.warning.text}; border-color: {color.warning.border}; }
+*[component="Badge"][variant="danger"] { background: {color.danger.tint}; color: {color.danger.text}; border-color: {color.danger.border}; }
+*[component="Badge"][variant="info"] { background: {color.info.tint}; color: {color.info.text}; border-color: {color.info.border}; }
+*[component="Badge"][variant="count"] { background: {color.accent.fill}; color: {color.text.on-accent}; border-color: {color.accent.fill}; }
+
+*[component="Banner"] { border-radius: {radius.md}; border: {border.width} solid {color.info.border}; background: {color.info.tint}; }
+*[component="Banner"][variant="success"] { border-color: {color.success.border}; background: {color.success.tint}; }
+*[component="Banner"][variant="warning"] { border-color: {color.warning.border}; background: {color.warning.tint}; }
+*[component="Banner"][variant="danger"] { border-color: {color.danger.border}; background: {color.danger.tint}; }
+*[component="BannerTitle"] { color: {color.text.primary}; font-size: {font.size.body}; font-weight: 600; }
+
+*[component="ProgressBar"] { min-height: 6px; max-height: 6px; border: none; border-radius: 3px; background: {color.bg.sunken}; }
+*[component="ProgressBar"]::chunk { border-radius: 3px; background: {color.accent.fill}; }
+
+*[component="EmptyState"] { background: transparent; }
+*[component="EmptyIcon"] { min-width: 56px; max-width: 56px; min-height: 56px; max-height: 56px; border-radius: 28px; background: {color.bg.raised}; }
+*[component="EmptyState"][variant="danger"] *[component="EmptyIcon"] { background: {color.danger.tint}; }
+*[component="EmptyTitle"] { color: {color.text.primary}; font-size: {font.size.subtitle}; font-weight: 600; }
+
+/* Scroll bars: thin, rounded, quiet until pointed at. */
+QScrollBar:vertical { background: transparent; width: 12px; margin: 2px; }
+QScrollBar::handle:vertical { background: {color.border.control}; min-height: 32px; border-radius: 4px; margin: 0 2px; }
+QScrollBar::handle:vertical:hover { background: {color.text.muted}; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: transparent; }
+QScrollBar:horizontal { background: transparent; height: 12px; margin: 2px; }
+QScrollBar::handle:horizontal { background: {color.border.control}; min-width: 32px; border-radius: 4px; margin: 2px 0; }
+QScrollBar::handle:horizontal:hover { background: {color.text.muted}; }
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal { background: transparent; }
+
+QPlainTextEdit { background: {color.bg.sunken}; color: {color.text.primary}; border: {border.width} solid {color.border.default}; border-radius: {radius.md}; padding: {space.2}; font-size: {font.size.body-sm}; }
+
+QDoubleSpinBox, QSpinBox { background: {color.bg.surface}; color: {color.text.primary}; border: {border.width} solid {color.border.control}; border-radius: {radius.md}; min-height: {size.control.sm}; padding: 0 {space.2}; }
+QDoubleSpinBox:focus, QSpinBox:focus { border: {border.width.focus} solid {color.border.focus}; }

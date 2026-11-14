@@ -1,6 +1,8 @@
 from .i18n import tr
 from dataclasses import dataclass, asdict
 MAX_LEVEL = 200
+# Settings with their own controls (frame rate, view width): a level never decides them, so they cannot be left out.
+PROTECTED_SKIP = frozenset({'fps_max','fps_max_ui','r_aspectratio'})
 @dataclass
 class Settings:
     preset: str = 'performance'
@@ -16,11 +18,14 @@ class Settings:
     engine: bool = True
     mods: tuple = ()
     aspect_ratio: float | None = None
+    skip: tuple = ()          # names of settings left at Valve's own value (see perf.knowledge); empty means the whole level is written
     def validate(self):
         if type(self.level) is not int or not 0<=self.level<=MAX_LEVEL or not 0<=self.textures<=4 or not 0<=self.particles<=2 or not 0<=self.fps<=500:
             raise ValueError('Graphics settings outside allowed range')
         if self.aspect_ratio is not None and (type(self.aspect_ratio) not in (int,float) or not 1.78<=self.aspect_ratio<=3.50):
             raise ValueError(tr('نسبة الأبعاد يجب أن تكون بين 1.78 و3.50.'))
+        if not isinstance(self.skip,(tuple,list)) or len(self.skip)>200 or any(type(n) is not str or not 0<len(n)<=80 or not n.replace('_','').isalnum() or n in PROTECTED_SKIP for n in self.skip):
+            raise ValueError('Unknown setting to leave out')
         if 'names' in self.mods and 'health' in self.mods: raise ValueError(tr('مود إزالة الأسماء يتعارض مع مود شريط الصحة القديم؛ اختر أحدهما.'))
         if any(m not in MODS for m in self.mods): raise ValueError('Unknown mod')
     @classmethod
@@ -34,6 +39,7 @@ class Settings:
     def from_dict(cls, data):
         # 1.0.0 profile imports deliberately discard every old resolution control.
         data = {k:v for k,v in data.items() if k not in {'scale','width','height'}}
+        if 'skip' in data: data['skip'] = tuple(data['skip']) if isinstance(data['skip'],(list,tuple)) else data['skip']   # JSON gives a list
         result=cls(**data);result.validate();return result
 
 MODS = {
@@ -127,6 +133,11 @@ def values(s):
     if s.level>=200:
         convars['r_physics_particle_op_spawn_scale']='0'
     if s.aspect_ratio is not None:convars['r_aspectratio']=f'{s.aspect_ratio:.2f}'
+    if s.skip:   # settings the user chose to leave at Valve's value are written nowhere: not in gameinfo.gi, not in video.txt
+        left_out=set(s.skip)
+        video={k:v for k,v in video.items() if k.removeprefix('setting.') not in left_out}
+        convars={k:v for k,v in convars.items() if k not in left_out}
+        scene={k:v for k,v in scene.items() if k not in left_out}
     return video,convars,scene
 
 TEXTURE_LABELS = [tr("خامات مفصلة"), tr("تخفيف بسيط"), tr("تخفيف متوسط"), tr("خامات بسيطة"), tr("أبسط خامات • أقصى تخفيف")]

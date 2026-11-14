@@ -55,7 +55,8 @@ class Operations(unittest.TestCase):
             with self.assertRaises(ValueError):self.studio.plan(Settings())
     def test_symlink_outside_game_rejected(self):
         target=Path(self.temp.name)/'outside';target.mkdir()
-        (self.root/'game/citadel/fps_studio').symlink_to(target,target_is_directory=True)
+        try:(self.root/'game/citadel/fps_studio').symlink_to(target,target_is_directory=True)
+        except OSError as error:self.skipTest(f'cannot create a symlink here: {error}')
         with self.assertRaises(ValueError):self.studio.plan(Settings())
     def test_mods_conflict_rejected(self):
         with self.assertRaises(ValueError):Settings(mods=('names','health')).validate()

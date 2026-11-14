@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="dark" data-accent="blue">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deadlock Toolbox: redesign prototype</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<!-- Prototype controls. They are not part of the app. -->
+<div class="proto">
+  <b>Prototype</b>
+  <label>Page <select id="c-page">
+    <option value="home">Home</option><option value="mods">Mods</option><option value="performance">Performance</option>
+    <option value="stats">Stats</option><option value="crosshair">Crosshair</option><option value="servers">Servers</option>
+    <option value="backups">Backups</option><option value="settings">Settings</option><option value="map">Project map</option>
+  </select></label>
+  <label>State <select id="c-state"><option value="filled">Filled</option><option value="empty">Empty</option><option value="loading">Loading</option><option value="error">Error</option></select></label>
+  <label>Language <select id="c-lang"><option value="en">English</option><option value="ar">العربية (RTL)</option></select></label>
+  <label>Theme <select id="c-theme"><option value="dark">Dark</option><option value="light">Light</option></select></label>
+  <label>Accent <select id="c-accent"><option value="blue">Blue</option><option value="violet">Violet</option><option value="orange">Orange</option></select></label>
+  <label>Window <select id="c-size"><option value="std">1180 × 760</option><option value="min">940 × 680 (minimum)</option></select></label>
+  <a href="components.html">Components</a>
+</div>
+<div class="stage"><div id="window" class="window"></div></div>
+<script src="app.js"></script>
+<script src="pages-main.js"></script>
+<script src="pages-more.js"></script>
+<script>boot();</script>
+</body>
+</html>

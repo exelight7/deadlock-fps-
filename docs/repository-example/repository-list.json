@@ -1,0 +1,8 @@
+{
+  "schema": "deadlock-mod-repository-list",
+  "schema_version": "1.0",
+  "repositories": [
+    { "url": "https://github.com/owner/repository", "name": "Owner's mods" },
+    { "url": "https://mods.example.org/", "provider": "https" }
+  ]
+}

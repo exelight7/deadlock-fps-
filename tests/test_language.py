@@ -24,19 +24,19 @@ from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QCheckBox
 app = QApplication([])
 app.setLayoutDirection(Qt.RightToLeft if i18n.rtl() else Qt.LeftToRight)
 with tempfile.TemporaryDirectory() as folder, patch('deadlock_fps.ui.QStandardPaths.writableLocation', return_value=folder), \
-        patch('deadlock_fps.ui.detect_games', return_value=[]), patch('deadlock_fps.mods.ModLibrary.discover', return_value=[]):
+        patch('deadlock_fps.game_link.detect_games', return_value=[]), patch('deadlock_fps.mods.ModLibrary.discover', return_value=[]):
     from deadlock_fps.ui import Window
     w = Window(); w.guard_timer.stop(); w.detect_timer.stop(); w.servers.activate = lambda: None
     arabic = re.compile('[ء-ي]{2,}')
     leaks = set()
-    for page in range(9):
-        w.navigate(page)
-        assert w.stack.currentIndex() == page
+    for address in w.registry.addresses():
+        w.navigate(address)
+        assert w.stack.currentWidget() is w.slots[w.current_slot]
     for widget in w.findChildren(QLabel) + w.findChildren(QPushButton) + w.findChildren(QCheckBox):
         if arabic.search(widget.text()):
             leaks.add(widget.text())
     print('LANG', i18n.LANGUAGE, 'RTL', w.layoutDirection() == Qt.RightToLeft, 'CROSSHAIR_RTL', w.crosshair.layoutDirection() == Qt.RightToLeft)
-    print('NAV', w.nav[0].text(), '|', w.nav[8].text())
+    print('NAV', w.nav['home'].text(), '|', w.nav['settings'].text())
     print('LEAKS', len(leaks), sorted(leaks)[:5])
     w.close()
 '''

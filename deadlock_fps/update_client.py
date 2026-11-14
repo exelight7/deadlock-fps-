@@ -96,7 +96,7 @@ class UpdateClient(QObject):
                 release=self.store.unchanged();self._idle();self.found.emit(release,False);return
             if status!=200 or reply.error()!=QNetworkReply.NoError:
                 if status==403 or status==429:raise ValueError(tr('وصل GitHub لحد الطلبات. انتظر قليلًا ثم أعد الفحص.'))
-                if status==404:raise ValueError(tr('لا يوجد إصدار عام متاح في المستودع حاليًا.'))
+                if status==404:raise ValueError(tr('لا يوجد إصدار عام متاح في المصدر حاليًا.'))
                 raise ValueError(tr('تعذر الاتصال بـ GitHub. تحقق من الإنترنت ثم أعد المحاولة. ')+reply.errorString())
             if self.phase=='check':
                 data=json.loads(bytes(self.buffer).decode('utf-8'));etag=bytes(reply.rawHeader('ETag')).decode('utf-8')

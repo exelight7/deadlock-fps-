@@ -3,7 +3,8 @@ from pathlib import Path
 import subprocess,sys,shutil
 root=Path(__file__).parent.resolve()
 subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--windowed','--onedir',
- '--name','DeadlockToolbox','--icon',str(root/'assets/app.ico'),'--add-data',f'{root / "assets"}:assets',str(root/'main.py')],cwd=root,check=True)
+ '--name','DeadlockToolbox','--icon',str(root/'assets/app.ico'),'--add-data',f'{root / "assets"}:assets','--add-data',f'{root / "vault"}:vault',
+ '--add-data',f'{root / "deadlock_fps/shell/tokens.json"}:deadlock_fps/shell','--add-data',f'{root / "deadlock_fps/shell/style.qss"}:deadlock_fps/shell',str(root/'main.py')],cwd=root,check=True)
 folder=root/'dist/DeadlockToolbox'
 shutil.copytree(root/'docs',folder/'docs',dirs_exist_ok=True)
 for name in ['LICENSE','THIRD_PARTY.md','README.md']:shutil.copy2(root/name,folder/name)
